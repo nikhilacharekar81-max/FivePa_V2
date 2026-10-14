@@ -33027,10 +33027,10 @@ function processAutoAcceptOrders(customNow) {
     if (isNaN(deliveredAt)) continue;
     if (now - deliveredAt < windowMs) continue;
     if (Array.isArray(order.revisions)) {
-      const hasRevisionOnVersion = order.revisions.some(
-        (r) => r.deliveryVersion === latestDelivery.version || r.status === "requested"
+      const hasActiveRequestedRevision = order.revisions.some(
+        (r) => r.status === "requested"
       );
-      if (hasRevisionOnVersion) continue;
+      if (hasActiveRequestedRevision) continue;
     }
     if (order.status === "disputed") continue;
     const hasDispute = disputes.some(

@@ -4192,12 +4192,12 @@ export function processAutoAcceptOrders(customNow?: number): Array<{
     // 3. Stays in 'delivered' for REVIEW_WINDOW_DAYS
     if (now - deliveredAt < windowMs) continue;
 
-    // 4. Must have no revision request on this delivery version (or pending)
+    // 4. Must have no active requested revision
     if (Array.isArray(order.revisions)) {
-      const hasRevisionOnVersion = order.revisions.some(
-        r => r.deliveryVersion === latestDelivery.version || r.status === 'requested'
+      const hasActiveRequestedRevision = order.revisions.some(
+        r => r.status === 'requested'
       );
-      if (hasRevisionOnVersion) continue;
+      if (hasActiveRequestedRevision) continue;
     }
 
     // 5. Must skip disputed orders
