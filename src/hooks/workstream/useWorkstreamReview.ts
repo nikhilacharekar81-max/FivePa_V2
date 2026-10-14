@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Order, Message, Review } from '../../types';
+import { getAuthToken } from '../../utils/authToken';
 
 export interface UseWorkstreamReviewProps {
   selectedOrder?: Order | null;
@@ -75,7 +76,7 @@ export function useWorkstreamReview({
 
     setIsSubmittingReview(true);
     try {
-      const token = localStorage.getItem('workperhour_token') || localStorage.getItem('token');
+      const token = getAuthToken();
       const res = await fetch('/api/reviews', {
         method: 'POST',
         headers: {

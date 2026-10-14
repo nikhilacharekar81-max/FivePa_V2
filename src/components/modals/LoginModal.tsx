@@ -1,6 +1,7 @@
 import React from 'react';
 import { ShieldCheck } from 'lucide-react';
 import { UserAccount } from '../../types';
+import { setAuthToken } from '../../utils/authToken';
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -151,8 +152,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                     });
                     const data = await res.json();
                     if (data.token) {
-                      localStorage.setItem('workperhour_token', data.token);
-                      localStorage.setItem('token', data.token);
+                      setAuthToken(data.token);
                     }
                     updateCurrentUser(data.user || u);
                   } catch {

@@ -31431,7 +31431,6 @@ function resolveAuthenticatedUserId(req) {
   if (authUser && typeof authUser === "string" && authUser.trim()) {
     return authUser.trim();
   }
-  return null;
 }
 var emailVerificationCodes = /* @__PURE__ */ new Map();
 var smsVerificationCodes = /* @__PURE__ */ new Map();

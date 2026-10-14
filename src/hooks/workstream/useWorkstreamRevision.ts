@@ -1,4 +1,5 @@
 import { Order, Message } from '../../types';
+import { getAuthToken } from '../../utils/authToken';
 
 export interface UseWorkstreamRevisionProps {
   selectedOrder?: Order | null;
@@ -21,7 +22,7 @@ export function useWorkstreamRevision({
     if (!selectedOrder) return false;
 
     try {
-      const token = localStorage.getItem('workperhour_token') || localStorage.getItem('token');
+      const token = getAuthToken();
       const res = await fetch(`/api/orders/${selectedOrder.id}/revision`, {
         method: 'POST',
         headers: {

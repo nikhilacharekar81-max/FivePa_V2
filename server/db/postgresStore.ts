@@ -21,13 +21,7 @@ export class PostgresStore implements StoreInterface {
     }
   }
 
-  getOrder(id: string): Order | undefined {
-    // Note: StoreInterface methods are synchronous in JsonFileStore.
-    // For PgStore, when called synchronously where async isn't awaited, we can maintain an in-memory cache or handle via async loaders.
-    // However, to strictly satisfy StoreInterface methods returning T or Promise<T>, let's support both sync cache or async where supported.
-    // Wait, let's look at how routes use store methods.
-    return undefined;
-  }
+
 
   // To support PostgreSQL asynchronously while keeping interface compatible or making methods return promises / using synchronous cache for reads:
   // Actually, let's implement async methods or maintain a hybrid cache for high-frequency synchronous callers, 

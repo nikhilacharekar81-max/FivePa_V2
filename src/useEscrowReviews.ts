@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Review, Order, Message } from './types';
+import { getAuthToken } from './utils/authToken';
 
 interface UseEscrowReviewsProps {
   selectedOrder: Order | null;
@@ -46,7 +47,7 @@ export function useEscrowReviews({
 
     // 3. Create real Review object linked to the freelancer via POST /api/reviews
     try {
-      const token = localStorage.getItem('workperhour_token') || localStorage.getItem('token');
+      const token = getAuthToken();
       const res = await fetch('/api/reviews', {
         method: 'POST',
         headers: {

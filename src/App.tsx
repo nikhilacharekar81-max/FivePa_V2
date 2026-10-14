@@ -65,6 +65,7 @@ import {
   UserEmail 
 } from './types';
 import { useEscrowReviews } from './useEscrowReviews';
+import { getAuthToken, setAuthToken } from './utils/authToken';
 
 const CATEGORY_SLUGS: Record<string, string> = {
   'All': 'all',
@@ -102,7 +103,7 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState<UserAccount | null>(() => {
     try {
       const cached = localStorage.getItem('current_user') || localStorage.getItem('user');
-      const token = localStorage.getItem('workperhour_token') || localStorage.getItem('token');
+      const token = getAuthToken();
       if (cached && token) return JSON.parse(cached);
     } catch (e) {}
     return null;
@@ -519,7 +520,7 @@ export default function App() {
   useEffect(() => {
     const handlePopState = () => {
       const newPath = window.location.pathname || '/';
-      if ((newPath.startsWith('/messages') || newPath.startsWith('/workstreams')) && !localStorage.getItem('token') && !localStorage.getItem('workperhour_token')) {
+      if ((newPath.startsWith('/messages') || newPath.startsWith('/workstreams')) && !getAuthToken()) {
         window.history.replaceState({}, '', '/');
         setPath('/');
         setIsLoginModalOpen(true);
@@ -587,12 +588,12 @@ export default function App() {
 
   // Fetch initial data & restore user session
   useEffect(() => {
-    if (window.location.pathname === '/messages' && !localStorage.getItem('token') && !localStorage.getItem('workperhour_token')) {
+    if (window.location.pathname === '/messages' && !getAuthToken()) {
         setPath('/');
         window.history.replaceState({}, '', '/');
         setIsLoginModalOpen(true);
     }
-    const token = localStorage.getItem('workperhour_token') || localStorage.getItem('token');
+    const token = getAuthToken();
     if (token) {
         loadUserSession().then(() => {
           fetchAllAdminData();
@@ -622,7 +623,7 @@ export default function App() {
   };
 
   const loadUserSession = async (): Promise<boolean> => {
-    const token = localStorage.getItem('workperhour_token') || localStorage.getItem('token');
+    const token = getAuthToken();
     if (!token) return false;
     try {
       const res = await fetch('/api/auth/me', {
@@ -666,7 +667,7 @@ export default function App() {
       if (activeUserId) {
         fetchUserEmails(activeUserId);
       }
-      const token = localStorage.getItem('workperhour_token') || localStorage.getItem('token');
+      const token = getAuthToken();
       const authHeaders: Record<string, string> = {
         'x-device-id': getDeviceId(),
         ...(token ? { 'Authorization': `Bearer ${token}` } : {})
@@ -764,7 +765,7 @@ export default function App() {
       // 2. Create an inquiry conversation thread and send initial greeting message
       try {
         const currentUname = impersonatedUser ? impersonatedUser.name : currentUser.name;
-        const token = localStorage.getItem('workperhour_token') || localStorage.getItem('token');
+        const token = getAuthToken();
         const authHeaders = {
           'Content-Type': 'application/json',
           ...(token ? { 'Authorization': `Bearer ${token}` } : {})
@@ -1398,7 +1399,7 @@ export default function App() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Signup failed');
 
-      if (data.token) localStorage.setItem('workperhour_token', data.token);
+      if (data.token) setAuthToken(data.token);
       if (data.user) {
         updateCurrentUser(data.user);
         setImpersonatedUser(null);
@@ -1527,8 +1528,7 @@ export default function App() {
       }
 
       if (data.token) {
-        localStorage.setItem('workperhour_token', data.token);
-        localStorage.setItem('token', data.token);
+        setAuthToken(data.token);
       }
       if (data.user) {
         updateCurrentUser(data.user);
@@ -1713,7 +1713,7 @@ export default function App() {
       return;
     }
     try {
-      const token = localStorage.getItem('workperhour_token') || localStorage.getItem('token');
+      const token = getAuthToken();
       const res = await fetch('/api/orders', {
         method: 'POST',
         headers: { 
@@ -1777,7 +1777,7 @@ export default function App() {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token') || localStorage.getItem('workperhour_token')}`
+          'Authorization': `Bearer ${getAuthToken()}`
         },
         body: JSON.stringify({
           orderId: selectedOrder.id,
@@ -1809,7 +1809,7 @@ export default function App() {
       wsRef.current.send(JSON.stringify(payload));
     } else {
       try {
-        const token = localStorage.getItem('workperhour_token') || localStorage.getItem('token');
+        const token = getAuthToken();
         await fetch(`/api/messages`, {
           method: 'POST',
           headers: { 
@@ -3174,8 +3174,7 @@ export default function App() {
                           });
                           const data = await res.json();
                           if (res.ok && data.token) {
-                            localStorage.setItem('workperhour_token', data.token);
-                            localStorage.setItem('token', data.token);
+                            setAuthToken(data.token);
                             updateCurrentUser(data.user);
                             setImpersonatedUser(null);
                             navigate('/orders');
@@ -3452,8 +3451,7 @@ export default function App() {
                           });
                           const data = await res.json();
                           if (res.ok && data.token) {
-                            localStorage.setItem('workperhour_token', data.token);
-                            localStorage.setItem('token', data.token);
+                            setAuthToken(data.token);
                             updateCurrentUser(data.user);
                             setImpersonatedUser(null);
                             alert(`Switched account to ${u.name} (${u.role})`);
@@ -3627,7 +3625,7 @@ export default function App() {
                       if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
                         wsRef.current.send(JSON.stringify(payload));
                       } else {
-                        const token = localStorage.getItem('workperhour_token') || localStorage.getItem('token');
+                        const token = getAuthToken();
                         fetch(`/api/messages`, {
                           method: 'POST',
                           headers: { 
@@ -3653,7 +3651,7 @@ export default function App() {
                       if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
                         wsRef.current.send(JSON.stringify(payload));
                       } else {
-                        const token = localStorage.getItem('workperhour_token') || localStorage.getItem('token');
+                        const token = getAuthToken();
                         fetch(`/api/messages`, {
                           method: 'POST',
                           headers: { 

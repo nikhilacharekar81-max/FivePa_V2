@@ -1,4 +1,5 @@
 import { Order, Message } from '../../types';
+import { getAuthToken } from '../../utils/authToken';
 
 export interface UseWorkstreamDeliveryProps {
   selectedOrder?: Order | null;
@@ -21,7 +22,7 @@ export function useWorkstreamDelivery({
     if (!selectedOrder) return false;
 
     try {
-      const token = localStorage.getItem('workperhour_token') || localStorage.getItem('token');
+      const token = getAuthToken();
       const res = await fetch(`/api/orders/${selectedOrder.id}/deliverable`, {
         method: 'POST',
         headers: {

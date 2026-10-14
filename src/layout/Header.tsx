@@ -6,6 +6,7 @@ import {
 import { PPH_CATEGORIES } from '../components/HeaderCategoriesNav';
 import { slugify } from '../utils/slugify';
 import type { Order, UserAccount } from '../types';
+import { clearAuthToken } from '../utils/authToken';
 
 export interface HeaderProps {
   navigate: (to: string, e?: React.MouseEvent) => void;
@@ -538,8 +539,7 @@ export function Header({
                     setIsUserDropdownOpen(false);
                     setImpersonatedUser(null);
                     updateCurrentUser(null);
-                    localStorage.removeItem('workperhour_token');
-                    localStorage.removeItem('token');
+                    clearAuthToken();
                     localStorage.removeItem('user');
                     localStorage.removeItem('current_user');
                     setPath('/gigs');

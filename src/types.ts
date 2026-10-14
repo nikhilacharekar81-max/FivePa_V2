@@ -84,70 +84,27 @@ export interface Project {
   buyerMemberSince?: string;
   buyerProjectsPosted?: number;
   attachments?: Array<{ name: string; size: string; url?: string }>;
-  clarificationQuestions?: Array<{
-    id: string;
-    authorName: string;
-    authorAvatar: string;
-    question: string;
-    createdAt: string;
-    answer?: string;
-    answeredAt?: string;
-  }>;
-}
 
-export interface Proposal {
-  id: string;
-  projectId: string;
-  freelancerId: string;
-  freelancerName: string;
-  freelancerAvatar: string;
-  freelancerTitle: string;
-  coverLetter: string;
-  bidAmount: number;
-  deliveryDays: number;
-  createdAt: string;
-  status: 'pending' | 'accepted' | 'rejected';
-}
 
-export interface Order {
-  id: string;
-  title: string;
-  buyerId: string;
-  sellerId: string;
-  amount: number;
-  status: 'funded_in_escrow' | 'in_progress' | 'delivered' | 'completed' | 'disputed' | 'revision' | 'cancelled';
-  createdAt: string;
-  dueDate: string;
-  requirements?: string;
-  deliverables?: string;
-  deliverableFiles?: Array<{ id: string; name: string; url: string; size: string; uploadedAt: string }>;
-  revisions?: Array<{ id: string; requestedAt: string; reason: string; status: string }>;
-  adminNotes?: string;
-  isMuted?: boolean;
-  escrowProtectionStartDate?: string;
-  escrowProtectionEndDate?: string;
-  gigId?: string;
-  projectId?: string;
-  serviceUrl?: string;
-  gigSlug?: string;
-  sellerUsername?: string;
-  buyerUsername?: string;
-  serviceTitle?: string;
-  serviceThumbnail?: string;
-  isTimerPaused?: boolean;
-  feeBreakdown?: OrderFeeBreakdown;
-  deliveryHistory?: Array<{
-    version: number;
-    notes: string;
-    files: Array<{ id: string; name: string; size: string; url: string; uploadedAt?: string }>;
-    deliveredAt: string;
-  }>;
-  deliveryNotes?: string;
-  acceptedVersion?: number;
-  reviewWindowDays?: number;
-  reviewWindowExpiresAt?: string;
-  review?: Review;
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 export interface UserAccount {
   id: string;
@@ -253,11 +210,11 @@ export interface InvoiceItem {
   status: 'paid' | 'in_escrow' | 'unpaid' | 'refunded';
   items: Array<{ description: string; quantity: number; unitPrice: number; amount: number }>;
   subtotal: number;
-  serviceFee?: number;      // client service fee charged on top of the subtotal
-  smallOrderFee?: number;   // flat fee for orders under the small-order threshold
-  platformFee: number;      // platform commission taken from the freelancer
+  serviceFee?: number;
+  smallOrderFee?: number;
+  platformFee: number;
   tax: number;
-  total: number;            // what the client paid (subtotal + client fees)
+  total: number;
   notes?: string;
   relatedOrderId?: string;
 }
@@ -314,6 +271,8 @@ export interface Message {
     deliveryVersion?: number;
     requirementText?: string;
     clientMessageId?: string;
+    acceptedVersion?: number;
+    reviewWindowDays?: number;
   };
   status?: 'sending' | 'sent' | 'failed';
 }
@@ -341,4 +300,3 @@ export interface AppNotification {
   read: boolean;
   createdAt: string;
 }
-

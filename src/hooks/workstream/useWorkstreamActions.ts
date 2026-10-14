@@ -1,4 +1,5 @@
 import { Order, UserAccount } from '../../types';
+import { getAuthToken } from '../../utils/authToken';
 
 export interface UseWorkstreamActionsProps {
   currentUser?: UserAccount | null;
@@ -32,7 +33,7 @@ export function useWorkstreamActions({
     const dueDate = new Date(Date.now() + (data.turnaroundDays || 7) * 86400000).toISOString().split('T')[0];
 
     try {
-      const token = localStorage.getItem('workperhour_token') || localStorage.getItem('token');
+      const token = getAuthToken();
       const res = await fetch('/api/orders', {
         method: 'POST',
         headers: {

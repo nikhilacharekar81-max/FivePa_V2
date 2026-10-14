@@ -18,5 +18,3 @@ export { SiteFeeSettingsModule } from './SiteFeeSettingsModule';
 export { PaymentsModule } from './PaymentsModule';
 export { UserWalletsLedgerModule } from './UserWalletsLedgerModule';
 export { AdminOrdersManager } from './AdminOrdersManager';
-
-export { PrivateRoute } from './PrivateRoute';

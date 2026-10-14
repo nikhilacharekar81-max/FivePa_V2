@@ -165,13 +165,7 @@ function resolveAuthenticatedUserId(req: Request): string | null {
   if (authUser && typeof authUser === 'string' && authUser.trim()) {
     return authUser.trim();
   }
-  return null;
 }
-
-const resolveUserId = resolveAuthenticatedUserId;
-
-
-// ==========================================
 // ROBUST USER ACCOUNT SYSTEM & VERIFICATION
 // ==========================================
 

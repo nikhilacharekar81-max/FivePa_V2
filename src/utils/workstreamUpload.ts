@@ -1,4 +1,5 @@
 // src/utils/workstreamUpload.ts
+import { getAuthToken } from './authToken';
 
 const MAX_FILE_SIZE_MB = 25;
 const ALLOWED_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'pdf', 'zip', 'rar', 'tar', 'gz', '7z', 'txt', 'docx', 'xlsx'];
@@ -26,8 +27,8 @@ export async function uploadWorkstreamFile(file: File): Promise<UploadResult> {
     method: 'POST',
     headers: {
       'Content-Type': file.type || 'application/octet-stream',
-      ...((localStorage.getItem('workperhour_token') || localStorage.getItem('token'))
-        ? { 'Authorization': `Bearer ${localStorage.getItem('workperhour_token') || localStorage.getItem('token')}` }
+      ...((getAuthToken())
+        ? { 'Authorization': `Bearer ${getAuthToken()}` }
         : {})
     },
     body: file

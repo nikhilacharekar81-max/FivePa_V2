@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef } from 'react';
 import { Message } from '../../types';
+import { getAuthToken, clearAuthToken } from '../../utils/authToken';
 
 /**
  * Hook responsible for managing workstream messages state, per-workstream cache isolation,
@@ -17,7 +18,7 @@ export function useWorkstreamMessages() {
     activeFetchOrderIdRef.current = orderId;
 
     try {
-      const token = localStorage.getItem('workperhour_token') || localStorage.getItem('token');
+      const token = getAuthToken();
       if (!token) {
         // User is not authenticated; skip fetching messages to prevent 401 errors
         return;
@@ -31,8 +32,7 @@ export function useWorkstreamMessages() {
 
       if (res.status === 401) {
         // Token has expired or is invalid; clear stale credentials cleanly
-        localStorage.removeItem('workperhour_token');
-        localStorage.removeItem('token');
+        clearAuthToken();
         return;
       }
 
@@ -68,7 +68,7 @@ export function useWorkstreamMessages() {
     const activeOrderId = activeFetchOrderIdRef.current;
     if (!activeOrderId || !text.trim()) return;
 
-    const token = localStorage.getItem('workperhour_token') || localStorage.getItem('token');
+    const token = getAuthToken();
     if (!token) return;
     const clientMessageId = 'msg_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6);
 
@@ -127,7 +127,7 @@ export function useWorkstreamMessages() {
     metadata: Record<string, any>,
     onError: (msg: string) => void
   ) => {
-    const token = localStorage.getItem('workperhour_token') || localStorage.getItem('token');
+    const token = getAuthToken();
     const clientMessageId = 'evt_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6);
 
     const tempMessage: Message = {

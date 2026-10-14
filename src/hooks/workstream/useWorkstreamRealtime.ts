@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { Message, Order } from '../../types';
+import { getAuthToken } from '../../utils/authToken';
 
 export interface UseWorkstreamRealtimeProps {
   setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
@@ -24,7 +25,7 @@ export function useWorkstreamRealtime({
 
   useEffect(() => {
     // Authenticate with the signed session token only. Never fall back to a user ID or an admin identity.
-    const token = localStorage.getItem('workperhour_token') || localStorage.getItem('token');
+    const token = getAuthToken();
     if (!token) return;
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const wsUrl = `${protocol}//${window.location.host}?token=${encodeURIComponent(token)}`;

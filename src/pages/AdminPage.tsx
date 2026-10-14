@@ -29,6 +29,7 @@ import {
   AdminCmsModule,
   AdminActivityModule
 } from '../components/admin_modules';
+import { setAuthToken } from '../utils/authToken';
 
 export interface AdminPageProps {
   currentUser: UserAccount | null;
@@ -141,8 +142,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
               }
 
               if (data.token) {
-                localStorage.setItem('workperhour_token', data.token);
-                localStorage.setItem('token', data.token);
+                setAuthToken(data.token);
               }
               if (data.user) {
                 updateCurrentUser(data.user);

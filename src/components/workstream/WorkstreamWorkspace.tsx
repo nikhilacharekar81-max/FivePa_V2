@@ -15,6 +15,7 @@ import { WorkstreamDeliverModal } from './WorkstreamDeliverModal';
 import { WorkstreamRevisionModal } from './WorkstreamRevisionModal';
 import { WorkstreamReviewModal } from './WorkstreamReviewModal';
 import { WorkstreamVideoCallModal } from './WorkstreamVideoCallModal';
+import { getAuthToken } from '../../utils/authToken';
 
 interface WorkstreamWorkspaceProps {
   order: WorkstreamItem;
@@ -148,7 +149,7 @@ export const WorkstreamWorkspace: React.FC<WorkstreamWorkspaceProps> = ({
     }
     // Files are access-controlled, so fetch with the session token and save the blob.
     try {
-      const token = localStorage.getItem('workperhour_token') || localStorage.getItem('token');
+      const token = getAuthToken();
       const downloadUrl = f.url.includes('?') ? `${f.url}&download=1` : `${f.url}?download=1`;
       const res = await fetch(downloadUrl, { headers: token ? { 'Authorization': `Bearer ${token}` } : {} });
       if (!res.ok) {

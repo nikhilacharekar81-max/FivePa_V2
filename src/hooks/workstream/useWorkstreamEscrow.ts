@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Order, Message } from '../../types';
+import { getAuthToken } from '../../utils/authToken';
 
 export interface UseWorkstreamEscrowProps {
   selectedOrder?: Order | null;
@@ -27,7 +28,7 @@ export function useWorkstreamEscrow({
     setEscrowError(null);
     setIsReleasingEscrow(true);
 
-    const token = localStorage.getItem('workperhour_token') || localStorage.getItem('token');
+    const token = getAuthToken();
     const authHeaders = {
       'Content-Type': 'application/json',
       ...(token ? { 'Authorization': `Bearer ${token}` } : {})

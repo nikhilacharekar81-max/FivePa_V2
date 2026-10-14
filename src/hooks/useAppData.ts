@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { UserAccount, Gig, Project, Proposal, Order, Dispute, Refund, Payout, Category, Review, SupportTicket, AuditLog, Message } from '../types';
 import * as DatabaseService from '../services/DatabaseService';
 import { initialUsers, initialGigs, initialProjects, initialOrders } from '../data/mockData';
+import { getAuthToken } from '../utils/authToken';
 
 export const useAppData = () => {
   const [users, setUsers] = useState<UserAccount[]>(initialUsers);
@@ -58,7 +59,7 @@ export const useAppData = () => {
     setIsLoading(true);
     setError(null);
     try {
-      const token = localStorage.getItem('workperhour_token') || localStorage.getItem('token');
+      const token = getAuthToken();
       const authHeaders: Record<string, string> = {
         'x-device-id': getDeviceId(),
         ...(token ? { 'Authorization': `Bearer ${token}` } : {})

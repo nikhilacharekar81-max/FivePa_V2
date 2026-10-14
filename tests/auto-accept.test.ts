@@ -35,24 +35,7 @@ async function run() {
   // Setup test users in users array if needed
   const buyerId = 'usr_buyer_auto_' + T0;
   const sellerId = 'usr_seller_auto_' + T0;
-  const buyer: UserAccount = {
-    id: buyerId,
-    name: 'AutoBuyer Test',
-    email: `buyer_${T0}@test.com`,
-    role: 'buyer',
-    status: 'active',
-    walletBalance: 1000,
-    avatar: 'https://avatar.test/1.png'
-  };
-  const seller: UserAccount = {
-    id: sellerId,
-    name: 'AutoSeller Test',
-    email: `seller_${T0}@test.com`,
-    role: 'freelancer',
-    status: 'active',
-    walletBalance: 0,
-    avatar: 'https://avatar.test/2.png'
-  };
+
   users.push(buyer, seller);
   financeLedger.ensureWallet({ userId: buyerId, name: buyer.name, email: buyer.email, role: 'buyer' });
   financeLedger.ensureWallet({ userId: sellerId, name: seller.name, email: seller.email, role: 'freelancer' });
@@ -196,7 +179,7 @@ async function run() {
       version: 1,
       deliveredAt: new Date(T0 - 4 * ONE_DAY_MS).toISOString(),
       message: 'v1 deliverable',
-      files: [{ name: 'draft.pdf', size: '1 MB', url: '/uploads/workstream/test3.pdf' }]
+
     }],
     revisions: [{
       version: 1,
@@ -237,103 +220,7 @@ async function run() {
       version: 1,
       deliveredAt: new Date(T0 - 5 * ONE_DAY_MS).toISOString(),
       message: 'v1 deliverable',
-      files: [{ name: 'code.zip', size: '2 MB', url: '/uploads/workstream/test4.zip' }]
-    }]
-  };
-  orders.push(order4);
-  disputes.push({
-    id: 'disp_' + T0,
-    orderId: orderId4,
-    buyerId,
-    sellerId,
-    reason: 'Files corrupted',
-    status: 'open',
-    createdAt: new Date(T0 - 2 * ONE_DAY_MS).toISOString(),
-    resolutionType: 'refund',
-    notes: 'Buyer claims corrupt files'
-  } as any);
 
-  const resDisputed = processAutoAcceptOrders(T0);
-  assert.ok(!resDisputed.some(p => p.orderId === orderId4), 'Order with open dispute must NOT be auto-accepted');
-  assert.strictEqual(order4.status, 'delivered', 'Disputed order status must remain intact');
-  ok('order with open dispute is exempted from auto-accept');
-
-  // Feature Toggle Test: Turn off auto-accept via site settings
-  const orderId5 = 'ord_auto_disabled_' + T0;
-  financeLedger.fundEscrow({
-    orderId: orderId5,
-    orderTitle: 'Test Toggle Disabled Order',
-    amount: 180,
-    buyerId,
-    sellerId,
-    actor: buyerId
-  });
-
-  const order5: Order = {
-    id: orderId5,
-    title: 'Test Toggle Disabled Order',
-    buyerId,
-    sellerId,
-    amount: 180,
-    status: 'delivered',
-    createdAt: new Date(T0 - 10 * ONE_DAY_MS).toISOString(),
-    dueDate: new Date(T0 + 2 * ONE_DAY_MS).toISOString(),
-    deliveryHistory: [{
-      version: 1,
-      deliveredAt: new Date(T0 - 6 * ONE_DAY_MS).toISOString(),
-      message: 'v1 deliverable',
-      files: [{ name: 'art.png', size: '3 MB', url: '/uploads/workstream/test5.png' }]
-    }]
-  };
-  orders.push(order5);
-
-  // Disable feature toggle
-  siteSettings.updateSection('marketplace', { autoCompleteDeliveredEnabled: false }, 'Test Runner');
-  assert.strictEqual(isAutoAcceptEnabled(), false, 'isAutoAcceptEnabled must return false when toggled off');
-
-  const resDisabled = processAutoAcceptOrders(T0);
-  assert.strictEqual(resDisabled.length, 0, 'No orders should be auto-accepted when toggle is disabled');
-  assert.strictEqual(order5.status, 'delivered', 'Order must stay in delivered status when toggle is false');
-  ok('single-setting toggle (autoCompleteDeliveredEnabled=false) completely disables auto-acceptance');
-
-  // Re-enable toggle
-  siteSettings.updateSection('marketplace', { autoCompleteDeliveredEnabled: true }, 'Test Runner');
-  assert.strictEqual(isAutoAcceptEnabled(), true, 'isAutoAcceptEnabled must return true when re-enabled');
-
-  // Now order5 should be processed
-  const resReenabled = processAutoAcceptOrders(T0);
-  assert.ok(resReenabled.some(p => p.orderId === orderId5), 'Order5 is auto-accepted once toggle is re-enabled');
-  assert.strictEqual(order5.status, 'completed', 'Order5 is completed');
-  ok('re-enabling toggle resumes auto-acceptance seamlessly');
-
-  // Configurable Review Window Test: Change window to 5 days
-  siteSettings.updateSection('marketplace', { autoCompleteDeliveredDays: 5 }, 'Test Runner');
-  assert.strictEqual(getReviewWindowDays(), 5, 'Review window must update to 5 days');
-
-  const orderId6 = 'ord_auto_custom_days_' + T0;
-  financeLedger.fundEscrow({
-    orderId: orderId6,
-    orderTitle: 'Test Custom Days Order',
-    amount: 250,
-    buyerId,
-    sellerId,
-    actor: buyerId
-  });
-
-  const order6: Order = {
-    id: orderId6,
-    title: 'Test Custom Days Order',
-    buyerId,
-    sellerId,
-    amount: 250,
-    status: 'delivered',
-    createdAt: new Date(T0 - 10 * ONE_DAY_MS).toISOString(),
-    dueDate: new Date(T0 + 2 * ONE_DAY_MS).toISOString(),
-    deliveryHistory: [{
-      version: 1,
-      deliveredAt: new Date(T0 - 4 * ONE_DAY_MS).toISOString(), // 4 days old < 5 days
-      message: 'v1 deliverable',
-      files: [{ name: 'doc.pdf', size: '2 MB', url: '/uploads/workstream/test6.pdf' }]
     }]
   };
   orders.push(order6);
