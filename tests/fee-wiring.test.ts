@@ -10,9 +10,7 @@ const assert = (cond: boolean, name: string, details = '') => {
 };
 const read = (p: string) => readFileSync(new URL(`../${p}`, import.meta.url), 'utf8');
 
-const server = existsSync(new URL('../server/routes/orders.ts', import.meta.url))
-  ? read('server/routes/orders.ts') + '\n' + read('server.ts')
-  : read('server.ts');
+const server = read('server.ts');
 
 // 1. POST /api/orders must price gig orders on the server, not from req.body.amount.
 const ordersIdx = server.indexOf("post('/api/orders', requireAuth");

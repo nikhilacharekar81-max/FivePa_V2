@@ -144,7 +144,7 @@ export function useWorkstreamMessages() {
 
     setMessages(prev => [...prev, tempMessage]);
 
-    const attemptSend = async (retries = 3): Promise<void> => {
+    const sendToServer = async () => {
       try {
         const res = await fetch(`/api/orders/${orderId}/message`, {
           method: 'POST',
@@ -162,23 +162,17 @@ export function useWorkstreamMessages() {
         if (res.ok) {
           const data = await res.json();
           setMessages(prev => prev.map(m => m.id === clientMessageId ? { ...data.message, status: 'sent' } : m));
-        } else if (retries > 0) {
-          await attemptSend(retries - 1);
         } else {
-          throw new Error('Failed after retries');
+          throw new Error('Failed to send event');
         }
       } catch (err) {
-        if (retries > 0) {
-          await attemptSend(retries - 1);
-        } else {
-          console.error('Event sending failed:', err);
-          setMessages(prev => prev.map(m => m.id === clientMessageId ? { ...m, status: 'failed' } : m));
-          onError(`Failed to log event: ${text}`);
-        }
+        console.error('Event sending failed:', err);
+        setMessages(prev => prev.map(m => m.id === clientMessageId ? { ...m, status: 'failed' } : m));
+        onError(`Failed to log event: ${text}`);
       }
     };
 
-    attemptSend();
+    sendToServer();
   }, [setMessages]);
 
   return {

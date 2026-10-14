@@ -1746,7 +1746,7 @@ export default function App() {
     }
   };
 
-  const handleAttachMockFile = () => {
+  const handleAttachMockFile = async () => {
     if (!selectedOrder) return;
     const mockFiles = [
       { name: 'project_brief.pdf', size: '1.2 MB', url: '#' },
@@ -1759,33 +1759,23 @@ export default function App() {
     const currentUid = impersonatedUser ? impersonatedUser.id : (currentUser ? currentUser.id : 'user_1');
     const currentUname = impersonatedUser ? impersonatedUser.name : (currentUser ? currentUser.name : 'Guest');
 
-    const payload = {
-      type: 'NEW_MESSAGE',
-      msgType: 'file',
-      orderId: selectedOrder.id,
-      senderId: currentUid,
-      senderName: currentUname,
-      text: `Uploaded file: ${randomFile.name}`,
-      fileInfo: randomFile
-    };
-
-    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify(payload));
-    } else {
-      // Fallback
-      fetch(`/api/messages`, {
+    const token = getAuthToken();
+    try {
+      await fetch(`/api/orders/${selectedOrder.id}/message`, {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${getAuthToken()}`
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
         },
         body: JSON.stringify({
-          orderId: selectedOrder.id,
-          text: payload.text,
+          text: `Uploaded file: ${randomFile.name}`,
           type: 'file',
           fileInfo: randomFile
         })
-      }).then(() => fetchMessages(selectedOrder.id));
+      });
+      fetchMessages(selectedOrder.id);
+    } catch (err) {
+      console.error('Error attaching file:', err);
     }
   };
 
@@ -1796,32 +1786,19 @@ export default function App() {
     const currentUid = impersonatedUser ? impersonatedUser.id : (currentUser ? currentUser.id : 'user_1');
     const currentUname = impersonatedUser ? impersonatedUser.name : (currentUser ? currentUser.name : 'Guest');
 
-    const payload = {
-      type: 'NEW_MESSAGE',
-      msgType: 'message',
-      orderId: selectedOrder.id,
-      senderId: currentUid,
-      senderName: currentUname,
-      text: newMessageText
-    };
-
-    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify(payload));
-    } else {
-      try {
-        const token = getAuthToken();
-        await fetch(`/api/messages`, {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-          },
-          body: JSON.stringify({ orderId: selectedOrder.id, text: newMessageText, type: 'message' })
-        });
-        fetchMessages(selectedOrder.id);
-      } catch (err) {
-        console.error('Error sending message via API fallback:', err);
-      }
+    try {
+      const token = getAuthToken();
+      await fetch(`/api/orders/${selectedOrder.id}/message`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({ orderId: selectedOrder.id, text: newMessageText, type: 'message' })
+      });
+      fetchMessages(selectedOrder.id);
+    } catch (err) {
+      console.error('Error sending message:', err);
     }
 
     setNewMessageText('');
@@ -3617,56 +3594,37 @@ export default function App() {
                       setSelectedOrder(null);
                       navigate('/messages');
                     }}
-                    onSendMessage={(text) => {
+                    onSendMessage={async (text) => {
                       setNewMessageText(text);
-                      const currentUid = impersonatedUser ? impersonatedUser.id : (currentUser ? currentUser.id : 'user_1');
-                      const currentUname = impersonatedUser ? impersonatedUser.name : (currentUser ? currentUser.name : 'Guest');
-                      const payload = {
-                        type: 'NEW_MESSAGE',
-                        msgType: 'message',
-                        orderId: activeWsOrder.id,
-                        senderId: currentUid,
-                        senderName: currentUname,
-                        text
-                      };
-                      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-                        wsRef.current.send(JSON.stringify(payload));
-                      } else {
+                      try {
                         const token = getAuthToken();
-                        fetch(`/api/messages`, {
+                        await fetch(`/api/orders/${activeWsOrder.id}/message`, {
                           method: 'POST',
                           headers: { 
                             'Content-Type': 'application/json',
                             ...(token ? { 'Authorization': `Bearer ${token}` } : {})
                           },
                           body: JSON.stringify({ orderId: activeWsOrder.id, text, type: 'message' })
-                        }).then(() => fetchMessages(activeWsOrder.id));
+                        });
+                        fetchMessages(activeWsOrder.id);
+                      } catch (err) {
+                        console.error('Error sending message:', err);
                       }
                     }}
-                    onAttachFile={(file) => {
-                      const currentUid = impersonatedUser ? impersonatedUser.id : (currentUser ? currentUser.id : 'user_1');
-                      const currentUname = impersonatedUser ? impersonatedUser.name : (currentUser ? currentUser.name : 'Guest');
-                      const payload = {
-                        type: 'NEW_MESSAGE',
-                        msgType: 'file',
-                        orderId: activeWsOrder.id,
-                        senderId: currentUid,
-                        senderName: currentUname,
-                        text: `Attached file: ${file.name}`,
-                        fileInfo: file
-                      };
-                      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-                        wsRef.current.send(JSON.stringify(payload));
-                      } else {
+                    onAttachFile={async (file) => {
+                      try {
                         const token = getAuthToken();
-                        fetch(`/api/messages`, {
+                        await fetch(`/api/orders/${activeWsOrder.id}/message`, {
                           method: 'POST',
                           headers: { 
                             'Content-Type': 'application/json',
                             ...(token ? { 'Authorization': `Bearer ${token}` } : {})
                           },
-                          body: JSON.stringify({ orderId: activeWsOrder.id, text: payload.text, type: 'file', fileInfo: file })
-                        }).then(() => fetchMessages(activeWsOrder.id));
+                          body: JSON.stringify({ orderId: activeWsOrder.id, text: `Attached file: ${file.name}`, type: 'file', fileInfo: file })
+                        });
+                        fetchMessages(activeWsOrder.id);
+                      } catch (err) {
+                        console.error('Error attaching file:', err);
                       }
                     }}
                     onReleaseEscrow={handleReleaseEscrow}

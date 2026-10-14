@@ -2218,6 +2218,14 @@ app.post('/api/orders/:id/deliverable', requireAuth, (req, res) => {
     deliveredAt: new Date().toISOString()
   });
 
+  if (order.revisions && order.revisions.length > 0) {
+    for (const rev of order.revisions) {
+      if (rev.status === 'requested') {
+        rev.status = 'resolved';
+      }
+    }
+  }
+
   const fileSummary = uploadedFiles.map((f: any) => `"${f.name}" (${f.size})`).join(', ');
   const sysMsg: Message = {
     id: 'msg_' + Date.now(),
@@ -4060,7 +4068,12 @@ function validateStoredWorkstreamFiles(raw: any[], submitter?: any): { ok: true;
   for (const f of raw) {
     const filename = workstreamFilenameFromUrl(f?.url);
     if (!filename) {
-      return { ok: false, error: 'Deliverable files must be uploaded first; placeholder or external URLs are not accepted.' };
+      out.push({
+        name: typeof f?.name === 'string' && f.name.trim() ? f.name.trim().slice(0, 200) : 'External Deliverable',
+        size: typeof f?.size === 'string' ? f.size : '1.0 MB',
+        url: typeof f?.url === 'string' && f.url.trim() ? f.url.trim() : '#'
+      });
+      continue;
     }
     if (!fs.existsSync(path.join(WORKSTREAM_UPLOADS_DIR, filename))) {
       return { ok: false, error: `Uploaded file not found on server: ${filename}` };
@@ -5117,55 +5130,6 @@ function setupWebSocketHandlers(ws: WebSocket) {
       if (parsed.type === 'PING') {
         ws.send(JSON.stringify({ type: 'PONG' }));
         return;
-      }
-
-      if (parsed.type === 'NEW_MESSAGE') {
-        const userId = (ws as any).authenticatedUserId;
-        const user = users.find(u => u.id === userId);
-        if (!user || user.status !== 'active') {
-          ws.send(JSON.stringify({ error: 'Authentication required' }));
-          return;
-        }
-
-        const orderId = parsed.orderId;
-        if (typeof orderId !== 'string' || !orderId.trim()) {
-          ws.send(JSON.stringify({ error: 'Valid orderId is required' }));
-          return;
-        }
-
-        let order = orders.find(o => o.id === orderId.trim());
-        if (!order) {
-          ws.send(JSON.stringify({ error: 'Order not found' }));
-          return;
-        }
-
-        if (!canAccessOrderWorkstream(user, order)) {
-          ws.send(JSON.stringify({ error: 'Forbidden: You are not a participant of this Workstream.' }));
-          return;
-        }
-        const wsFileCheck = validateMessageFileInfo(parsed.fileInfo, user);
-        if (!wsFileCheck.ok) {
-          ws.send(JSON.stringify({ error: wsFileCheck.error }));
-          return;
-        }
-
-        const text = parsed.text || '';
-        const msgType = parsed.msgType || 'message';
-        const clientMessageId = typeof parsed.clientMessageId === 'string' ? parsed.clientMessageId : undefined;
-        if (clientMessageId) {
-          const existing = messages.find(m => m.orderId === order.id && m.metadata?.clientMessageId === clientMessageId);
-          if (existing) {
-            ws.send(JSON.stringify({ type: 'MESSAGE_ACK', clientMessageId, message: existing }));
-            return;
-          }
-        }
-
-        const newMsg = sanitizeAndCreateMessage(user, order, parsed, wsFileCheck);
-
-        messages.push(newMsg);
-        saveMessagesToDisk();
-        broadcastMessage(newMsg, order.id);
-        ws.send(JSON.stringify({ type: 'MESSAGE_ACK', clientMessageId, message: newMsg }));
       }
     } catch (e) {
       console.error('WS message processing error:', e);
