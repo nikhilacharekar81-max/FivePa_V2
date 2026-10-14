@@ -1,0 +1,66 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Build Applet
+        run: npm run build
+
+      - name: Verify Build freshness
+        run: node scripts/verify-build.mjs
+
+      - name: Run Test Suite
+        env:
+          NODE_ENV: test
+          DATA_DIR: ./tmp_test_data
+        run: npm test
+
+  smoke-test:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps
+
+      - name: Build Applet
+        run: npm run build
+
+      - name: Run Playwright Smoke Test
+        env:
+          NODE_ENV: test
+          PORT: 3000
+          DATA_DIR: ./tmp_smoke_data
+        run: npx tsx tests/smoke.test.ts
