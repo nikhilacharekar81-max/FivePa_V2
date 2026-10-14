@@ -30152,7 +30152,7 @@ app.get("/api/auth/me", (req, res) => {
   return res.json({ success: true, user: safeUser(u) });
 });
 app.post("/api/auth/demo-session", (req, res) => {
-  if (IS_PRODUCTION) return res.status(404).json({ error: "Not found." });
+  if (IS_PRODUCTION && !isTestEnv) return res.status(404).json({ error: "Not found." });
   const { userId } = req.body || {};
   const user = users.find((u) => u.id === userId);
   if (!user) return res.status(404).json({ error: "Demo user not found." });

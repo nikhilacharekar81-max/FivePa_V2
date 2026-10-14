@@ -24,7 +24,7 @@ export const UserSwitchModal: React.FC<UserSwitchModalProps> = ({
   const handleSwitchUser = (user: User) => {
     setCurrentUser(user);
     setImpersonatedUser(user);
-    localStorage.setItem('currentUser', JSON.stringify(user));
+    localStorage.setItem('current_user', JSON.stringify(user));
     onClose();
   };
 
