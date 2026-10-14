@@ -1,0 +1,220 @@
+[
+  {
+    "id": "ord_1",
+    "title": "Build a Full-Stack Next.js 14 Web App with Tailwind & Node.js API",
+    "buyerId": "usr_3",
+    "sellerId": "usr_2",
+    "amount": 450,
+    "status": "completed",
+    "createdAt": "2026-10-02",
+    "dueDate": "2026-10-07",
+    "gigId": "gig_1",
+    "sellerUsername": "elena_dev",
+    "buyerUsername": "marcus_vance",
+    "serviceTitle": "Build a Full-Stack Next.js 14 Web App with Tailwind & Node.js API",
+    "serviceThumbnail": "https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=800&h=500&fit=crop"
+  },
+  {
+    "id": "ord_2",
+    "title": "Design Modern Figma UI/UX for SaaS Platforms and Mobile Apps",
+    "buyerId": "usr_6",
+    "sellerId": "usr_4",
+    "amount": 350,
+    "status": "funded_in_escrow",
+    "createdAt": "2026-10-05",
+    "dueDate": "2026-10-09",
+    "gigId": "gig_2",
+    "sellerUsername": "aisha_design",
+    "buyerUsername": "sarah_marketing",
+    "serviceTitle": "Design Modern Figma UI/UX for SaaS Platforms and Mobile Apps",
+    "serviceThumbnail": "https://images.unsplash.com/photo-1581291518633-83b4ebd1d83e?w=800&h=500&fit=crop"
+  },
+  {
+    "id": "ord_3",
+    "title": "Develop Custom AI Agents & OpenAI / Gemini RAG Chatbots",
+    "buyerId": "usr_11",
+    "sellerId": "usr_10",
+    "amount": 600,
+    "status": "in_progress",
+    "createdAt": "2026-10-08",
+    "dueDate": "2026-10-14",
+    "gigId": "gig_3",
+    "sellerUsername": "sophia_ai",
+    "buyerUsername": "jwilson_buyer",
+    "serviceTitle": "Develop Custom AI Agents & OpenAI / Gemini RAG Chatbots",
+    "serviceThumbnail": "https://images.unsplash.com/photo-1677442136019-21780efad99a?w=800&h=500&fit=crop"
+  },
+  {
+    "id": "ord_auto_pending_1791968893055",
+    "title": "Test Pending Review Order",
+    "buyerId": "usr_buyer_auto_1791968893055",
+    "sellerId": "usr_seller_auto_1791968893055",
+    "amount": 100,
+    "status": "delivered",
+    "createdAt": "2026-10-09T09:08:13.055Z",
+    "dueDate": "2026-10-19T09:08:13.055Z",
+    "deliveryHistory": [
+      {
+        "version": 1,
+        "deliveredAt": "2026-10-12T09:08:13.055Z",
+        "message": "Finished work v1",
+        "files": [
+          {
+            "name": "result.pdf",
+            "size": "1 MB",
+            "url": "/uploads/workstream/test1.pdf"
+          }
+        ]
+      }
+    ],
+    "deliverableFiles": [
+      {
+        "name": "result.pdf",
+        "size": "1 MB",
+        "url": "/uploads/workstream/test1.pdf"
+      }
+    ]
+  },
+  {
+    "id": "ord_auto_expired_1791968893055",
+    "title": "Test Expired Review Order",
+    "buyerId": "usr_buyer_auto_1791968893055",
+    "sellerId": "usr_seller_auto_1791968893055",
+    "amount": 200,
+    "status": "completed",
+    "createdAt": "2026-10-07T09:08:13.055Z",
+    "dueDate": "2026-10-17T09:08:13.055Z",
+    "deliveryHistory": [
+      {
+        "version": 1,
+        "deliveredAt": "2026-10-10T09:08:13.055Z",
+        "message": "Completed deliverable v1",
+        "files": [
+          {
+            "name": "app_final.zip",
+            "size": "5 MB",
+            "url": "/uploads/workstream/test2.zip"
+          }
+        ]
+      }
+    ],
+    "deliverableFiles": [
+      {
+        "name": "app_final.zip",
+        "size": "5 MB",
+        "url": "/uploads/workstream/test2.zip"
+      }
+    ],
+    "completedAt": "2026-10-14T09:08:13.059Z",
+    "acceptedVersion": 1
+  },
+  {
+    "id": "ord_auto_revised_1791968893055",
+    "title": "Test Revision Order",
+    "buyerId": "usr_buyer_auto_1791968893055",
+    "sellerId": "usr_seller_auto_1791968893055",
+    "amount": 150,
+    "status": "delivered",
+    "createdAt": "2026-10-06T09:08:13.055Z",
+    "dueDate": "2026-10-16T09:08:13.055Z",
+    "deliveryHistory": [
+      {
+        "version": 1,
+        "deliveredAt": "2026-10-10T09:08:13.055Z",
+        "message": "v1 deliverable",
+        "files": [
+          {
+            "name": "draft.pdf",
+            "size": "1 MB",
+            "url": "/uploads/workstream/test3.pdf"
+          }
+        ]
+      }
+    ],
+    "revisions": [
+      {
+        "version": 1,
+        "requestedAt": "2026-10-11T09:08:13.055Z",
+        "reason": "Please adjust color palette",
+        "status": "requested",
+        "deliveryVersion": 1
+      }
+    ]
+  },
+  {
+    "id": "ord_auto_disputed_1791968893055",
+    "title": "Test Disputed Order",
+    "buyerId": "usr_buyer_auto_1791968893055",
+    "sellerId": "usr_seller_auto_1791968893055",
+    "amount": 120,
+    "status": "delivered",
+    "createdAt": "2026-10-06T09:08:13.055Z",
+    "dueDate": "2026-10-16T09:08:13.055Z",
+    "deliveryHistory": [
+      {
+        "version": 1,
+        "deliveredAt": "2026-10-09T09:08:13.055Z",
+        "message": "v1 deliverable",
+        "files": [
+          {
+            "name": "code.zip",
+            "size": "2 MB",
+            "url": "/uploads/workstream/test4.zip"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "ord_auto_disabled_1791968893055",
+    "title": "Test Toggle Disabled Order",
+    "buyerId": "usr_buyer_auto_1791968893055",
+    "sellerId": "usr_seller_auto_1791968893055",
+    "amount": 180,
+    "status": "completed",
+    "createdAt": "2026-10-04T09:08:13.055Z",
+    "dueDate": "2026-10-16T09:08:13.055Z",
+    "deliveryHistory": [
+      {
+        "version": 1,
+        "deliveredAt": "2026-10-08T09:08:13.055Z",
+        "message": "v1 deliverable",
+        "files": [
+          {
+            "name": "art.png",
+            "size": "3 MB",
+            "url": "/uploads/workstream/test5.png"
+          }
+        ]
+      }
+    ],
+    "completedAt": "2026-10-14T09:08:13.070Z",
+    "acceptedVersion": 1
+  },
+  {
+    "id": "ord_auto_custom_days_1791968893055",
+    "title": "Test Custom Days Order",
+    "buyerId": "usr_buyer_auto_1791968893055",
+    "sellerId": "usr_seller_auto_1791968893055",
+    "amount": 250,
+    "status": "completed",
+    "createdAt": "2026-10-04T09:08:13.055Z",
+    "dueDate": "2026-10-16T09:08:13.055Z",
+    "deliveryHistory": [
+      {
+        "version": 1,
+        "deliveredAt": "2026-10-10T09:08:13.055Z",
+        "message": "v1 deliverable",
+        "files": [
+          {
+            "name": "doc.pdf",
+            "size": "2 MB",
+            "url": "/uploads/workstream/test6.pdf"
+          }
+        ]
+      }
+    ],
+    "completedAt": "2026-10-14T09:08:13.071Z",
+    "acceptedVersion": 1
+  }
+]

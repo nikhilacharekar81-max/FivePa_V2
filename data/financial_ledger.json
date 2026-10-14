@@ -1,0 +1,2119 @@
+{
+  "journals": [
+    {
+      "id": "JRN-205aa4a1-4856-4e1c-a5bf-f029de002474",
+      "reference": "seed",
+      "postingDate": "2026-10-13",
+      "timestamp": "2026-10-13 21:35:56",
+      "description": "Deposit (gateway) - Buyer",
+      "eventType": "DEPOSIT_SETTLED",
+      "idempotencyKey": "DEP-seed-0.5288070454747",
+      "entries": [
+        {
+          "id": "ENT-205aa4a1-4856-4e1c-a5bf-f029de002474-1",
+          "journalId": "JRN-205aa4a1-4856-4e1c-a5bf-f029de002474",
+          "accountCode": "1020",
+          "accountName": "Payment Processor Clearing",
+          "debit": 100000,
+          "credit": 0,
+          "currency": "USD",
+          "description": "Payment processor clearing - deposit received",
+          "userId": "buyer1"
+        },
+        {
+          "id": "ENT-205aa4a1-4856-4e1c-a5bf-f029de002474-2",
+          "journalId": "JRN-205aa4a1-4856-4e1c-a5bf-f029de002474",
+          "accountCode": "2010",
+          "accountName": "Buyer Wallets Payable",
+          "debit": 0,
+          "credit": 100000,
+          "currency": "USD",
+          "description": "Credited Buyer available wallet",
+          "userId": "buyer1"
+        }
+      ],
+      "totalDebit": 100000,
+      "totalCredit": 100000,
+      "status": "posted",
+      "actor": "test"
+    },
+    {
+      "id": "JRN-00eaa862-c073-4cd4-9175-e9d0bf483b03",
+      "reference": "ORD-lock-RELEASE",
+      "postingDate": "2026-10-13",
+      "timestamp": "2026-10-13 21:35:56",
+      "description": "Escrow release for Order #lock (Test gig)",
+      "eventType": "ESCROW_RELEASED_TO_FREELANCER",
+      "idempotencyKey": "IDEMP-REL-lock",
+      "entries": [
+        {
+          "id": "ENT-00eaa862-c073-4cd4-9175-e9d0bf483b03-1",
+          "journalId": "JRN-00eaa862-c073-4cd4-9175-e9d0bf483b03",
+          "accountCode": "2030",
+          "accountName": "Marketplace Escrow Funds in Trust",
+          "debit": 100,
+          "credit": 0,
+          "currency": "USD",
+          "description": "Released funds held in escrow for Order #lock",
+          "orderId": "lock"
+        },
+        {
+          "id": "ENT-00eaa862-c073-4cd4-9175-e9d0bf483b03-2",
+          "journalId": "JRN-00eaa862-c073-4cd4-9175-e9d0bf483b03",
+          "accountCode": "2020",
+          "accountName": "Freelancer Wallets Payable",
+          "debit": 0,
+          "credit": 80,
+          "currency": "USD",
+          "description": "Credited net earnings to Freelancer (after 20% commission)",
+          "userId": "free1",
+          "orderId": "lock"
+        },
+        {
+          "id": "ENT-00eaa862-c073-4cd4-9175-e9d0bf483b03-3",
+          "journalId": "JRN-00eaa862-c073-4cd4-9175-e9d0bf483b03",
+          "accountCode": "4010",
+          "accountName": "Marketplace Platform Commission Fee",
+          "debit": 0,
+          "credit": 20,
+          "currency": "USD",
+          "description": "20% platform commission on Order #lock",
+          "orderId": "lock"
+        }
+      ],
+      "totalDebit": 100,
+      "totalCredit": 100,
+      "status": "posted",
+      "actor": "test"
+    },
+    {
+      "id": "JRN-6fe18b29-7e08-4756-8ad1-bc354136626e",
+      "reference": "ORD-lock-ESCROW-LOCK",
+      "postingDate": "2026-10-13",
+      "timestamp": "2026-10-13 21:35:56",
+      "description": "Escrow funding for Order #lock (Test gig)",
+      "eventType": "ORDER_ESCROW_FUNDED",
+      "idempotencyKey": "IDEMP-ORD-FUND-lock",
+      "entries": [
+        {
+          "id": "ENT-6fe18b29-7e08-4756-8ad1-bc354136626e-1",
+          "journalId": "JRN-6fe18b29-7e08-4756-8ad1-bc354136626e",
+          "accountCode": "2010",
+          "accountName": "Buyer Wallets Payable",
+          "debit": 109,
+          "credit": 0,
+          "currency": "USD",
+          "description": "Debited buyer wallet for order price and client fees",
+          "userId": "buyer1",
+          "orderId": "lock"
+        },
+        {
+          "id": "ENT-6fe18b29-7e08-4756-8ad1-bc354136626e-2",
+          "journalId": "JRN-6fe18b29-7e08-4756-8ad1-bc354136626e",
+          "accountCode": "2030",
+          "accountName": "Marketplace Escrow Funds in Trust",
+          "debit": 0,
+          "credit": 100,
+          "currency": "USD",
+          "description": "Locked in escrow protection vault",
+          "orderId": "lock"
+        },
+        {
+          "id": "ENT-6fe18b29-7e08-4756-8ad1-bc354136626e-3",
+          "journalId": "JRN-6fe18b29-7e08-4756-8ad1-bc354136626e",
+          "accountCode": "4020",
+          "accountName": "Client Service Fee Revenue",
+          "debit": 0,
+          "credit": 5.5,
+          "currency": "USD",
+          "description": "5.5% client service fee on Order #lock",
+          "orderId": "lock"
+        },
+        {
+          "id": "ENT-6fe18b29-7e08-4756-8ad1-bc354136626e-4",
+          "journalId": "JRN-6fe18b29-7e08-4756-8ad1-bc354136626e",
+          "accountCode": "4030",
+          "accountName": "Small-Order Fee Revenue",
+          "debit": 0,
+          "credit": 3.5,
+          "currency": "USD",
+          "description": "Small-order fee ($3.50, order under $200) on Order #lock",
+          "orderId": "lock"
+        }
+      ],
+      "totalDebit": 109,
+      "totalCredit": 109,
+      "status": "posted",
+      "actor": "test"
+    },
+    {
+      "id": "JRN-e21eb0e6-c474-49b8-b40b-8bf66e1bd579",
+      "reference": "seed",
+      "postingDate": "2026-10-13",
+      "timestamp": "2026-10-13 21:35:56",
+      "description": "Deposit (gateway) - Buyer",
+      "eventType": "DEPOSIT_SETTLED",
+      "idempotencyKey": "DEP-seed-0.32088575955821796",
+      "entries": [
+        {
+          "id": "ENT-e21eb0e6-c474-49b8-b40b-8bf66e1bd579-1",
+          "journalId": "JRN-e21eb0e6-c474-49b8-b40b-8bf66e1bd579",
+          "accountCode": "1020",
+          "accountName": "Payment Processor Clearing",
+          "debit": 100000,
+          "credit": 0,
+          "currency": "USD",
+          "description": "Payment processor clearing - deposit received",
+          "userId": "buyer1"
+        },
+        {
+          "id": "ENT-e21eb0e6-c474-49b8-b40b-8bf66e1bd579-2",
+          "journalId": "JRN-e21eb0e6-c474-49b8-b40b-8bf66e1bd579",
+          "accountCode": "2010",
+          "accountName": "Buyer Wallets Payable",
+          "debit": 0,
+          "credit": 100000,
+          "currency": "USD",
+          "description": "Credited Buyer available wallet",
+          "userId": "buyer1"
+        }
+      ],
+      "totalDebit": 100000,
+      "totalCredit": 100000,
+      "status": "posted",
+      "actor": "test"
+    },
+    {
+      "id": "JRN-aa0073c8-d510-405c-8c52-ca5f9f019bf4",
+      "reference": "ORD-m1-REFUND-2",
+      "postingDate": "2026-10-13",
+      "timestamp": "2026-10-13 21:35:56",
+      "description": "Escrow refund to Buyer for Order #m1 (Test gig): rest refunded",
+      "eventType": "ESCROW_REFUNDED_WITH_FEES",
+      "idempotencyKey": "IDEMP-REF-m1-2",
+      "entries": [
+        {
+          "id": "ENT-aa0073c8-d510-405c-8c52-ca5f9f019bf4-1",
+          "journalId": "JRN-aa0073c8-d510-405c-8c52-ca5f9f019bf4",
+          "accountCode": "2030",
+          "accountName": "Marketplace Escrow Funds in Trust",
+          "debit": 70,
+          "credit": 0,
+          "currency": "USD",
+          "description": "Debited escrow liability for refunded Order #m1",
+          "orderId": "m1"
+        },
+        {
+          "id": "ENT-aa0073c8-d510-405c-8c52-ca5f9f019bf4-2",
+          "journalId": "JRN-aa0073c8-d510-405c-8c52-ca5f9f019bf4",
+          "accountCode": "4020",
+          "accountName": "Client Service Fee Revenue",
+          "debit": 5.5,
+          "credit": 0,
+          "currency": "USD",
+          "description": "Reversed client service fee on fully refunded Order #m1",
+          "orderId": "m1"
+        },
+        {
+          "id": "ENT-aa0073c8-d510-405c-8c52-ca5f9f019bf4-3",
+          "journalId": "JRN-aa0073c8-d510-405c-8c52-ca5f9f019bf4",
+          "accountCode": "4030",
+          "accountName": "Small-Order Fee Revenue",
+          "debit": 3.5,
+          "credit": 0,
+          "currency": "USD",
+          "description": "Reversed small-order fee on fully refunded Order #m1",
+          "orderId": "m1"
+        },
+        {
+          "id": "ENT-aa0073c8-d510-405c-8c52-ca5f9f019bf4-4",
+          "journalId": "JRN-aa0073c8-d510-405c-8c52-ca5f9f019bf4",
+          "accountCode": "2010",
+          "accountName": "Buyer Wallets Payable",
+          "debit": 0,
+          "credit": 79,
+          "currency": "USD",
+          "description": "Restored available wallet balance for Buyer (including client fees)",
+          "userId": "buyer1",
+          "orderId": "m1"
+        }
+      ],
+      "totalDebit": 79,
+      "totalCredit": 79,
+      "status": "posted",
+      "actor": "test"
+    },
+    {
+      "id": "JRN-bc3af228-9b38-4599-bd69-161521ec69ac",
+      "reference": "ORD-m1-REFUND-1",
+      "postingDate": "2026-10-13",
+      "timestamp": "2026-10-13 21:35:56",
+      "description": "Escrow refund to Buyer for Order #m1 (Test gig): first part refund",
+      "eventType": "ESCROW_REFUNDED_TO_BUYER",
+      "idempotencyKey": "IDEMP-REF-m1-1",
+      "entries": [
+        {
+          "id": "ENT-bc3af228-9b38-4599-bd69-161521ec69ac-1",
+          "journalId": "JRN-bc3af228-9b38-4599-bd69-161521ec69ac",
+          "accountCode": "2030",
+          "accountName": "Marketplace Escrow Funds in Trust",
+          "debit": 30,
+          "credit": 0,
+          "currency": "USD",
+          "description": "Debited escrow liability for refunded Order #m1",
+          "orderId": "m1"
+        },
+        {
+          "id": "ENT-bc3af228-9b38-4599-bd69-161521ec69ac-2",
+          "journalId": "JRN-bc3af228-9b38-4599-bd69-161521ec69ac",
+          "accountCode": "2010",
+          "accountName": "Buyer Wallets Payable",
+          "debit": 0,
+          "credit": 30,
+          "currency": "USD",
+          "description": "Restored available wallet balance for Buyer",
+          "userId": "buyer1",
+          "orderId": "m1"
+        }
+      ],
+      "totalDebit": 30,
+      "totalCredit": 30,
+      "status": "posted",
+      "actor": "test"
+    },
+    {
+      "id": "JRN-605d196d-27c8-410d-9be0-932c0267f88a",
+      "reference": "ORD-m1-ESCROW-LOCK",
+      "postingDate": "2026-10-13",
+      "timestamp": "2026-10-13 21:35:56",
+      "description": "Escrow funding for Order #m1 (Test gig)",
+      "eventType": "ORDER_ESCROW_FUNDED",
+      "idempotencyKey": "IDEMP-ORD-FUND-m1",
+      "entries": [
+        {
+          "id": "ENT-605d196d-27c8-410d-9be0-932c0267f88a-1",
+          "journalId": "JRN-605d196d-27c8-410d-9be0-932c0267f88a",
+          "accountCode": "2010",
+          "accountName": "Buyer Wallets Payable",
+          "debit": 109,
+          "credit": 0,
+          "currency": "USD",
+          "description": "Debited buyer wallet for order price and client fees",
+          "userId": "buyer1",
+          "orderId": "m1"
+        },
+        {
+          "id": "ENT-605d196d-27c8-410d-9be0-932c0267f88a-2",
+          "journalId": "JRN-605d196d-27c8-410d-9be0-932c0267f88a",
+          "accountCode": "2030",
+          "accountName": "Marketplace Escrow Funds in Trust",
+          "debit": 0,
+          "credit": 100,
+          "currency": "USD",
+          "description": "Locked in escrow protection vault",
+          "orderId": "m1"
+        },
+        {
+          "id": "ENT-605d196d-27c8-410d-9be0-932c0267f88a-3",
+          "journalId": "JRN-605d196d-27c8-410d-9be0-932c0267f88a",
+          "accountCode": "4020",
+          "accountName": "Client Service Fee Revenue",
+          "debit": 0,
+          "credit": 5.5,
+          "currency": "USD",
+          "description": "5.5% client service fee on Order #m1",
+          "orderId": "m1"
+        },
+        {
+          "id": "ENT-605d196d-27c8-410d-9be0-932c0267f88a-4",
+          "journalId": "JRN-605d196d-27c8-410d-9be0-932c0267f88a",
+          "accountCode": "4030",
+          "accountName": "Small-Order Fee Revenue",
+          "debit": 0,
+          "credit": 3.5,
+          "currency": "USD",
+          "description": "Small-order fee ($3.50, order under $200) on Order #m1",
+          "orderId": "m1"
+        }
+      ],
+      "totalDebit": 109,
+      "totalCredit": 109,
+      "status": "posted",
+      "actor": "test"
+    },
+    {
+      "id": "JRN-02412447-f78d-41d2-9dd7-fc301c22301c",
+      "reference": "seed",
+      "postingDate": "2026-10-13",
+      "timestamp": "2026-10-13 21:35:56",
+      "description": "Deposit (gateway) - Buyer",
+      "eventType": "DEPOSIT_SETTLED",
+      "idempotencyKey": "DEP-seed-0.8374110769726288",
+      "entries": [
+        {
+          "id": "ENT-02412447-f78d-41d2-9dd7-fc301c22301c-1",
+          "journalId": "JRN-02412447-f78d-41d2-9dd7-fc301c22301c",
+          "accountCode": "1020",
+          "accountName": "Payment Processor Clearing",
+          "debit": 100000,
+          "credit": 0,
+          "currency": "USD",
+          "description": "Payment processor clearing - deposit received",
+          "userId": "buyer1"
+        },
+        {
+          "id": "ENT-02412447-f78d-41d2-9dd7-fc301c22301c-2",
+          "journalId": "JRN-02412447-f78d-41d2-9dd7-fc301c22301c",
+          "accountCode": "2010",
+          "accountName": "Buyer Wallets Payable",
+          "debit": 0,
+          "credit": 100000,
+          "currency": "USD",
+          "description": "Credited Buyer available wallet",
+          "userId": "buyer1"
+        }
+      ],
+      "totalDebit": 100000,
+      "totalCredit": 100000,
+      "status": "posted",
+      "actor": "test"
+    },
+    {
+      "id": "JRN-ca33aab7-06cc-49d9-8da8-220ce668eadb",
+      "reference": "ORD-s1-RELEASE",
+      "postingDate": "2026-10-13",
+      "timestamp": "2026-10-13 21:35:56",
+      "description": "Escrow release for Order #s1 (Test gig)",
+      "eventType": "ESCROW_RELEASED_TO_FREELANCER",
+      "idempotencyKey": "IDEMP-REL-s1",
+      "entries": [
+        {
+          "id": "ENT-ca33aab7-06cc-49d9-8da8-220ce668eadb-1",
+          "journalId": "JRN-ca33aab7-06cc-49d9-8da8-220ce668eadb",
+          "accountCode": "2030",
+          "accountName": "Marketplace Escrow Funds in Trust",
+          "debit": 60,
+          "credit": 0,
+          "currency": "USD",
+          "description": "Released funds held in escrow for Order #s1",
+          "orderId": "s1"
+        },
+        {
+          "id": "ENT-ca33aab7-06cc-49d9-8da8-220ce668eadb-2",
+          "journalId": "JRN-ca33aab7-06cc-49d9-8da8-220ce668eadb",
+          "accountCode": "2020",
+          "accountName": "Freelancer Wallets Payable",
+          "debit": 0,
+          "credit": 48,
+          "currency": "USD",
+          "description": "Credited net earnings to Freelancer (after 20% commission)",
+          "userId": "free1",
+          "orderId": "s1"
+        },
+        {
+          "id": "ENT-ca33aab7-06cc-49d9-8da8-220ce668eadb-3",
+          "journalId": "JRN-ca33aab7-06cc-49d9-8da8-220ce668eadb",
+          "accountCode": "4010",
+          "accountName": "Marketplace Platform Commission Fee",
+          "debit": 0,
+          "credit": 12,
+          "currency": "USD",
+          "description": "20% platform commission on Order #s1",
+          "orderId": "s1"
+        }
+      ],
+      "totalDebit": 60,
+      "totalCredit": 60,
+      "status": "posted",
+      "actor": "test"
+    },
+    {
+      "id": "JRN-5427fd00-2849-4107-87a3-009153c6126e",
+      "reference": "ORD-s1-REFUND-1",
+      "postingDate": "2026-10-13",
+      "timestamp": "2026-10-13 21:35:56",
+      "description": "Escrow refund to Buyer for Order #s1 (Test gig): dispute partial",
+      "eventType": "ESCROW_REFUNDED_TO_BUYER",
+      "idempotencyKey": "IDEMP-REF-s1-1",
+      "entries": [
+        {
+          "id": "ENT-5427fd00-2849-4107-87a3-009153c6126e-1",
+          "journalId": "JRN-5427fd00-2849-4107-87a3-009153c6126e",
+          "accountCode": "2030",
+          "accountName": "Marketplace Escrow Funds in Trust",
+          "debit": 40,
+          "credit": 0,
+          "currency": "USD",
+          "description": "Debited escrow liability for refunded Order #s1",
+          "orderId": "s1"
+        },
+        {
+          "id": "ENT-5427fd00-2849-4107-87a3-009153c6126e-2",
+          "journalId": "JRN-5427fd00-2849-4107-87a3-009153c6126e",
+          "accountCode": "2010",
+          "accountName": "Buyer Wallets Payable",
+          "debit": 0,
+          "credit": 40,
+          "currency": "USD",
+          "description": "Restored available wallet balance for Buyer",
+          "userId": "buyer1",
+          "orderId": "s1"
+        }
+      ],
+      "totalDebit": 40,
+      "totalCredit": 40,
+      "status": "posted",
+      "actor": "test"
+    },
+    {
+      "id": "JRN-f405f897-97e1-4377-b172-5ce886767eab",
+      "reference": "ORD-s1-ESCROW-LOCK",
+      "postingDate": "2026-10-13",
+      "timestamp": "2026-10-13 21:35:56",
+      "description": "Escrow funding for Order #s1 (Test gig)",
+      "eventType": "ORDER_ESCROW_FUNDED",
+      "idempotencyKey": "IDEMP-ORD-FUND-s1",
+      "entries": [
+        {
+          "id": "ENT-f405f897-97e1-4377-b172-5ce886767eab-1",
+          "journalId": "JRN-f405f897-97e1-4377-b172-5ce886767eab",
+          "accountCode": "2010",
+          "accountName": "Buyer Wallets Payable",
+          "debit": 109,
+          "credit": 0,
+          "currency": "USD",
+          "description": "Debited buyer wallet for order price and client fees",
+          "userId": "buyer1",
+          "orderId": "s1"
+        },
+        {
+          "id": "ENT-f405f897-97e1-4377-b172-5ce886767eab-2",
+          "journalId": "JRN-f405f897-97e1-4377-b172-5ce886767eab",
+          "accountCode": "2030",
+          "accountName": "Marketplace Escrow Funds in Trust",
+          "debit": 0,
+          "credit": 100,
+          "currency": "USD",
+          "description": "Locked in escrow protection vault",
+          "orderId": "s1"
+        },
+        {
+          "id": "ENT-f405f897-97e1-4377-b172-5ce886767eab-3",
+          "journalId": "JRN-f405f897-97e1-4377-b172-5ce886767eab",
+          "accountCode": "4020",
+          "accountName": "Client Service Fee Revenue",
+          "debit": 0,
+          "credit": 5.5,
+          "currency": "USD",
+          "description": "5.5% client service fee on Order #s1",
+          "orderId": "s1"
+        },
+        {
+          "id": "ENT-f405f897-97e1-4377-b172-5ce886767eab-4",
+          "journalId": "JRN-f405f897-97e1-4377-b172-5ce886767eab",
+          "accountCode": "4030",
+          "accountName": "Small-Order Fee Revenue",
+          "debit": 0,
+          "credit": 3.5,
+          "currency": "USD",
+          "description": "Small-order fee ($3.50, order under $200) on Order #s1",
+          "orderId": "s1"
+        }
+      ],
+      "totalDebit": 109,
+      "totalCredit": 109,
+      "status": "posted",
+      "actor": "test"
+    },
+    {
+      "id": "JRN-317b9445-ed3f-425c-bcf0-011f164f894d",
+      "reference": "seed",
+      "postingDate": "2026-10-13",
+      "timestamp": "2026-10-13 21:35:56",
+      "description": "Deposit (gateway) - Buyer",
+      "eventType": "DEPOSIT_SETTLED",
+      "idempotencyKey": "DEP-seed-0.3662677762235462",
+      "entries": [
+        {
+          "id": "ENT-317b9445-ed3f-425c-bcf0-011f164f894d-1",
+          "journalId": "JRN-317b9445-ed3f-425c-bcf0-011f164f894d",
+          "accountCode": "1020",
+          "accountName": "Payment Processor Clearing",
+          "debit": 100000,
+          "credit": 0,
+          "currency": "USD",
+          "description": "Payment processor clearing - deposit received",
+          "userId": "buyer1"
+        },
+        {
+          "id": "ENT-317b9445-ed3f-425c-bcf0-011f164f894d-2",
+          "journalId": "JRN-317b9445-ed3f-425c-bcf0-011f164f894d",
+          "accountCode": "2010",
+          "accountName": "Buyer Wallets Payable",
+          "debit": 0,
+          "credit": 100000,
+          "currency": "USD",
+          "description": "Credited Buyer available wallet",
+          "userId": "buyer1"
+        }
+      ],
+      "totalDebit": 100000,
+      "totalCredit": 100000,
+      "status": "posted",
+      "actor": "test"
+    },
+    {
+      "id": "JRN-bb137bcc-9967-47f0-aa11-e265b2949d99",
+      "reference": "ORD-r1-REFUND-1",
+      "postingDate": "2026-10-13",
+      "timestamp": "2026-10-13 21:35:56",
+      "description": "Escrow refund to Buyer for Order #r1 (Test gig): buyer cancelled before work",
+      "eventType": "ESCROW_REFUNDED_WITH_FEES",
+      "idempotencyKey": "IDEMP-REF-r1-1",
+      "entries": [
+        {
+          "id": "ENT-bb137bcc-9967-47f0-aa11-e265b2949d99-1",
+          "journalId": "JRN-bb137bcc-9967-47f0-aa11-e265b2949d99",
+          "accountCode": "2030",
+          "accountName": "Marketplace Escrow Funds in Trust",
+          "debit": 50,
+          "credit": 0,
+          "currency": "USD",
+          "description": "Debited escrow liability for refunded Order #r1",
+          "orderId": "r1"
+        },
+        {
+          "id": "ENT-bb137bcc-9967-47f0-aa11-e265b2949d99-2",
+          "journalId": "JRN-bb137bcc-9967-47f0-aa11-e265b2949d99",
+          "accountCode": "4020",
+          "accountName": "Client Service Fee Revenue",
+          "debit": 2.75,
+          "credit": 0,
+          "currency": "USD",
+          "description": "Reversed client service fee on fully refunded Order #r1",
+          "orderId": "r1"
+        },
+        {
+          "id": "ENT-bb137bcc-9967-47f0-aa11-e265b2949d99-3",
+          "journalId": "JRN-bb137bcc-9967-47f0-aa11-e265b2949d99",
+          "accountCode": "4030",
+          "accountName": "Small-Order Fee Revenue",
+          "debit": 3.5,
+          "credit": 0,
+          "currency": "USD",
+          "description": "Reversed small-order fee on fully refunded Order #r1",
+          "orderId": "r1"
+        },
+        {
+          "id": "ENT-bb137bcc-9967-47f0-aa11-e265b2949d99-4",
+          "journalId": "JRN-bb137bcc-9967-47f0-aa11-e265b2949d99",
+          "accountCode": "2010",
+          "accountName": "Buyer Wallets Payable",
+          "debit": 0,
+          "credit": 56.25,
+          "currency": "USD",
+          "description": "Restored available wallet balance for Buyer (including client fees)",
+          "userId": "buyer1",
+          "orderId": "r1"
+        }
+      ],
+      "totalDebit": 56.25,
+      "totalCredit": 56.25,
+      "status": "posted",
+      "actor": "test"
+    },
+    {
+      "id": "JRN-33232736-f4e7-4a34-b1b9-ab2b8b1f6e28",
+      "reference": "ORD-r1-ESCROW-LOCK",
+      "postingDate": "2026-10-13",
+      "timestamp": "2026-10-13 21:35:56",
+      "description": "Escrow funding for Order #r1 (Test gig)",
+      "eventType": "ORDER_ESCROW_FUNDED",
+      "idempotencyKey": "IDEMP-ORD-FUND-r1",
+      "entries": [
+        {
+          "id": "ENT-33232736-f4e7-4a34-b1b9-ab2b8b1f6e28-1",
+          "journalId": "JRN-33232736-f4e7-4a34-b1b9-ab2b8b1f6e28",
+          "accountCode": "2010",
+          "accountName": "Buyer Wallets Payable",
+          "debit": 56.25,
+          "credit": 0,
+          "currency": "USD",
+          "description": "Debited buyer wallet for order price and client fees",
+          "userId": "buyer1",
+          "orderId": "r1"
+        },
+        {
+          "id": "ENT-33232736-f4e7-4a34-b1b9-ab2b8b1f6e28-2",
+          "journalId": "JRN-33232736-f4e7-4a34-b1b9-ab2b8b1f6e28",
+          "accountCode": "2030",
+          "accountName": "Marketplace Escrow Funds in Trust",
+          "debit": 0,
+          "credit": 50,
+          "currency": "USD",
+          "description": "Locked in escrow protection vault",
+          "orderId": "r1"
+        },
+        {
+          "id": "ENT-33232736-f4e7-4a34-b1b9-ab2b8b1f6e28-3",
+          "journalId": "JRN-33232736-f4e7-4a34-b1b9-ab2b8b1f6e28",
+          "accountCode": "4020",
+          "accountName": "Client Service Fee Revenue",
+          "debit": 0,
+          "credit": 2.75,
+          "currency": "USD",
+          "description": "5.5% client service fee on Order #r1",
+          "orderId": "r1"
+        },
+        {
+          "id": "ENT-33232736-f4e7-4a34-b1b9-ab2b8b1f6e28-4",
+          "journalId": "JRN-33232736-f4e7-4a34-b1b9-ab2b8b1f6e28",
+          "accountCode": "4030",
+          "accountName": "Small-Order Fee Revenue",
+          "debit": 0,
+          "credit": 3.5,
+          "currency": "USD",
+          "description": "Small-order fee ($3.50, order under $200) on Order #r1",
+          "orderId": "r1"
+        }
+      ],
+      "totalDebit": 56.25,
+      "totalCredit": 56.25,
+      "status": "posted",
+      "actor": "test"
+    },
+    {
+      "id": "JRN-6d1d744d-5afa-4f9e-9f1d-7b30966233e5",
+      "reference": "seed",
+      "postingDate": "2026-10-13",
+      "timestamp": "2026-10-13 21:35:56",
+      "description": "Deposit (gateway) - Buyer",
+      "eventType": "DEPOSIT_SETTLED",
+      "idempotencyKey": "DEP-seed-0.7883383651592875",
+      "entries": [
+        {
+          "id": "ENT-6d1d744d-5afa-4f9e-9f1d-7b30966233e5-1",
+          "journalId": "JRN-6d1d744d-5afa-4f9e-9f1d-7b30966233e5",
+          "accountCode": "1020",
+          "accountName": "Payment Processor Clearing",
+          "debit": 100000,
+          "credit": 0,
+          "currency": "USD",
+          "description": "Payment processor clearing - deposit received",
+          "userId": "buyer1"
+        },
+        {
+          "id": "ENT-6d1d744d-5afa-4f9e-9f1d-7b30966233e5-2",
+          "journalId": "JRN-6d1d744d-5afa-4f9e-9f1d-7b30966233e5",
+          "accountCode": "2010",
+          "accountName": "Buyer Wallets Payable",
+          "debit": 0,
+          "credit": 100000,
+          "currency": "USD",
+          "description": "Credited Buyer available wallet",
+          "userId": "buyer1"
+        }
+      ],
+      "totalDebit": 100000,
+      "totalCredit": 100000,
+      "status": "posted",
+      "actor": "test"
+    },
+    {
+      "id": "JRN-b830045b-a48d-4041-9642-39cb98a63b42",
+      "reference": "ORD-o500-RELEASE",
+      "postingDate": "2026-10-13",
+      "timestamp": "2026-10-13 21:35:56",
+      "description": "Escrow release for Order #o500 (Test gig)",
+      "eventType": "ESCROW_RELEASED_TO_FREELANCER",
+      "idempotencyKey": "IDEMP-REL-o500",
+      "entries": [
+        {
+          "id": "ENT-b830045b-a48d-4041-9642-39cb98a63b42-1",
+          "journalId": "JRN-b830045b-a48d-4041-9642-39cb98a63b42",
+          "accountCode": "2030",
+          "accountName": "Marketplace Escrow Funds in Trust",
+          "debit": 500,
+          "credit": 0,
+          "currency": "USD",
+          "description": "Released funds held in escrow for Order #o500",
+          "orderId": "o500"
+        },
+        {
+          "id": "ENT-b830045b-a48d-4041-9642-39cb98a63b42-2",
+          "journalId": "JRN-b830045b-a48d-4041-9642-39cb98a63b42",
+          "accountCode": "2020",
+          "accountName": "Freelancer Wallets Payable",
+          "debit": 0,
+          "credit": 400,
+          "currency": "USD",
+          "description": "Credited net earnings to Freelancer (after 20% commission)",
+          "userId": "free1",
+          "orderId": "o500"
+        },
+        {
+          "id": "ENT-b830045b-a48d-4041-9642-39cb98a63b42-3",
+          "journalId": "JRN-b830045b-a48d-4041-9642-39cb98a63b42",
+          "accountCode": "4010",
+          "accountName": "Marketplace Platform Commission Fee",
+          "debit": 0,
+          "credit": 100,
+          "currency": "USD",
+          "description": "20% platform commission on Order #o500",
+          "orderId": "o500"
+        }
+      ],
+      "totalDebit": 500,
+      "totalCredit": 500,
+      "status": "posted",
+      "actor": "test"
+    },
+    {
+      "id": "JRN-4424895c-e8d1-458d-9f28-598485ea87a6",
+      "reference": "ORD-o500-ESCROW-LOCK",
+      "postingDate": "2026-10-13",
+      "timestamp": "2026-10-13 21:35:56",
+      "description": "Escrow funding for Order #o500 (Test gig)",
+      "eventType": "ORDER_ESCROW_FUNDED",
+      "idempotencyKey": "IDEMP-ORD-FUND-o500",
+      "entries": [
+        {
+          "id": "ENT-4424895c-e8d1-458d-9f28-598485ea87a6-1",
+          "journalId": "JRN-4424895c-e8d1-458d-9f28-598485ea87a6",
+          "accountCode": "2010",
+          "accountName": "Buyer Wallets Payable",
+          "debit": 527.5,
+          "credit": 0,
+          "currency": "USD",
+          "description": "Debited buyer wallet for order price and client fees",
+          "userId": "buyer1",
+          "orderId": "o500"
+        },
+        {
+          "id": "ENT-4424895c-e8d1-458d-9f28-598485ea87a6-2",
+          "journalId": "JRN-4424895c-e8d1-458d-9f28-598485ea87a6",
+          "accountCode": "2030",
+          "accountName": "Marketplace Escrow Funds in Trust",
+          "debit": 0,
+          "credit": 500,
+          "currency": "USD",
+          "description": "Locked in escrow protection vault",
+          "orderId": "o500"
+        },
+        {
+          "id": "ENT-4424895c-e8d1-458d-9f28-598485ea87a6-3",
+          "journalId": "JRN-4424895c-e8d1-458d-9f28-598485ea87a6",
+          "accountCode": "4020",
+          "accountName": "Client Service Fee Revenue",
+          "debit": 0,
+          "credit": 27.5,
+          "currency": "USD",
+          "description": "5.5% client service fee on Order #o500",
+          "orderId": "o500"
+        }
+      ],
+      "totalDebit": 527.5,
+      "totalCredit": 527.5,
+      "status": "posted",
+      "actor": "test"
+    },
+    {
+      "id": "JRN-e577a8c7-5718-49be-b510-8f696a6e9cad",
+      "reference": "seed",
+      "postingDate": "2026-10-13",
+      "timestamp": "2026-10-13 21:35:56",
+      "description": "Deposit (gateway) - Buyer",
+      "eventType": "DEPOSIT_SETTLED",
+      "idempotencyKey": "DEP-seed-0.34438725573641027",
+      "entries": [
+        {
+          "id": "ENT-e577a8c7-5718-49be-b510-8f696a6e9cad-1",
+          "journalId": "JRN-e577a8c7-5718-49be-b510-8f696a6e9cad",
+          "accountCode": "1020",
+          "accountName": "Payment Processor Clearing",
+          "debit": 100000,
+          "credit": 0,
+          "currency": "USD",
+          "description": "Payment processor clearing - deposit received",
+          "userId": "buyer1"
+        },
+        {
+          "id": "ENT-e577a8c7-5718-49be-b510-8f696a6e9cad-2",
+          "journalId": "JRN-e577a8c7-5718-49be-b510-8f696a6e9cad",
+          "accountCode": "2010",
+          "accountName": "Buyer Wallets Payable",
+          "debit": 0,
+          "credit": 100000,
+          "currency": "USD",
+          "description": "Credited Buyer available wallet",
+          "userId": "buyer1"
+        }
+      ],
+      "totalDebit": 100000,
+      "totalCredit": 100000,
+      "status": "posted",
+      "actor": "test"
+    },
+    {
+      "id": "JRN-05ee9aa6-395e-4bf0-9a69-ce1ceb6c265f",
+      "reference": "ORD-tight-ESCROW-LOCK",
+      "postingDate": "2026-10-13",
+      "timestamp": "2026-10-13 21:35:56",
+      "description": "Escrow funding for Order #tight (Test gig)",
+      "eventType": "ORDER_ESCROW_FUNDED",
+      "idempotencyKey": "IDEMP-ORD-FUND-tight",
+      "entries": [
+        {
+          "id": "ENT-05ee9aa6-395e-4bf0-9a69-ce1ceb6c265f-1",
+          "journalId": "JRN-05ee9aa6-395e-4bf0-9a69-ce1ceb6c265f",
+          "accountCode": "2010",
+          "accountName": "Buyer Wallets Payable",
+          "debit": 56.25,
+          "credit": 0,
+          "currency": "USD",
+          "description": "Debited buyer wallet for order price and client fees",
+          "userId": "buyer1",
+          "orderId": "tight"
+        },
+        {
+          "id": "ENT-05ee9aa6-395e-4bf0-9a69-ce1ceb6c265f-2",
+          "journalId": "JRN-05ee9aa6-395e-4bf0-9a69-ce1ceb6c265f",
+          "accountCode": "2030",
+          "accountName": "Marketplace Escrow Funds in Trust",
+          "debit": 0,
+          "credit": 50,
+          "currency": "USD",
+          "description": "Locked in escrow protection vault",
+          "orderId": "tight"
+        },
+        {
+          "id": "ENT-05ee9aa6-395e-4bf0-9a69-ce1ceb6c265f-3",
+          "journalId": "JRN-05ee9aa6-395e-4bf0-9a69-ce1ceb6c265f",
+          "accountCode": "4020",
+          "accountName": "Client Service Fee Revenue",
+          "debit": 0,
+          "credit": 2.75,
+          "currency": "USD",
+          "description": "5.5% client service fee on Order #tight",
+          "orderId": "tight"
+        },
+        {
+          "id": "ENT-05ee9aa6-395e-4bf0-9a69-ce1ceb6c265f-4",
+          "journalId": "JRN-05ee9aa6-395e-4bf0-9a69-ce1ceb6c265f",
+          "accountCode": "4030",
+          "accountName": "Small-Order Fee Revenue",
+          "debit": 0,
+          "credit": 3.5,
+          "currency": "USD",
+          "description": "Small-order fee ($3.50, order under $200) on Order #tight",
+          "orderId": "tight"
+        }
+      ],
+      "totalDebit": 56.25,
+      "totalCredit": 56.25,
+      "status": "posted",
+      "actor": "test"
+    },
+    {
+      "id": "JRN-238ce769-b287-4c27-a0d2-ea9a9d4f06ff",
+      "reference": "seed",
+      "postingDate": "2026-10-13",
+      "timestamp": "2026-10-13 21:35:56",
+      "description": "Deposit (gateway) - Buyer",
+      "eventType": "DEPOSIT_SETTLED",
+      "idempotencyKey": "DEP-seed-0.08490236089182646",
+      "entries": [
+        {
+          "id": "ENT-238ce769-b287-4c27-a0d2-ea9a9d4f06ff-1",
+          "journalId": "JRN-238ce769-b287-4c27-a0d2-ea9a9d4f06ff",
+          "accountCode": "1020",
+          "accountName": "Payment Processor Clearing",
+          "debit": 52,
+          "credit": 0,
+          "currency": "USD",
+          "description": "Payment processor clearing - deposit received",
+          "userId": "buyer1"
+        },
+        {
+          "id": "ENT-238ce769-b287-4c27-a0d2-ea9a9d4f06ff-2",
+          "journalId": "JRN-238ce769-b287-4c27-a0d2-ea9a9d4f06ff",
+          "accountCode": "2010",
+          "accountName": "Buyer Wallets Payable",
+          "debit": 0,
+          "credit": 52,
+          "currency": "USD",
+          "description": "Credited Buyer available wallet",
+          "userId": "buyer1"
+        }
+      ],
+      "totalDebit": 52,
+      "totalCredit": 52,
+      "status": "posted",
+      "actor": "test"
+    },
+    {
+      "id": "JRN-70c93061-5a72-40eb-adbe-5a75f8fcf34f",
+      "reference": "ORD-o50-RELEASE",
+      "postingDate": "2026-10-13",
+      "timestamp": "2026-10-13 21:35:56",
+      "description": "Escrow release for Order #o50 (Test gig)",
+      "eventType": "ESCROW_RELEASED_TO_FREELANCER",
+      "idempotencyKey": "IDEMP-REL-o50",
+      "entries": [
+        {
+          "id": "ENT-70c93061-5a72-40eb-adbe-5a75f8fcf34f-1",
+          "journalId": "JRN-70c93061-5a72-40eb-adbe-5a75f8fcf34f",
+          "accountCode": "2030",
+          "accountName": "Marketplace Escrow Funds in Trust",
+          "debit": 50,
+          "credit": 0,
+          "currency": "USD",
+          "description": "Released funds held in escrow for Order #o50",
+          "orderId": "o50"
+        },
+        {
+          "id": "ENT-70c93061-5a72-40eb-adbe-5a75f8fcf34f-2",
+          "journalId": "JRN-70c93061-5a72-40eb-adbe-5a75f8fcf34f",
+          "accountCode": "2020",
+          "accountName": "Freelancer Wallets Payable",
+          "debit": 0,
+          "credit": 40,
+          "currency": "USD",
+          "description": "Credited net earnings to Freelancer (after 20% commission)",
+          "userId": "free1",
+          "orderId": "o50"
+        },
+        {
+          "id": "ENT-70c93061-5a72-40eb-adbe-5a75f8fcf34f-3",
+          "journalId": "JRN-70c93061-5a72-40eb-adbe-5a75f8fcf34f",
+          "accountCode": "4010",
+          "accountName": "Marketplace Platform Commission Fee",
+          "debit": 0,
+          "credit": 10,
+          "currency": "USD",
+          "description": "20% platform commission on Order #o50",
+          "orderId": "o50"
+        }
+      ],
+      "totalDebit": 50,
+      "totalCredit": 50,
+      "status": "posted",
+      "actor": "test"
+    },
+    {
+      "id": "JRN-74ac4c8d-e107-4d45-9f92-2bc7e15029b6",
+      "reference": "ORD-o50-ESCROW-LOCK",
+      "postingDate": "2026-10-13",
+      "timestamp": "2026-10-13 21:35:56",
+      "description": "Escrow funding for Order #o50 (Test gig)",
+      "eventType": "ORDER_ESCROW_FUNDED",
+      "idempotencyKey": "IDEMP-ORD-FUND-o50",
+      "entries": [
+        {
+          "id": "ENT-74ac4c8d-e107-4d45-9f92-2bc7e15029b6-1",
+          "journalId": "JRN-74ac4c8d-e107-4d45-9f92-2bc7e15029b6",
+          "accountCode": "2010",
+          "accountName": "Buyer Wallets Payable",
+          "debit": 56.25,
+          "credit": 0,
+          "currency": "USD",
+          "description": "Debited buyer wallet for order price and client fees",
+          "userId": "buyer1",
+          "orderId": "o50"
+        },
+        {
+          "id": "ENT-74ac4c8d-e107-4d45-9f92-2bc7e15029b6-2",
+          "journalId": "JRN-74ac4c8d-e107-4d45-9f92-2bc7e15029b6",
+          "accountCode": "2030",
+          "accountName": "Marketplace Escrow Funds in Trust",
+          "debit": 0,
+          "credit": 50,
+          "currency": "USD",
+          "description": "Locked in escrow protection vault",
+          "orderId": "o50"
+        },
+        {
+          "id": "ENT-74ac4c8d-e107-4d45-9f92-2bc7e15029b6-3",
+          "journalId": "JRN-74ac4c8d-e107-4d45-9f92-2bc7e15029b6",
+          "accountCode": "4020",
+          "accountName": "Client Service Fee Revenue",
+          "debit": 0,
+          "credit": 2.75,
+          "currency": "USD",
+          "description": "5.5% client service fee on Order #o50",
+          "orderId": "o50"
+        },
+        {
+          "id": "ENT-74ac4c8d-e107-4d45-9f92-2bc7e15029b6-4",
+          "journalId": "JRN-74ac4c8d-e107-4d45-9f92-2bc7e15029b6",
+          "accountCode": "4030",
+          "accountName": "Small-Order Fee Revenue",
+          "debit": 0,
+          "credit": 3.5,
+          "currency": "USD",
+          "description": "Small-order fee ($3.50, order under $200) on Order #o50",
+          "orderId": "o50"
+        }
+      ],
+      "totalDebit": 56.25,
+      "totalCredit": 56.25,
+      "status": "posted",
+      "actor": "test"
+    },
+    {
+      "id": "JRN-f54e9e53-b0f6-47da-8eeb-7d823c5c2333",
+      "reference": "seed",
+      "postingDate": "2026-10-13",
+      "timestamp": "2026-10-13 21:35:56",
+      "description": "Deposit (gateway) - Buyer",
+      "eventType": "DEPOSIT_SETTLED",
+      "idempotencyKey": "DEP-seed-0.9915099157380498",
+      "entries": [
+        {
+          "id": "ENT-f54e9e53-b0f6-47da-8eeb-7d823c5c2333-1",
+          "journalId": "JRN-f54e9e53-b0f6-47da-8eeb-7d823c5c2333",
+          "accountCode": "1020",
+          "accountName": "Payment Processor Clearing",
+          "debit": 100000,
+          "credit": 0,
+          "currency": "USD",
+          "description": "Payment processor clearing - deposit received",
+          "userId": "buyer1"
+        },
+        {
+          "id": "ENT-f54e9e53-b0f6-47da-8eeb-7d823c5c2333-2",
+          "journalId": "JRN-f54e9e53-b0f6-47da-8eeb-7d823c5c2333",
+          "accountCode": "2010",
+          "accountName": "Buyer Wallets Payable",
+          "debit": 0,
+          "credit": 100000,
+          "currency": "USD",
+          "description": "Credited Buyer available wallet",
+          "userId": "buyer1"
+        }
+      ],
+      "totalDebit": 100000,
+      "totalCredit": 100000,
+      "status": "posted",
+      "actor": "test"
+    }
+  ],
+  "transactions": [
+    {
+      "id": "TXN-205aa4a1-4856-4e1c-a5bf-f029de002474",
+      "type": "deposit",
+      "amount": 100000,
+      "currency": "USD",
+      "timestamp": "2026-10-13 21:35:56",
+      "status": "completed",
+      "userId": "buyer1",
+      "userName": "Buyer",
+      "userRole": "buyer",
+      "journalId": "JRN-205aa4a1-4856-4e1c-a5bf-f029de002474",
+      "description": "Deposit (gateway) - Buyer"
+    },
+    {
+      "id": "TXN-00eaa862-c073-4cd4-9175-e9d0bf483b03",
+      "type": "escrow_release",
+      "amount": 100,
+      "currency": "USD",
+      "timestamp": "2026-10-13 21:35:56",
+      "status": "completed",
+      "userId": "free1",
+      "userName": "Freelancer",
+      "userRole": "freelancer",
+      "relatedOrderId": "lock",
+      "journalId": "JRN-00eaa862-c073-4cd4-9175-e9d0bf483b03",
+      "description": "Escrow release for Order #lock (Test gig)"
+    },
+    {
+      "id": "TXN-6fe18b29-7e08-4756-8ad1-bc354136626e",
+      "type": "escrow_fund",
+      "amount": 109,
+      "currency": "USD",
+      "timestamp": "2026-10-13 21:35:56",
+      "status": "completed",
+      "userId": "buyer1",
+      "userName": "Buyer",
+      "userRole": "buyer",
+      "relatedOrderId": "lock",
+      "journalId": "JRN-6fe18b29-7e08-4756-8ad1-bc354136626e",
+      "description": "Escrow funding for Order #lock (Test gig)"
+    },
+    {
+      "id": "TXN-e21eb0e6-c474-49b8-b40b-8bf66e1bd579",
+      "type": "deposit",
+      "amount": 100000,
+      "currency": "USD",
+      "timestamp": "2026-10-13 21:35:56",
+      "status": "completed",
+      "userId": "buyer1",
+      "userName": "Buyer",
+      "userRole": "buyer",
+      "journalId": "JRN-e21eb0e6-c474-49b8-b40b-8bf66e1bd579",
+      "description": "Deposit (gateway) - Buyer"
+    },
+    {
+      "id": "TXN-aa0073c8-d510-405c-8c52-ca5f9f019bf4",
+      "type": "refund",
+      "amount": 79,
+      "currency": "USD",
+      "timestamp": "2026-10-13 21:35:56",
+      "status": "completed",
+      "userId": "buyer1",
+      "userName": "Buyer",
+      "userRole": "buyer",
+      "relatedOrderId": "m1",
+      "journalId": "JRN-aa0073c8-d510-405c-8c52-ca5f9f019bf4",
+      "description": "Escrow refund to Buyer for Order #m1 (Test gig): rest refunded"
+    },
+    {
+      "id": "TXN-bc3af228-9b38-4599-bd69-161521ec69ac",
+      "type": "refund",
+      "amount": 30,
+      "currency": "USD",
+      "timestamp": "2026-10-13 21:35:56",
+      "status": "completed",
+      "userId": "buyer1",
+      "userName": "Buyer",
+      "userRole": "buyer",
+      "relatedOrderId": "m1",
+      "journalId": "JRN-bc3af228-9b38-4599-bd69-161521ec69ac",
+      "description": "Escrow refund to Buyer for Order #m1 (Test gig): first part refund"
+    },
+    {
+      "id": "TXN-605d196d-27c8-410d-9be0-932c0267f88a",
+      "type": "escrow_fund",
+      "amount": 109,
+      "currency": "USD",
+      "timestamp": "2026-10-13 21:35:56",
+      "status": "completed",
+      "userId": "buyer1",
+      "userName": "Buyer",
+      "userRole": "buyer",
+      "relatedOrderId": "m1",
+      "journalId": "JRN-605d196d-27c8-410d-9be0-932c0267f88a",
+      "description": "Escrow funding for Order #m1 (Test gig)"
+    },
+    {
+      "id": "TXN-02412447-f78d-41d2-9dd7-fc301c22301c",
+      "type": "deposit",
+      "amount": 100000,
+      "currency": "USD",
+      "timestamp": "2026-10-13 21:35:56",
+      "status": "completed",
+      "userId": "buyer1",
+      "userName": "Buyer",
+      "userRole": "buyer",
+      "journalId": "JRN-02412447-f78d-41d2-9dd7-fc301c22301c",
+      "description": "Deposit (gateway) - Buyer"
+    },
+    {
+      "id": "TXN-ca33aab7-06cc-49d9-8da8-220ce668eadb",
+      "type": "escrow_release",
+      "amount": 60,
+      "currency": "USD",
+      "timestamp": "2026-10-13 21:35:56",
+      "status": "completed",
+      "userId": "free1",
+      "userName": "Freelancer",
+      "userRole": "freelancer",
+      "relatedOrderId": "s1",
+      "journalId": "JRN-ca33aab7-06cc-49d9-8da8-220ce668eadb",
+      "description": "Escrow release for Order #s1 (Test gig)"
+    },
+    {
+      "id": "TXN-5427fd00-2849-4107-87a3-009153c6126e",
+      "type": "refund",
+      "amount": 40,
+      "currency": "USD",
+      "timestamp": "2026-10-13 21:35:56",
+      "status": "completed",
+      "userId": "buyer1",
+      "userName": "Buyer",
+      "userRole": "buyer",
+      "relatedOrderId": "s1",
+      "journalId": "JRN-5427fd00-2849-4107-87a3-009153c6126e",
+      "description": "Escrow refund to Buyer for Order #s1 (Test gig): dispute partial"
+    },
+    {
+      "id": "TXN-f405f897-97e1-4377-b172-5ce886767eab",
+      "type": "escrow_fund",
+      "amount": 109,
+      "currency": "USD",
+      "timestamp": "2026-10-13 21:35:56",
+      "status": "completed",
+      "userId": "buyer1",
+      "userName": "Buyer",
+      "userRole": "buyer",
+      "relatedOrderId": "s1",
+      "journalId": "JRN-f405f897-97e1-4377-b172-5ce886767eab",
+      "description": "Escrow funding for Order #s1 (Test gig)"
+    },
+    {
+      "id": "TXN-317b9445-ed3f-425c-bcf0-011f164f894d",
+      "type": "deposit",
+      "amount": 100000,
+      "currency": "USD",
+      "timestamp": "2026-10-13 21:35:56",
+      "status": "completed",
+      "userId": "buyer1",
+      "userName": "Buyer",
+      "userRole": "buyer",
+      "journalId": "JRN-317b9445-ed3f-425c-bcf0-011f164f894d",
+      "description": "Deposit (gateway) - Buyer"
+    },
+    {
+      "id": "TXN-bb137bcc-9967-47f0-aa11-e265b2949d99",
+      "type": "refund",
+      "amount": 56.25,
+      "currency": "USD",
+      "timestamp": "2026-10-13 21:35:56",
+      "status": "completed",
+      "userId": "buyer1",
+      "userName": "Buyer",
+      "userRole": "buyer",
+      "relatedOrderId": "r1",
+      "journalId": "JRN-bb137bcc-9967-47f0-aa11-e265b2949d99",
+      "description": "Escrow refund to Buyer for Order #r1 (Test gig): buyer cancelled before work"
+    },
+    {
+      "id": "TXN-33232736-f4e7-4a34-b1b9-ab2b8b1f6e28",
+      "type": "escrow_fund",
+      "amount": 56.25,
+      "currency": "USD",
+      "timestamp": "2026-10-13 21:35:56",
+      "status": "completed",
+      "userId": "buyer1",
+      "userName": "Buyer",
+      "userRole": "buyer",
+      "relatedOrderId": "r1",
+      "journalId": "JRN-33232736-f4e7-4a34-b1b9-ab2b8b1f6e28",
+      "description": "Escrow funding for Order #r1 (Test gig)"
+    },
+    {
+      "id": "TXN-6d1d744d-5afa-4f9e-9f1d-7b30966233e5",
+      "type": "deposit",
+      "amount": 100000,
+      "currency": "USD",
+      "timestamp": "2026-10-13 21:35:56",
+      "status": "completed",
+      "userId": "buyer1",
+      "userName": "Buyer",
+      "userRole": "buyer",
+      "journalId": "JRN-6d1d744d-5afa-4f9e-9f1d-7b30966233e5",
+      "description": "Deposit (gateway) - Buyer"
+    },
+    {
+      "id": "TXN-b830045b-a48d-4041-9642-39cb98a63b42",
+      "type": "escrow_release",
+      "amount": 500,
+      "currency": "USD",
+      "timestamp": "2026-10-13 21:35:56",
+      "status": "completed",
+      "userId": "free1",
+      "userName": "Freelancer",
+      "userRole": "freelancer",
+      "relatedOrderId": "o500",
+      "journalId": "JRN-b830045b-a48d-4041-9642-39cb98a63b42",
+      "description": "Escrow release for Order #o500 (Test gig)"
+    },
+    {
+      "id": "TXN-4424895c-e8d1-458d-9f28-598485ea87a6",
+      "type": "escrow_fund",
+      "amount": 527.5,
+      "currency": "USD",
+      "timestamp": "2026-10-13 21:35:56",
+      "status": "completed",
+      "userId": "buyer1",
+      "userName": "Buyer",
+      "userRole": "buyer",
+      "relatedOrderId": "o500",
+      "journalId": "JRN-4424895c-e8d1-458d-9f28-598485ea87a6",
+      "description": "Escrow funding for Order #o500 (Test gig)"
+    },
+    {
+      "id": "TXN-e577a8c7-5718-49be-b510-8f696a6e9cad",
+      "type": "deposit",
+      "amount": 100000,
+      "currency": "USD",
+      "timestamp": "2026-10-13 21:35:56",
+      "status": "completed",
+      "userId": "buyer1",
+      "userName": "Buyer",
+      "userRole": "buyer",
+      "journalId": "JRN-e577a8c7-5718-49be-b510-8f696a6e9cad",
+      "description": "Deposit (gateway) - Buyer"
+    },
+    {
+      "id": "TXN-05ee9aa6-395e-4bf0-9a69-ce1ceb6c265f",
+      "type": "escrow_fund",
+      "amount": 56.25,
+      "currency": "USD",
+      "timestamp": "2026-10-13 21:35:56",
+      "status": "completed",
+      "userId": "buyer1",
+      "userName": "Buyer",
+      "userRole": "buyer",
+      "relatedOrderId": "tight",
+      "journalId": "JRN-05ee9aa6-395e-4bf0-9a69-ce1ceb6c265f",
+      "description": "Escrow funding for Order #tight (Test gig)"
+    },
+    {
+      "id": "TXN-238ce769-b287-4c27-a0d2-ea9a9d4f06ff",
+      "type": "deposit",
+      "amount": 52,
+      "currency": "USD",
+      "timestamp": "2026-10-13 21:35:56",
+      "status": "completed",
+      "userId": "buyer1",
+      "userName": "Buyer",
+      "userRole": "buyer",
+      "journalId": "JRN-238ce769-b287-4c27-a0d2-ea9a9d4f06ff",
+      "description": "Deposit (gateway) - Buyer"
+    },
+    {
+      "id": "TXN-70c93061-5a72-40eb-adbe-5a75f8fcf34f",
+      "type": "escrow_release",
+      "amount": 50,
+      "currency": "USD",
+      "timestamp": "2026-10-13 21:35:56",
+      "status": "completed",
+      "userId": "free1",
+      "userName": "Freelancer",
+      "userRole": "freelancer",
+      "relatedOrderId": "o50",
+      "journalId": "JRN-70c93061-5a72-40eb-adbe-5a75f8fcf34f",
+      "description": "Escrow release for Order #o50 (Test gig)"
+    },
+    {
+      "id": "TXN-74ac4c8d-e107-4d45-9f92-2bc7e15029b6",
+      "type": "escrow_fund",
+      "amount": 56.25,
+      "currency": "USD",
+      "timestamp": "2026-10-13 21:35:56",
+      "status": "completed",
+      "userId": "buyer1",
+      "userName": "Buyer",
+      "userRole": "buyer",
+      "relatedOrderId": "o50",
+      "journalId": "JRN-74ac4c8d-e107-4d45-9f92-2bc7e15029b6",
+      "description": "Escrow funding for Order #o50 (Test gig)"
+    },
+    {
+      "id": "TXN-f54e9e53-b0f6-47da-8eeb-7d823c5c2333",
+      "type": "deposit",
+      "amount": 100000,
+      "currency": "USD",
+      "timestamp": "2026-10-13 21:35:56",
+      "status": "completed",
+      "userId": "buyer1",
+      "userName": "Buyer",
+      "userRole": "buyer",
+      "journalId": "JRN-f54e9e53-b0f6-47da-8eeb-7d823c5c2333",
+      "description": "Deposit (gateway) - Buyer"
+    }
+  ],
+  "wallets": [
+    [
+      "buyer1",
+      {
+        "id": "WAL-BUYER1",
+        "userId": "buyer1",
+        "userName": "Buyer",
+        "userEmail": "b@x.com",
+        "userRole": "buyer",
+        "currency": "USD",
+        "availableBalance": 699234,
+        "pendingIncoming": 0,
+        "fundsOnHold": 830,
+        "pendingWithdrawals": 0,
+        "status": "active",
+        "lastActivityAt": "2026-10-13 21:35:56",
+        "createdAt": "2026-10-13 21:35:56"
+      }
+    ],
+    [
+      "free1",
+      {
+        "id": "WAL-FREE1",
+        "userId": "free1",
+        "userName": "Freelancer",
+        "userEmail": "f@x.com",
+        "userRole": "freelancer",
+        "currency": "USD",
+        "availableBalance": 568,
+        "pendingIncoming": 0,
+        "fundsOnHold": 0,
+        "pendingWithdrawals": 0,
+        "status": "active",
+        "lastActivityAt": "2026-10-13 21:35:56",
+        "createdAt": "2026-10-13 21:35:56"
+      }
+    ],
+    [
+      "usr_2",
+      {
+        "id": "WAL-USR_2",
+        "userId": "usr_2",
+        "userName": "Elena Rostova",
+        "userEmail": "elena.rostova@example.com",
+        "userRole": "freelancer",
+        "currency": "USD",
+        "availableBalance": 0,
+        "pendingIncoming": 0,
+        "fundsOnHold": 0,
+        "pendingWithdrawals": 0,
+        "status": "active",
+        "lastActivityAt": "2026-10-14 05:08:02",
+        "createdAt": "2026-10-14 05:08:02"
+      }
+    ],
+    [
+      "usr_3",
+      {
+        "id": "WAL-USR_3",
+        "userId": "usr_3",
+        "userName": "Marcus Vance",
+        "userEmail": "marcus.v@innovatetech.io",
+        "userRole": "buyer",
+        "currency": "USD",
+        "availableBalance": 0,
+        "pendingIncoming": 0,
+        "fundsOnHold": 0,
+        "pendingWithdrawals": 0,
+        "status": "active",
+        "lastActivityAt": "2026-10-14 05:08:02",
+        "createdAt": "2026-10-14 05:08:02"
+      }
+    ],
+    [
+      "usr_4",
+      {
+        "id": "WAL-USR_4",
+        "userId": "usr_4",
+        "userName": "Aisha Patel",
+        "userEmail": "aisha.design@studio.com",
+        "userRole": "freelancer",
+        "currency": "USD",
+        "availableBalance": 0,
+        "pendingIncoming": 0,
+        "fundsOnHold": 0,
+        "pendingWithdrawals": 0,
+        "status": "active",
+        "lastActivityAt": "2026-10-14 05:08:02",
+        "createdAt": "2026-10-14 05:08:02"
+      }
+    ],
+    [
+      "usr_5",
+      {
+        "id": "WAL-USR_5",
+        "userId": "usr_5",
+        "userName": "David Kim",
+        "userEmail": "david.kim@appworks.dev",
+        "userRole": "freelancer",
+        "currency": "USD",
+        "availableBalance": 0,
+        "pendingIncoming": 0,
+        "fundsOnHold": 0,
+        "pendingWithdrawals": 0,
+        "status": "active",
+        "lastActivityAt": "2026-10-14 05:08:02",
+        "createdAt": "2026-10-14 05:08:02"
+      }
+    ],
+    [
+      "usr_6",
+      {
+        "id": "WAL-USR_6",
+        "userId": "usr_6",
+        "userName": "Sarah Jenkins",
+        "userEmail": "sarah.j@growthsurge.co",
+        "userRole": "buyer",
+        "currency": "USD",
+        "availableBalance": 0,
+        "pendingIncoming": 0,
+        "fundsOnHold": 0,
+        "pendingWithdrawals": 0,
+        "status": "active",
+        "lastActivityAt": "2026-10-14 05:08:02",
+        "createdAt": "2026-10-14 05:08:02"
+      }
+    ],
+    [
+      "usr_7",
+      {
+        "id": "WAL-USR_7",
+        "userId": "usr_7",
+        "userName": "Carlos Mendez",
+        "userEmail": "carlos.mendez@seometrics.com",
+        "userRole": "freelancer",
+        "currency": "USD",
+        "availableBalance": 0,
+        "pendingIncoming": 0,
+        "fundsOnHold": 0,
+        "pendingWithdrawals": 0,
+        "status": "active",
+        "lastActivityAt": "2026-10-14 05:08:02",
+        "createdAt": "2026-10-14 05:08:02"
+      }
+    ],
+    [
+      "usr_8",
+      {
+        "id": "WAL-USR_8",
+        "userId": "usr_8",
+        "userName": "Emily Watson",
+        "userEmail": "emily.w@wordcraft.io",
+        "userRole": "freelancer",
+        "currency": "USD",
+        "availableBalance": 0,
+        "pendingIncoming": 0,
+        "fundsOnHold": 0,
+        "pendingWithdrawals": 0,
+        "status": "active",
+        "lastActivityAt": "2026-10-14 05:08:02",
+        "createdAt": "2026-10-14 05:08:02"
+      }
+    ],
+    [
+      "usr_9",
+      {
+        "id": "WAL-USR_9",
+        "userId": "usr_9",
+        "userName": "Liam O’Connor",
+        "userEmail": "liam.oconnor@cloudscale.net",
+        "userRole": "freelancer",
+        "currency": "USD",
+        "availableBalance": 0,
+        "pendingIncoming": 0,
+        "fundsOnHold": 0,
+        "pendingWithdrawals": 0,
+        "status": "active",
+        "lastActivityAt": "2026-10-14 05:08:02",
+        "createdAt": "2026-10-14 05:08:02"
+      }
+    ],
+    [
+      "usr_10",
+      {
+        "id": "WAL-USR_10",
+        "userId": "usr_10",
+        "userName": "Sophia Chen",
+        "userEmail": "sophia.chen@mindai.tech",
+        "userRole": "freelancer",
+        "currency": "USD",
+        "availableBalance": 0,
+        "pendingIncoming": 0,
+        "fundsOnHold": 0,
+        "pendingWithdrawals": 0,
+        "status": "active",
+        "lastActivityAt": "2026-10-14 05:08:02",
+        "createdAt": "2026-10-14 05:08:02"
+      }
+    ],
+    [
+      "usr_11",
+      {
+        "id": "WAL-USR_11",
+        "userId": "usr_11",
+        "userName": "James Wilson",
+        "userEmail": "james@apexventures.co",
+        "userRole": "buyer",
+        "currency": "USD",
+        "availableBalance": 0,
+        "pendingIncoming": 0,
+        "fundsOnHold": 0,
+        "pendingWithdrawals": 0,
+        "status": "active",
+        "lastActivityAt": "2026-10-14 05:08:02",
+        "createdAt": "2026-10-14 05:08:02"
+      }
+    ],
+    [
+      "usr_12",
+      {
+        "id": "WAL-USR_12",
+        "userId": "usr_12",
+        "userName": "Olivia Martinez",
+        "userEmail": "olivia.m@vividframe.tv",
+        "userRole": "freelancer",
+        "currency": "USD",
+        "availableBalance": 0,
+        "pendingIncoming": 0,
+        "fundsOnHold": 0,
+        "pendingWithdrawals": 0,
+        "status": "active",
+        "lastActivityAt": "2026-10-14 05:08:02",
+        "createdAt": "2026-10-14 05:08:02"
+      }
+    ],
+    [
+      "usr_13",
+      {
+        "id": "WAL-USR_13",
+        "userId": "usr_13",
+        "userName": "Alexander Wright",
+        "userEmail": "alex.wright@securesolutions.io",
+        "userRole": "freelancer",
+        "currency": "USD",
+        "availableBalance": 0,
+        "pendingIncoming": 0,
+        "fundsOnHold": 0,
+        "pendingWithdrawals": 0,
+        "status": "active",
+        "lastActivityAt": "2026-10-14 05:08:02",
+        "createdAt": "2026-10-14 05:08:02"
+      }
+    ],
+    [
+      "usr_14",
+      {
+        "id": "WAL-USR_14",
+        "userId": "usr_14",
+        "userName": "Hannah Taylor",
+        "userEmail": "hannah@studiobloom.design",
+        "userRole": "freelancer",
+        "currency": "USD",
+        "availableBalance": 0,
+        "pendingIncoming": 0,
+        "fundsOnHold": 0,
+        "pendingWithdrawals": 0,
+        "status": "active",
+        "lastActivityAt": "2026-10-14 05:08:02",
+        "createdAt": "2026-10-14 05:08:02"
+      }
+    ],
+    [
+      "usr_15",
+      {
+        "id": "WAL-USR_15",
+        "userId": "usr_15",
+        "userName": "Robert Miller",
+        "userEmail": "robert@nexusretail.com",
+        "userRole": "buyer",
+        "currency": "USD",
+        "availableBalance": 0,
+        "pendingIncoming": 0,
+        "fundsOnHold": 0,
+        "pendingWithdrawals": 0,
+        "status": "active",
+        "lastActivityAt": "2026-10-14 05:08:02",
+        "createdAt": "2026-10-14 05:08:02"
+      }
+    ],
+    [
+      "usr_16",
+      {
+        "id": "WAL-USR_16",
+        "userId": "usr_16",
+        "userName": "Nathaniel Cole",
+        "userEmail": "nathan.c@renderlab.3d",
+        "userRole": "freelancer",
+        "currency": "USD",
+        "availableBalance": 0,
+        "pendingIncoming": 0,
+        "fundsOnHold": 0,
+        "pendingWithdrawals": 0,
+        "status": "active",
+        "lastActivityAt": "2026-10-14 05:08:02",
+        "createdAt": "2026-10-14 05:08:02"
+      }
+    ],
+    [
+      "usr_17",
+      {
+        "id": "WAL-USR_17",
+        "userId": "usr_17",
+        "userName": "Victoria Zhang",
+        "userEmail": "victoria.z@globaltranslate.org",
+        "userRole": "freelancer",
+        "currency": "USD",
+        "availableBalance": 0,
+        "pendingIncoming": 0,
+        "fundsOnHold": 0,
+        "pendingWithdrawals": 0,
+        "status": "active",
+        "lastActivityAt": "2026-10-14 05:08:02",
+        "createdAt": "2026-10-14 05:08:02"
+      }
+    ],
+    [
+      "usr_18",
+      {
+        "id": "WAL-USR_18",
+        "userId": "usr_18",
+        "userName": "Benjamin Brooks",
+        "userEmail": "ben.brooks@soundscape.studio",
+        "userRole": "freelancer",
+        "currency": "USD",
+        "availableBalance": 0,
+        "pendingIncoming": 0,
+        "fundsOnHold": 0,
+        "pendingWithdrawals": 0,
+        "status": "active",
+        "lastActivityAt": "2026-10-14 05:08:02",
+        "createdAt": "2026-10-14 05:08:02"
+      }
+    ],
+    [
+      "usr_19",
+      {
+        "id": "WAL-USR_19",
+        "userId": "usr_19",
+        "userName": "Rachel Adams",
+        "userEmail": "rachel@summitagency.com",
+        "userRole": "buyer",
+        "currency": "USD",
+        "availableBalance": 0,
+        "pendingIncoming": 0,
+        "fundsOnHold": 0,
+        "pendingWithdrawals": 0,
+        "status": "active",
+        "lastActivityAt": "2026-10-14 05:08:02",
+        "createdAt": "2026-10-14 05:08:02"
+      }
+    ],
+    [
+      "usr_20",
+      {
+        "id": "WAL-USR_20",
+        "userId": "usr_20",
+        "userName": "Daniel Foster",
+        "userEmail": "daniel.foster@legaltech.law",
+        "userRole": "freelancer",
+        "currency": "USD",
+        "availableBalance": 0,
+        "pendingIncoming": 0,
+        "fundsOnHold": 0,
+        "pendingWithdrawals": 0,
+        "status": "active",
+        "lastActivityAt": "2026-10-14 05:08:02",
+        "createdAt": "2026-10-14 05:08:02"
+      }
+    ]
+  ],
+  "auditLogs": [
+    {
+      "id": "FAUD-ece528ef-386",
+      "actor": "test",
+      "role": "system",
+      "action": "DEPOSIT_CONFIRMED",
+      "target": "Wallet #WAL-BUYER1",
+      "reason": "gateway ref seed",
+      "journalId": "JRN-205aa4a1-4856-4e1c-a5bf-f029de002474",
+      "timestamp": "2026-10-13 21:35:56"
+    },
+    {
+      "id": "FAUD-dcc9027b-ef2",
+      "actor": "test",
+      "role": "system",
+      "action": "ESCROW_FUNDS_LOCKED",
+      "target": "Order #lock",
+      "reason": "Locked $100.00 in escrow; client charged $109.00 total (service fee $5.50, small-order fee $3.50)",
+      "journalId": "JRN-6fe18b29-7e08-4756-8ad1-bc354136626e",
+      "timestamp": "2026-10-13 21:35:56"
+    },
+    {
+      "id": "FAUD-ecb7bb97-356",
+      "actor": "test",
+      "role": "system",
+      "action": "DEPOSIT_CONFIRMED",
+      "target": "Wallet #WAL-BUYER1",
+      "reason": "gateway ref seed",
+      "journalId": "JRN-e21eb0e6-c474-49b8-b40b-8bf66e1bd579",
+      "timestamp": "2026-10-13 21:35:56"
+    },
+    {
+      "id": "FAUD-9b1e3969-442",
+      "actor": "test",
+      "role": "super_admin",
+      "action": "ESCROW_REFUNDED",
+      "target": "Order #m1",
+      "reason": "first part refund",
+      "journalId": "JRN-bc3af228-9b38-4599-bd69-161521ec69ac",
+      "timestamp": "2026-10-13 21:35:56"
+    },
+    {
+      "id": "FAUD-7ba20fed-792",
+      "actor": "test",
+      "role": "system",
+      "action": "ESCROW_FUNDS_LOCKED",
+      "target": "Order #m1",
+      "reason": "Locked $100.00 in escrow; client charged $109.00 total (service fee $5.50, small-order fee $3.50)",
+      "journalId": "JRN-605d196d-27c8-410d-9be0-932c0267f88a",
+      "timestamp": "2026-10-13 21:35:56"
+    },
+    {
+      "id": "FAUD-0a1678ff-e2d",
+      "actor": "test",
+      "role": "system",
+      "action": "DEPOSIT_CONFIRMED",
+      "target": "Wallet #WAL-BUYER1",
+      "reason": "gateway ref seed",
+      "journalId": "JRN-02412447-f78d-41d2-9dd7-fc301c22301c",
+      "timestamp": "2026-10-13 21:35:56"
+    },
+    {
+      "id": "FAUD-10de0a86-cd4",
+      "actor": "test",
+      "role": "super_admin",
+      "action": "ESCROW_REFUNDED",
+      "target": "Order #s1",
+      "reason": "dispute partial",
+      "journalId": "JRN-5427fd00-2849-4107-87a3-009153c6126e",
+      "timestamp": "2026-10-13 21:35:56"
+    },
+    {
+      "id": "FAUD-2845ff1a-3e4",
+      "actor": "test",
+      "role": "system",
+      "action": "ESCROW_FUNDS_LOCKED",
+      "target": "Order #s1",
+      "reason": "Locked $100.00 in escrow; client charged $109.00 total (service fee $5.50, small-order fee $3.50)",
+      "journalId": "JRN-f405f897-97e1-4377-b172-5ce886767eab",
+      "timestamp": "2026-10-13 21:35:56"
+    },
+    {
+      "id": "FAUD-0db15049-0cf",
+      "actor": "test",
+      "role": "system",
+      "action": "DEPOSIT_CONFIRMED",
+      "target": "Wallet #WAL-BUYER1",
+      "reason": "gateway ref seed",
+      "journalId": "JRN-317b9445-ed3f-425c-bcf0-011f164f894d",
+      "timestamp": "2026-10-13 21:35:56"
+    },
+    {
+      "id": "FAUD-b93519cf-648",
+      "actor": "test",
+      "role": "system",
+      "action": "ESCROW_FUNDS_LOCKED",
+      "target": "Order #r1",
+      "reason": "Locked $50.00 in escrow; client charged $56.25 total (service fee $2.75, small-order fee $3.50)",
+      "journalId": "JRN-33232736-f4e7-4a34-b1b9-ab2b8b1f6e28",
+      "timestamp": "2026-10-13 21:35:56"
+    },
+    {
+      "id": "FAUD-18ab2f67-a04",
+      "actor": "test",
+      "role": "system",
+      "action": "DEPOSIT_CONFIRMED",
+      "target": "Wallet #WAL-BUYER1",
+      "reason": "gateway ref seed",
+      "journalId": "JRN-6d1d744d-5afa-4f9e-9f1d-7b30966233e5",
+      "timestamp": "2026-10-13 21:35:56"
+    },
+    {
+      "id": "FAUD-25ffe0df-590",
+      "actor": "test",
+      "role": "system",
+      "action": "ESCROW_FUNDS_LOCKED",
+      "target": "Order #o500",
+      "reason": "Locked $500.00 in escrow; client charged $527.50 total (service fee $27.50, small-order fee $0.00)",
+      "journalId": "JRN-4424895c-e8d1-458d-9f28-598485ea87a6",
+      "timestamp": "2026-10-13 21:35:56"
+    },
+    {
+      "id": "FAUD-c2e652f9-054",
+      "actor": "test",
+      "role": "system",
+      "action": "DEPOSIT_CONFIRMED",
+      "target": "Wallet #WAL-BUYER1",
+      "reason": "gateway ref seed",
+      "journalId": "JRN-e577a8c7-5718-49be-b510-8f696a6e9cad",
+      "timestamp": "2026-10-13 21:35:56"
+    },
+    {
+      "id": "FAUD-2a46882b-4e2",
+      "actor": "test",
+      "role": "system",
+      "action": "DEPOSIT_CONFIRMED",
+      "target": "Wallet #WAL-BUYER1",
+      "reason": "gateway ref seed",
+      "journalId": "JRN-238ce769-b287-4c27-a0d2-ea9a9d4f06ff",
+      "timestamp": "2026-10-13 21:35:56"
+    },
+    {
+      "id": "FAUD-17de55f8-e8d",
+      "actor": "test",
+      "role": "system",
+      "action": "ESCROW_FUNDS_LOCKED",
+      "target": "Order #o50",
+      "reason": "Locked $50.00 in escrow; client charged $56.25 total (service fee $2.75, small-order fee $3.50)",
+      "journalId": "JRN-74ac4c8d-e107-4d45-9f92-2bc7e15029b6",
+      "timestamp": "2026-10-13 21:35:56"
+    },
+    {
+      "id": "FAUD-16865cca-ec2",
+      "actor": "test",
+      "role": "system",
+      "action": "DEPOSIT_CONFIRMED",
+      "target": "Wallet #WAL-BUYER1",
+      "reason": "gateway ref seed",
+      "journalId": "JRN-f54e9e53-b0f6-47da-8eeb-7d823c5c2333",
+      "timestamp": "2026-10-13 21:35:56"
+    }
+  ],
+  "exceptions": [],
+  "idempotencyKeys": [
+    "DEP-seed-0.9915099157380498",
+    "IDEMP-ORD-FUND-o50",
+    "IDEMP-REL-o50",
+    "DEP-seed-0.08490236089182646",
+    "IDEMP-ORD-FUND-tight",
+    "DEP-seed-0.34438725573641027",
+    "IDEMP-ORD-FUND-o500",
+    "IDEMP-REL-o500",
+    "DEP-seed-0.7883383651592875",
+    "IDEMP-ORD-FUND-r1",
+    "IDEMP-REF-r1-1",
+    "DEP-seed-0.3662677762235462",
+    "IDEMP-ORD-FUND-s1",
+    "IDEMP-REF-s1-1",
+    "IDEMP-REL-s1",
+    "DEP-seed-0.8374110769726288",
+    "IDEMP-ORD-FUND-m1",
+    "IDEMP-REF-m1-1",
+    "IDEMP-REF-m1-2",
+    "DEP-seed-0.32088575955821796",
+    "IDEMP-ORD-FUND-lock",
+    "IDEMP-REL-lock",
+    "DEP-seed-0.5288070454747"
+  ],
+  "escrows": [
+    [
+      "o50",
+      {
+        "orderId": "o50",
+        "orderTitle": "Test gig",
+        "buyerId": "buyer1",
+        "sellerId": "free1",
+        "amount": 50,
+        "remaining": 50,
+        "refundedTotal": 0,
+        "releasedGross": 0,
+        "refundSeq": 0,
+        "status": "held",
+        "fundedAt": "2026-10-13 21:35:56",
+        "commissionPercent": 20,
+        "serviceFee": 2.75,
+        "smallOrderFee": 3.5,
+        "feesRefunded": false
+      }
+    ],
+    [
+      "o500",
+      {
+        "orderId": "o500",
+        "orderTitle": "Test gig",
+        "buyerId": "buyer1",
+        "sellerId": "free1",
+        "amount": 500,
+        "remaining": 500,
+        "refundedTotal": 0,
+        "releasedGross": 0,
+        "refundSeq": 0,
+        "status": "held",
+        "fundedAt": "2026-10-13 21:35:56",
+        "commissionPercent": 20,
+        "serviceFee": 27.5,
+        "smallOrderFee": 0,
+        "feesRefunded": false
+      }
+    ],
+    [
+      "r1",
+      {
+        "orderId": "r1",
+        "orderTitle": "Test gig",
+        "buyerId": "buyer1",
+        "sellerId": "free1",
+        "amount": 50,
+        "remaining": 50,
+        "refundedTotal": 0,
+        "releasedGross": 0,
+        "refundSeq": 0,
+        "status": "held",
+        "fundedAt": "2026-10-13 21:35:56",
+        "commissionPercent": 20,
+        "serviceFee": 2.75,
+        "smallOrderFee": 3.5,
+        "feesRefunded": false
+      }
+    ],
+    [
+      "s1",
+      {
+        "orderId": "s1",
+        "orderTitle": "Test gig",
+        "buyerId": "buyer1",
+        "sellerId": "free1",
+        "amount": 100,
+        "remaining": 60,
+        "refundedTotal": 40,
+        "releasedGross": 0,
+        "refundSeq": 1,
+        "status": "held",
+        "fundedAt": "2026-10-13 21:35:56",
+        "commissionPercent": 20,
+        "serviceFee": 5.5,
+        "smallOrderFee": 3.5,
+        "feesRefunded": false
+      }
+    ],
+    [
+      "m1",
+      {
+        "orderId": "m1",
+        "orderTitle": "Test gig",
+        "buyerId": "buyer1",
+        "sellerId": "free1",
+        "amount": 100,
+        "remaining": 70,
+        "refundedTotal": 30,
+        "releasedGross": 0,
+        "refundSeq": 1,
+        "status": "held",
+        "fundedAt": "2026-10-13 21:35:56",
+        "commissionPercent": 20,
+        "serviceFee": 5.5,
+        "smallOrderFee": 3.5,
+        "feesRefunded": false
+      }
+    ],
+    [
+      "lock",
+      {
+        "orderId": "lock",
+        "orderTitle": "Test gig",
+        "buyerId": "buyer1",
+        "sellerId": "free1",
+        "amount": 100,
+        "remaining": 100,
+        "refundedTotal": 0,
+        "releasedGross": 0,
+        "refundSeq": 0,
+        "status": "held",
+        "fundedAt": "2026-10-13 21:35:56",
+        "commissionPercent": 20,
+        "serviceFee": 5.5,
+        "smallOrderFee": 3.5,
+        "feesRefunded": false
+      }
+    ]
+  ],
+  "payouts": [],
+  "opResults": [],
+  "config": {
+    "platformCommissionRate": 20,
+    "buyerFeePercent": 5.5,
+    "smallOrderFee": 3.5,
+    "smallOrderThreshold": 200,
+    "refundClientFeesOnFullRefund": true,
+    "minimumOrderAmount": 10,
+    "minimumWithdrawalAmount": 50,
+    "maximumWithdrawalAmount": 5000
+  }
+}

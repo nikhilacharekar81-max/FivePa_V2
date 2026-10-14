@@ -1,0 +1,44 @@
+[
+  {
+    "id": "msg_1791968893055_re0y",
+    "orderId": "ord_auto_expired_1791968893055",
+    "senderId": "system",
+    "senderName": "WorkSphere Review Desk",
+    "text": "🎉 Order #ord_auto_expired_1791968893055 automatically accepted: Buyer review window (3 days) closed without revisions or dispute. Escrow funds released to seller.",
+    "timestamp": "09:08 AM",
+    "type": "system",
+    "metadata": {
+      "action": "order_auto_accepted",
+      "acceptedVersion": 1,
+      "reviewWindowDays": 3
+    }
+  },
+  {
+    "id": "msg_1791968893055_j0s9",
+    "orderId": "ord_auto_disabled_1791968893055",
+    "senderId": "system",
+    "senderName": "WorkSphere Review Desk",
+    "text": "🎉 Order #ord_auto_disabled_1791968893055 automatically accepted: Buyer review window (3 days) closed without revisions or dispute. Escrow funds released to seller.",
+    "timestamp": "09:08 AM",
+    "type": "system",
+    "metadata": {
+      "action": "order_auto_accepted",
+      "acceptedVersion": 1,
+      "reviewWindowDays": 3
+    }
+  },
+  {
+    "id": "msg_1792141693055_32jj",
+    "orderId": "ord_auto_custom_days_1791968893055",
+    "senderId": "system",
+    "senderName": "WorkSphere Review Desk",
+    "text": "🎉 Order #ord_auto_custom_days_1791968893055 automatically accepted: Buyer review window (5 days) closed without revisions or dispute. Escrow funds released to seller.",
+    "timestamp": "09:08 AM",
+    "type": "system",
+    "metadata": {
+      "action": "order_auto_accepted",
+      "acceptedVersion": 1,
+      "reviewWindowDays": 5
+    }
+  }
+]
