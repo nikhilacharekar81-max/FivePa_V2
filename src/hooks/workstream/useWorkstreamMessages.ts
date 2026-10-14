@@ -18,14 +18,21 @@ export function useWorkstreamMessages() {
 
     try {
       const token = localStorage.getItem('workperhour_token') || localStorage.getItem('token');
+      if (!token) {
+        // User is not authenticated; skip fetching messages to prevent 401 errors
+        return;
+      }
+
       const res = await fetch(`/api/messages/${orderId}`, {
         headers: {
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          'Authorization': `Bearer ${token}`
         }
       });
 
       if (res.status === 401) {
-        console.error('Authentication required for messages');
+        // Token has expired or is invalid; clear stale credentials cleanly
+        localStorage.removeItem('workperhour_token');
+        localStorage.removeItem('token');
         return;
       }
 
@@ -62,6 +69,7 @@ export function useWorkstreamMessages() {
     if (!activeOrderId || !text.trim()) return;
 
     const token = localStorage.getItem('workperhour_token') || localStorage.getItem('token');
+    if (!token) return;
     const clientMessageId = 'msg_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6);
 
     const tempMessage: Message = {

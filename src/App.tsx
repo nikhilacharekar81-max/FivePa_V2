@@ -102,7 +102,8 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState<UserAccount | null>(() => {
     try {
       const cached = localStorage.getItem('current_user') || localStorage.getItem('user');
-      if (cached) return JSON.parse(cached);
+      const token = localStorage.getItem('workperhour_token') || localStorage.getItem('token');
+      if (cached && token) return JSON.parse(cached);
     } catch (e) {}
     return null;
   });

@@ -10,11 +10,14 @@ const assert = (cond: boolean, name: string, details = '') => {
 };
 const read = (p: string) => readFileSync(new URL(`../${p}`, import.meta.url), 'utf8');
 
-const server = read('server.ts');
+const server = existsSync(new URL('../server/routes/orders.ts', import.meta.url))
+  ? read('server/routes/orders.ts') + '\n' + read('server.ts')
+  : read('server.ts');
 
 // 1. POST /api/orders must price gig orders on the server, not from req.body.amount.
-const ordersRoute = server.slice(server.indexOf("app.post('/api/orders', requireAuth"));
-const ordersBody = ordersRoute.slice(0, ordersRoute.indexOf("app.patch('/api/admin/proposals/:id'"));
+const ordersIdx = server.indexOf("post('/api/orders', requireAuth");
+const ordersRoute = server.slice(ordersIdx >= 0 ? ordersIdx : 0);
+const ordersBody = ordersRoute.slice(0, ordersRoute.indexOf("handleDeliverSubmission") >= 0 ? ordersRoute.indexOf("handleDeliverSubmission") : ordersRoute.length);
 assert(ordersBody.includes('resolveGigOrderPrice('), 'POST /api/orders prices gig orders server-side (resolveGigOrderPrice)');
 assert(ordersBody.indexOf('resolveGigOrderPrice(') < ordersBody.indexOf('financeLedger.fundEscrow('), 'Server price is resolved before escrow is funded');
 
