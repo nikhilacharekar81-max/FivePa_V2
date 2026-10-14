@@ -58,6 +58,16 @@ const JWT_SECRET: string = (() => {
 
 const REQUIRE_KYC_FOR_PAYOUTS = false;
 
+function escapeHtml(text: string): string {
+  if (typeof text !== 'string') return '';
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 // Helper to determine whether simulated development deposits are permitted
 function areSimulatedDepositsAllowed(): boolean {
   if (IS_PRODUCTION) {
@@ -384,7 +394,7 @@ function sanitizeAndCreateMessage(
   body: any,
   fileCheck: { ok: boolean; fileInfo?: any; error?: string }
 ): Message {
-  const text = typeof body.text === 'string' ? body.text.trim() : '';
+  const text = typeof body.text === 'string' ? escapeHtml(body.text.trim()) : '';
   const isSystemOrStaff = isStaffUser(sender);
   
   let type = body.type;
@@ -1134,7 +1144,7 @@ function notifyUserOnAdminAction(user: User, action: 'suspended' | 'restricted' 
     text: chatText,
     timestamp: timeShort
   };
-  messages.push(newChatMsg);
+  recordMessage(newChatMsg);
 
 function notifyUser(message: Message, targetUserId: string) {
   const payload = JSON.stringify({ type: 'MESSAGE_RECEIVED', message });
@@ -1396,20 +1406,59 @@ function handleCorruption(filePath: string, error: any) {
   }
 }
 
+const MAX_AUDIT_LOGS = 1000;
+const orderIndex = new Map<string, Order>();
+const messageIndex = new Map<string, Message[]>();
+
+function registerOrder(o: Order) {
+  if (!o.id) return;
+  orderIndex.set(o.id, o);
+}
+
+function registerMessage(m: Message) {
+  if (!m.orderId) return;
+  const list = messageIndex.get(m.orderId) || [];
+  list.push(m);
+  messageIndex.set(m.orderId, list);
+}
+
+function recordOrder(o: Order) {
+  orders.unshift(o);
+  registerOrder(o);
+}
+
+function recordMessage(m: Message) {
+  messages.push(m);
+  registerMessage(m);
+}
+
+function registerAuditLog(log: AuditLog) {
+  auditLogs.unshift(log);
+  if (auditLogs.length > MAX_AUDIT_LOGS) {
+    auditLogs = auditLogs.slice(0, MAX_AUDIT_LOGS);
+  }
+}
+
 function loadInitialOrdersAndMessages() {
   ensureDataDirectory();
-
+  
+  orderIndex.clear();
+  messageIndex.clear();
+  
   // 1. Load Orders
   if (fs.existsSync(ORDERS_FILE)) {
     try {
       const data = fs.readFileSync(ORDERS_FILE, 'utf-8');
       const parsed = JSON.parse(data);
-      if (Array.isArray(parsed) && parsed.length > 0) {
+      if (Array.isArray(parsed)) {
         orders = parsed;
+        orders.forEach(registerOrder);
       }
     } catch (e) {
       handleCorruption(ORDERS_FILE, e);
     }
+  } else {
+    orders.forEach(registerOrder);
   }
 
   // 2. Load Messages
@@ -1438,11 +1487,11 @@ function loadInitialOrdersAndMessages() {
     }
   }
 
-  // One-time migration: convert every message with a non-ISO timestamp to an ISO string
+  // One-time migration & Index Population
   let messagesMigrated = false;
   for (const msg of messages) {
     if (!msg.timestamp || !/\d{4}-\d{2}-\d{2}/.test(msg.timestamp)) {
-      const order = orders.find(o => o.id === msg.orderId);
+      const order = orderIndex.get(msg.orderId);
       let baseDate = order?.createdAt;
       if (!baseDate || !/\d{4}-\d{2}-\d{2}/.test(baseDate)) {
         baseDate = new Date().toISOString();
@@ -1450,9 +1499,7 @@ function loadInitialOrdersAndMessages() {
       const datePart = baseDate.split('T')[0];
 
       const timeMatch = msg.timestamp ? msg.timestamp.match(/(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)?/i) : null;
-      let hours = 0;
-      let minutes = 0;
-      let seconds = 0;
+      let hours = 0, minutes = 0, seconds = 0;
       if (timeMatch) {
         hours = parseInt(timeMatch[1], 10);
         minutes = parseInt(timeMatch[2], 10);
@@ -1466,13 +1513,14 @@ function loadInitialOrdersAndMessages() {
       if (!isNaN(d.getTime())) {
         d.setUTCHours(hours, minutes, seconds, 0);
         msg.timestamp = d.toISOString();
-        messagesMigrated = true;
       } else {
         msg.timestamp = new Date().toISOString();
-        messagesMigrated = true;
       }
+      messagesMigrated = true;
     }
+    registerMessage(msg);
   }
+  
   if (messagesMigrated) {
     saveMessagesToDisk();
     console.log('Migrated legacy non-ISO message timestamps to ISO strings.');
@@ -1510,7 +1558,7 @@ function enrichOrderWithServiceInfo(o: Order, isAdmin: boolean = false) {
   const serviceTitle = gig?.title || project?.title || o.serviceTitle || o.title;
   const serviceThumbnail = o.serviceThumbnail || gig?.image || 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800&h=500&fit=crop';
 
-  const orderMessages = messages.filter(m => m.orderId === o.id);
+  const orderMessages = messageIndex.get(o.id) || [];
   const lastMsg = orderMessages.length > 0 
     ? [...orderMessages].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0] 
     : undefined;
@@ -1754,7 +1802,7 @@ const handlePostSiteSettings = (req: Request, res: Response) => {
       });
     }
 
-    auditLogs.unshift({
+    registerAuditLog({
       id: 'log_' + Date.now(),
       actor: body.updatedBy || 'Super Admin',
       role: 'super_admin',
@@ -1836,7 +1884,7 @@ function ensureWallet(userId: string) {
 }
 
 function pushSystemMessage(orderId: string, text: string) {
-  messages.push({
+  recordMessage({
     id: 'msg_' + randomUUID().slice(0, 12),
     orderId,
     senderId: 'system',
@@ -2091,7 +2139,7 @@ app.get('/api/orders', (req, res) => {
 
 // Single Order Workspace Detail
 app.get('/api/orders/:id', (req, res) => {
-  const order = orders.find(o => o.id === req.params.id);
+  const order = orderIndex.get(req.params.id);
   if (!order) return res.status(404).json({ error: 'Order not found' });
   const authUserId = resolveAuthenticatedUserId(req);
   const caller = authUserId ? users.find(u => u.id === authUserId) : null;
@@ -2102,7 +2150,7 @@ app.get('/api/orders/:id', (req, res) => {
   const enriched = enrichOrderWithServiceInfo(order, isAdmin);
   const buyer = users.find(u => u.id === order.buyerId);
   const seller = users.find(u => u.id === order.sellerId);
-  const orderMessages = messages.filter(m => m.orderId === order.id);
+  const orderMessages = messageIndex.get(order.id) || [];
   const dispute = disputes.find(d => d.orderId === order.id);
 
   res.json({
@@ -2116,7 +2164,7 @@ app.get('/api/orders/:id', (req, res) => {
 
 // Extend Order Deadline
 app.patch('/api/orders/:id/extend-time', requireAdmin, (req, res) => {
-  const order = orders.find(o => o.id === req.params.id);
+  const order = orderIndex.get(req.params.id);
   if (!order) return res.status(404).json({ error: 'Order not found' });
 
   const { days, newDueDate, reason } = req.body;
@@ -2142,9 +2190,9 @@ app.patch('/api/orders/:id/extend-time', requireAdmin, (req, res) => {
     text: `⏱️ Deadline extended from ${oldDate} to ${order.dueDate}. ${reason ? 'Reason: ' + reason : 'Admin approved time extension.'}`,
     timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
   };
-  messages.push(sysMsg);
+  recordMessage(sysMsg);
 
-  auditLogs.unshift({
+  registerAuditLog({
     id: 'log_' + Date.now(),
     actor: 'Admin Chief',
     role: 'super_admin',
@@ -2159,7 +2207,7 @@ app.patch('/api/orders/:id/extend-time', requireAdmin, (req, res) => {
 
 // Save Admin Private Notes
 app.post('/api/orders/:id/admin-notes', requireAdmin, (req, res) => {
-  const order = orders.find(o => o.id === req.params.id);
+  const order = orderIndex.get(req.params.id);
   if (!order) return res.status(404).json({ error: 'Order not found' });
 
   order.adminNotes = req.body.notes || '';
@@ -2168,7 +2216,7 @@ app.post('/api/orders/:id/admin-notes', requireAdmin, (req, res) => {
 
 // Upload Deliverable Override / File
 app.post('/api/orders/:id/deliverable', requireAuth, (req, res) => {
-  const order = orders.find(o => o.id === req.params.id);
+  const order = orderIndex.get(req.params.id);
   if (!order) return res.status(404).json({ error: 'Order not found' });
   const authUserId = (req as any).authenticatedUserId;
   const caller = users.find(u => u.id === authUserId);
@@ -2208,12 +2256,13 @@ app.post('/api/orders/:id/deliverable', requireAuth, (req, res) => {
 
   order.deliverableFiles.push(...uploadedFiles);
   order.status = 'delivered';
-  order.deliveryNotes = req.body.notes || '';
+  const sanitizedNotes = req.body.notes ? escapeHtml(String(req.body.notes)) : '';
+  order.deliveryNotes = sanitizedNotes;
 
   const version = order.deliveryHistory.length + 1;
   order.deliveryHistory.push({
     version,
-    notes: req.body.notes || '',
+    notes: sanitizedNotes,
     files: uploadedFiles,
     deliveredAt: new Date().toISOString()
   });
@@ -2232,16 +2281,16 @@ app.post('/api/orders/:id/deliverable', requireAuth, (req, res) => {
     orderId: order.id,
     senderId: 'system',
     senderName: 'WorkSphere Deliveries',
-    text: `📦 Deliverable (v${version}) submitted: ${fileSummary}${req.body.notes ? ` — "${req.body.notes}"` : ''}. Buyer review window initiated.`,
+    text: `📦 Deliverable (v${version}) submitted: ${fileSummary}${sanitizedNotes ? ` — "${sanitizedNotes}"` : ''}. Buyer review window initiated.`,
     timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     type: 'system',
     metadata: {
       action: 'deliverable_submitted',
       version,
-      notes: req.body.notes
+      notes: sanitizedNotes
     }
   };
-  messages.push(sysMsg);
+  recordMessage(sysMsg);
   saveMessagesToDisk();
   saveOrdersToDisk();
   broadcastMessage(sysMsg, order.id);
@@ -2251,7 +2300,7 @@ app.post('/api/orders/:id/deliverable', requireAuth, (req, res) => {
 
 // Request Revision on Deliverable
 app.post('/api/orders/:id/revision', requireAuth, (req, res) => {
-  const order = orders.find(o => o.id === req.params.id);
+  const order = orderIndex.get(req.params.id);
   if (!order) return res.status(404).json({ error: 'Order not found' });
   const authUserId = (req as any).authenticatedUserId;
   const caller = users.find(u => u.id === authUserId);
@@ -2264,10 +2313,11 @@ app.post('/api/orders/:id/revision', requireAuth, (req, res) => {
     return res.status(409).json({ error: `Cannot request revisions for an order in "${order.status}" status (order must be delivered first).` });
   }
 
-  const reason = (req.body.reason || '').trim();
-  if (!reason) {
+  const rawReason = (req.body.reason || '').trim();
+  if (!rawReason) {
     return res.status(400).json({ error: 'A revision reason is required.' });
   }
+  const reason = escapeHtml(rawReason);
   if (!order.revisions) order.revisions = [];
   const revisionEntry = {
     id: 'rev_' + Date.now(),
@@ -2294,7 +2344,7 @@ app.post('/api/orders/:id/revision', requireAuth, (req, res) => {
       deliveryVersion: revisionEntry.deliveryVersion
     }
   };
-  messages.push(sysMsg);
+  recordMessage(sysMsg);
   saveMessagesToDisk();
   saveOrdersToDisk();
   broadcastMessage(sysMsg, order.id);
@@ -2304,16 +2354,17 @@ app.post('/api/orders/:id/revision', requireAuth, (req, res) => {
 
 // Participant (Buyer or Seller) Dispute Creation Flow
 app.post('/api/orders/:id/dispute', requireAuth, (req, res) => {
-  const order = orders.find(o => o.id === req.params.id);
+  const order = orderIndex.get(req.params.id);
   if (!order) return res.status(404).json({ error: 'Order not found' });
   const authUserId = (req as any).authenticatedUserId;
   if (order.buyerId !== authUserId && order.sellerId !== authUserId) {
     return res.status(403).json({ error: 'Forbidden: Only order participants can open a dispute.' });
   }
-  const reason = (req.body.reason || '').trim();
-  if (!reason) {
+  const rawReason = (req.body.reason || '').trim();
+  if (!rawReason) {
     return res.status(400).json({ error: 'A dispute reason is required.' });
   }
+  const reason = escapeHtml(rawReason);
   const existingDispute = disputes.find(d => d.orderId === order.id && (d.status === 'open' || d.status === 'under_investigation'));
   if (existingDispute) {
     return res.status(400).json({ error: 'An active dispute already exists for this order.' });
@@ -2324,7 +2375,7 @@ app.post('/api/orders/:id/dispute', requireAuth, (req, res) => {
     orderId: order.id,
     raisedBy: authUserId === order.buyerId ? 'buyer' : 'seller',
     reason,
-    evidence: req.body.evidence || '',
+    evidence: escapeHtml(req.body.evidence || ''),
     status: 'open',
     createdAt: new Date().toISOString()
   };
@@ -2345,7 +2396,7 @@ app.post('/api/orders/:id/dispute', requireAuth, (req, res) => {
       raisedBy: newDispute.raisedBy
     }
   };
-  messages.push(sysMsg);
+  recordMessage(sysMsg);
   saveMessagesToDisk();
   saveOrdersToDisk();
   broadcastMessage(sysMsg, order.id);
@@ -2355,7 +2406,7 @@ app.post('/api/orders/:id/dispute', requireAuth, (req, res) => {
 
 // Toggle Chat Mute
 app.patch('/api/orders/:id/mute', requireRole(['admin', 'super_admin', 'support']), (req, res) => {
-  const order = orders.find(o => o.id === req.params.id);
+  const order = orderIndex.get(req.params.id);
   if (!order) return res.status(404).json({ error: 'Order not found' });
 
   order.isMuted = !order.isMuted;
@@ -2369,14 +2420,14 @@ app.patch('/api/orders/:id/mute', requireRole(['admin', 'super_admin', 'support'
       : `🔓 Chat unlocked by Administrator. Standard messaging resumed.`,
     timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
   };
-  messages.push(sysMsg);
+  recordMessage(sysMsg);
 
   res.json({ success: true, isMuted: order.isMuted });
 });
 
 // Toggle Pause Order Timer
 app.patch('/api/orders/:id/pause-timer', requireRole(['admin', 'super_admin', 'support']), (req, res) => {
-  const order = orders.find(o => o.id === req.params.id);
+  const order = orderIndex.get(req.params.id);
   if (!order) return res.status(404).json({ error: 'Order not found' });
 
   order.isTimerPaused = !order.isTimerPaused;
@@ -2390,9 +2441,9 @@ app.patch('/api/orders/:id/pause-timer', requireRole(['admin', 'super_admin', 's
       : `▶️ Delivery countdown resumed by Administrator. Normal timer active.`,
     timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
   };
-  messages.push(sysMsg);
+  recordMessage(sysMsg);
 
-  auditLogs.unshift({
+  registerAuditLog({
     id: 'log_' + Date.now(),
     actor: 'Admin Chief',
     role: 'super_admin',
@@ -2423,7 +2474,7 @@ app.post('/api/users/:id/flag', requireAdmin, (req, res) => {
   user.isFlagged = !user.isFlagged;
   user.flagReason = user.isFlagged ? (req.body.reason || 'Flagged for TOS investigation.') : undefined;
 
-  auditLogs.unshift({
+  registerAuditLog({
     id: 'log_' + Date.now(),
     actor: adminActor(req),
     role: 'admin',
@@ -2439,7 +2490,7 @@ app.post('/api/users/:id/flag', requireAdmin, (req, res) => {
 // Force Complete & Release Funds (admin only)
 app.post('/api/orders/:id/force-complete', requireAdmin, (req, res) => {
   try {
-    const order = orders.find(o => o.id === req.params.id);
+    const order = orderIndex.get(req.params.id);
     if (!order) return res.status(404).json({ error: 'Order not found' });
     if (order.status === 'completed') {
       return res.status(400).json({ error: 'Order is already completed; funds were already released.' });
@@ -2460,7 +2511,7 @@ app.post('/api/orders/:id/force-complete', requireAdmin, (req, res) => {
 // Force Cancel & Refund Buyer (admin only). A partial refund refunds that amount and releases the rest to the seller.
 app.post('/api/orders/:id/force-cancel', requireAdmin, (req, res) => {
   try {
-    const order = orders.find(o => o.id === req.params.id);
+    const order = orderIndex.get(req.params.id);
     if (!order) return res.status(404).json({ error: 'Order not found' });
     if (order.status === 'completed') {
       return res.status(400).json({ error: 'Cannot force-cancel an already completed order.' });
@@ -2491,7 +2542,7 @@ app.post('/api/orders/:id/force-cancel', requireAdmin, (req, res) => {
 
 // Send Chat Message into Order Workstream
 app.post('/api/orders/:id/message', requireAuth, rateLimit(10, 60_000), (req, res) => {
-  const order = orders.find(o => o.id === req.params.id);
+  const order = orderIndex.get(req.params.id);
   if (!order) return res.status(404).json({ error: 'Order not found' });
 
   const userId = (req as any).authenticatedUserId;
@@ -2511,7 +2562,7 @@ app.post('/api/orders/:id/message', requireAuth, rateLimit(10, 60_000), (req, re
 
   const newMsg = sanitizeAndCreateMessage(user, order, req.body, fileCheck);
 
-  messages.push(newMsg);
+  recordMessage(newMsg);
   saveMessagesToDisk();
   broadcastMessage(newMsg, order.id);
 
@@ -2523,7 +2574,7 @@ app.get('/api/disputes', requireAuth, (req, res) => {
   const isAdmin = caller?.role === 'admin' || caller?.role === 'super_admin' || caller?.role === 'support';
   const userDisputes = disputes.filter(d => {
     if (isAdmin) return true;
-    const order = orders.find(o => o.id === d.orderId);
+    const order = orderIndex.get(d.orderId);
     return order && (order.buyerId === authUserId || order.sellerId === authUserId);
   });
   res.json(userDisputes);
@@ -2535,7 +2586,7 @@ app.get('/api/refunds', requireAuth, (req, res) => {
   const userRefunds = refunds.filter(r => {
     if (isAdmin) return true;
     if (r.buyerId === authUserId) return true;
-    const order = orders.find(o => o.id === r.orderId);
+    const order = orderIndex.get(r.orderId);
     return order && (order.buyerId === authUserId || order.sellerId === authUserId);
   });
   res.json(userRefunds);
@@ -2727,7 +2778,7 @@ function handlePayoutRequest(req: Request, res: Response) {
     payouts.unshift(record);
     syncUserBalances();
 
-    auditLogs.unshift({
+    registerAuditLog({
       id: 'log_' + Date.now(),
       actor: user.name,
       role: user.role,
@@ -2801,7 +2852,7 @@ app.post('/api/payments/deposit', requireAuth, rateLimit(10, 60_000), (req, res)
     const newBalance = financeLedger.getWalletBalance(targetUserId) ?? caller.walletBalance;
     const transaction = financeLedger.getTransactions().find(t => t.journalId === result.journal.id);
 
-    auditLogs.unshift({
+    registerAuditLog({
       id: 'log_' + Date.now(),
       actor: caller.name,
       role: caller.role,
@@ -2826,7 +2877,7 @@ app.post('/api/payments/escrow/release', requireAuth, (req, res) => {
     const userId = (req as any).authenticatedUserId;
     const caller = users.find(u => u.id === userId);
     const { orderId } = req.body;
-    const order = orders.find(o => o.id === orderId);
+    const order = orderIndex.get(orderId);
     if (!order) return res.status(404).json({ error: 'Order not found' });
 
     const isAdmin = caller?.role === 'admin' || caller?.role === 'super_admin';
@@ -2847,8 +2898,22 @@ app.post('/api/payments/escrow/release', requireAuth, (req, res) => {
       return res.status(400).json({ error: 'Cannot release escrow: Order is under active dispute. Resolve the dispute first.' });
     }
 
-    if (order.status !== 'delivered') {
+    const allowedStatuses = ['delivered', 'revision'];
+    if (!allowedStatuses.includes(order.status)) {
+      return res.status(400).json({ error: 'Cannot release escrow: work has not been delivered yet.' });
+    }
+
+    if (!Array.isArray(order.deliveryHistory) || order.deliveryHistory.length === 0) {
       return res.status(400).json({ error: 'Cannot release escrow before deliverables have been submitted by the seller.' });
+    }
+
+    // If releasing while in revision, mark all requested revisions as resolved
+    if (order.status === 'revision' && Array.isArray(order.revisions)) {
+      for (const rev of order.revisions) {
+        if (rev.status === 'requested') {
+          rev.status = 'resolved';
+        }
+      }
     }
 
     const esc = financeLedger.getEscrow(order.id);
@@ -2866,7 +2931,7 @@ app.post('/api/payments/escrow/release', requireAuth, (req, res) => {
     const requestKey = req.body?.requestKey || req.body?.idempotencyKey;
     const result = releaseOrderFunds(order, actorName, 'Buyer approved work', requestKey);
 
-    auditLogs.unshift({
+    registerAuditLog({
       id: 'log_' + Date.now(),
       actor: actorName,
       role: caller?.role || 'buyer',
@@ -2889,7 +2954,7 @@ app.post('/api/payments/escrow/release', requireAuth, (req, res) => {
         amount: order.amount
       }
     };
-    messages.push(releaseMsg);
+    recordMessage(releaseMsg);
     saveMessagesToDisk();
     saveOrdersToDisk();
     broadcastMessage(releaseMsg, order.id);
@@ -2906,7 +2971,7 @@ app.post('/api/payments/escrow/refund', requireAuth, (req, res) => {
     const userId = (req as any).authenticatedUserId;
     const caller = users.find(u => u.id === userId);
     const { orderId, reason } = req.body;
-    const order = orders.find(o => o.id === orderId);
+    const order = orderIndex.get(orderId);
     if (!order) return res.status(404).json({ error: 'Order not found' });
 
     const activeDispute = disputes.find(d => d.orderId === order.id && (d.status === 'open' || d.status === 'under_investigation'));
@@ -2939,7 +3004,7 @@ app.post('/api/payments/escrow/refund', requireAuth, (req, res) => {
     const requestKey = req.body?.requestKey || req.body?.idempotencyKey;
     const result = refundOrderFunds(order, undefined, actorName, reason || (isSeller ? 'Seller cancelled order' : 'Escrow cancellation'), requestKey);
 
-    auditLogs.unshift({
+    registerAuditLog({
       id: 'log_' + Date.now(),
       actor: actorName,
       role: caller?.role || (isSeller ? 'seller' : 'buyer'),
@@ -2961,7 +3026,7 @@ app.post('/api/payments/escrow/deposit', requireAuth, rateLimit(20, 60_000), (re
     const authUserId = (req as any).authenticatedUserId;
     const caller = users.find(u => u.id === authUserId);
     const orderId = String(req.body?.orderId || '');
-    const order = orders.find(o => o.id === orderId);
+    const order = orderIndex.get(orderId);
     if (!order) return res.status(404).json({ error: 'Order not found' });
 
     const isAdmin = caller?.role === 'admin' || caller?.role === 'super_admin';
@@ -3378,7 +3443,7 @@ app.get('/api/admin/finance/escrow', (req, res) => {
 
 app.post('/api/admin/finance/escrow/:orderId/release', requireAdmin, (req, res) => {
   try {
-    const order = orders.find(o => o.id === req.params.orderId);
+    const order = orderIndex.get(req.params.orderId);
     if (!order) return res.status(404).json({ error: 'Order not found' });
     if (order.status === 'completed') {
       return res.status(400).json({ error: 'Order escrow has already been released and completed.' });
@@ -3403,7 +3468,7 @@ app.post('/api/admin/finance/escrow/:orderId/release', requireAdmin, (req, res) 
 
 app.post('/api/admin/finance/escrow/:orderId/refund', requireAdmin, (req, res) => {
   try {
-    const order = orders.find(o => o.id === req.params.orderId);
+    const order = orderIndex.get(req.params.orderId);
     if (!order) return res.status(404).json({ error: 'Order not found' });
     if (order.status === 'completed') {
       return res.status(400).json({ error: 'Cannot refund order: Escrow funds have already been released to seller.' });
@@ -3445,7 +3510,7 @@ app.get('/api/admin/finance/payouts', (req, res) => {
 });
 
 function payoutAudit(req: Request, action: string, p: Payout, details: string) {
-  auditLogs.unshift({
+  registerAuditLog({
     id: 'FAUD-' + randomUUID().slice(0, 12),
     actor: adminActor(req),
     role: 'super_admin',
@@ -3683,7 +3748,7 @@ app.post('/api/admin/categories', (req, res) => {
   };
   categories.push(newCat);
 
-  auditLogs.unshift({
+  registerAuditLog({
     id: 'log_' + Date.now(),
     actor: 'Admin Chief',
     role: 'super_admin',
@@ -3710,7 +3775,7 @@ app.post('/api/admin/categories/bulk-delete', (req, res) => {
     });
   }
 
-  auditLogs.unshift({
+  registerAuditLog({
     id: 'log_' + Date.now(),
     actor: 'Admin Chief',
     role: 'super_admin',
@@ -3730,7 +3795,7 @@ app.patch('/api/admin/categories/:id', (req, res) => {
   if (req.body.slug) cat.slug = req.body.slug;
   if (typeof req.body.enabled === 'boolean') cat.enabled = req.body.enabled;
 
-  auditLogs.unshift({
+  registerAuditLog({
     id: 'log_' + Date.now(),
     actor: 'Admin Chief',
     role: 'super_admin',
@@ -3748,7 +3813,7 @@ app.patch('/api/admin/categories/:id/toggle', (req, res) => {
   if (!cat) return res.status(404).json({ error: 'Category not found' });
   cat.enabled = !cat.enabled;
 
-  auditLogs.unshift({
+  registerAuditLog({
     id: 'log_' + Date.now(),
     actor: 'Admin Chief',
     role: 'super_admin',
@@ -3767,7 +3832,7 @@ app.delete('/api/admin/categories/:id', (req, res) => {
   const deleted = categories[index];
   categories.splice(index, 1);
 
-  auditLogs.unshift({
+  registerAuditLog({
     id: 'log_' + Date.now(),
     actor: 'Admin Chief',
     role: 'super_admin',
@@ -3795,7 +3860,7 @@ app.post('/api/admin/categories/:id/subcategories', (req, res) => {
   };
   cat.subcategories.push(newSub);
 
-  auditLogs.unshift({
+  registerAuditLog({
     id: 'log_' + Date.now(),
     actor: 'Admin Chief',
     role: 'super_admin',
@@ -3817,7 +3882,7 @@ app.patch('/api/admin/categories/:id/subcategories/:subId', (req, res) => {
   if (req.body.slug) sub.slug = req.body.slug;
   if (typeof req.body.enabled === 'boolean') sub.enabled = req.body.enabled;
 
-  auditLogs.unshift({
+  registerAuditLog({
     id: 'log_' + Date.now(),
     actor: 'Admin Chief',
     role: 'super_admin',
@@ -3837,7 +3902,7 @@ app.patch('/api/admin/categories/:id/subcategories/:subId/toggle', (req, res) =>
   if (!sub) return res.status(404).json({ error: 'Subcategory not found' });
   sub.enabled = !sub.enabled;
 
-  auditLogs.unshift({
+  registerAuditLog({
     id: 'log_' + Date.now(),
     actor: 'Admin Chief',
     role: 'super_admin',
@@ -3858,7 +3923,7 @@ app.delete('/api/admin/categories/:id/subcategories/:subId', (req, res) => {
   const deletedSub = cat.subcategories[subIndex];
   cat.subcategories.splice(subIndex, 1);
 
-  auditLogs.unshift({
+  registerAuditLog({
     id: 'log_' + Date.now(),
     actor: 'Admin Chief',
     role: 'super_admin',
@@ -3896,7 +3961,7 @@ app.post('/api/reviews', requireAuth, (req, res) => {
     return res.status(400).json({ error: 'Review comment cannot be empty' });
   }
 
-  const order = orders.find(o => o.id === orderId);
+  const order = orderIndex.get(orderId);
   if (!order) return res.status(404).json({ error: 'Workstream order not found' });
   if (!canAccessOrderWorkstream(caller, order)) {
     return res.status(403).json({ error: 'Forbidden: Only order participants can submit reviews.' });
@@ -3922,7 +3987,7 @@ app.post('/api/reviews', requireAuth, (req, res) => {
     reviewerAvatar: caller.avatar,
     targetUserId: resolvedTargetUserId,
     rating: numRating,
-    comment: comment.trim(),
+    comment: escapeHtml(comment.trim()),
     orderTitle: orderTitle || order.title || 'Workstream Milestone Deliverable',
     gigId: req.body.gigId || order.gigId,
     projectId: req.body.projectId || order.projectId,
@@ -3958,7 +4023,7 @@ app.post('/api/reviews', requireAuth, (req, res) => {
       comment: newReview.comment
     }
   };
-  messages.push(sysMsg);
+  recordMessage(sysMsg);
   saveMessagesToDisk();
   broadcastMessage(sysMsg, order.id);
 
@@ -4016,7 +4081,7 @@ app.post('/api/support-tickets', requireAuth, (req, res) => {
   };
   supportTickets.unshift(newTicket);
 
-  auditLogs.unshift({
+  registerAuditLog({
     id: 'log_' + Date.now(),
     actor: userName,
     role: caller.role,
@@ -4241,12 +4306,12 @@ export function processAutoAcceptOrders(customNow?: number): Array<{
           reviewWindowDays: days
         }
       };
-      messages.push(sysMsg);
+      recordMessage(sysMsg);
       saveMessagesToDisk();
       broadcastMessage(sysMsg, order.id);
 
       // Log to the audit log
-      auditLogs.unshift({
+      registerAuditLog({
         id: 'log_' + now + '_' + Math.random().toString(36).slice(2, 6),
         actor: 'System Auto-Accept',
         role: 'super_admin',
@@ -4360,12 +4425,12 @@ app.get('/api/workstream/files/:filename', requireAuth, (req, res) => {
 });
 
 app.get('/api/messages/:orderId', requireAuth, (req, res) => {
-  const order = orders.find(o => o.id === req.params.orderId);
+  const order = orderIndex.get(req.params.orderId);
   if (!order) return res.status(404).json({ error: 'Order not found' });
   if (!canAccessOrderWorkstream((req as any).authenticatedUser, order)) {
     return res.status(403).json({ error: 'Forbidden: You are not a participant of this Workstream.' });
   }
-  const filtered = messages.filter(m => m.orderId === req.params.orderId);
+  const filtered = messageIndex.get(req.params.orderId) || [];
   res.json(filtered);
 });
 
@@ -4376,7 +4441,7 @@ app.post('/api/messages', requireAuth, (req, res) => {
   const orderId = req.body.orderId;
   if (!orderId) return res.status(400).json({ error: 'Order ID is required' });
 
-  let order = orders.find(o => o.id === orderId);
+  let order = orderIndex.get(orderId);
   if (!order) return res.status(404).json({ error: 'Order not found' });
   if (!canAccessOrderWorkstream(caller, order)) {
     return res.status(403).json({ error: 'Forbidden: You are not a participant of this Workstream.' });
@@ -4392,7 +4457,7 @@ app.post('/api/messages', requireAuth, (req, res) => {
 
   const newMsg = sanitizeAndCreateMessage(caller, order, req.body, fileCheck);
 
-  messages.push(newMsg);
+  recordMessage(newMsg);
   saveMessagesToDisk();
   broadcastMessage(newMsg, order.id);
   res.json(newMsg);
@@ -4409,11 +4474,11 @@ app.post('/api/gigs', requireAuth, (req, res) => {
     freelancerUsername: caller.username || caller.name.toLowerCase().replace(/\s+/g, '_'),
     freelancerAvatar: caller.avatar,
     freelancerLevel: 'Level 1 ★',
-    title: req.body.title,
+    title: escapeHtml(req.body.title || 'Untitled Gig'),
     slug: req.body.title ? req.body.title.toLowerCase().trim().replace(/[^\w\s-]/g, '').replace(/[\s_-]+/g, '-').replace(/^-+|-+$/g, '') : 'custom-gig',
     category: req.body.category || 'Development & IT',
     subcategory: req.body.subcategory || 'General',
-    description: req.body.description,
+    description: escapeHtml(req.body.description || ''),
     price: Number(req.body.price),
     deliveryDays: Number(req.body.deliveryDays),
     rating: 5.0,
@@ -4436,10 +4501,10 @@ app.post('/api/projects', requireAuth, (req, res) => {
     buyerId: caller.id,
     buyerName: caller.name,
     buyerAvatar: caller.avatar,
-    title: req.body.title,
+    title: escapeHtml(req.body.title || 'Untitled Project'),
     category: req.body.category || 'Development & IT',
     subcategory: req.body.subcategory || 'General',
-    description: req.body.description,
+    description: escapeHtml(req.body.description || ''),
     budgetMin: Number(req.body.budgetMin),
     budgetMax: Number(req.body.budgetMax),
     deadlineDays: 14,
@@ -4473,7 +4538,7 @@ app.patch('/api/admin/projects/:id', (req, res) => {
   if (req.body.moderationStatus !== undefined) p.moderationStatus = req.body.moderationStatus;
   if (req.body.moderationNotes !== undefined) p.moderationNotes = req.body.moderationNotes;
 
-  auditLogs.unshift({
+  registerAuditLog({
     id: 'log_' + Date.now(),
     actor: 'Admin Chief',
     role: 'super_admin',
@@ -4493,7 +4558,7 @@ app.patch('/api/admin/projects/:id/status', (req, res) => {
   const oldStatus = p.status;
   p.status = req.body.status;
 
-  auditLogs.unshift({
+  registerAuditLog({
     id: 'log_' + Date.now(),
     actor: 'Admin Chief',
     role: 'super_admin',
@@ -4512,7 +4577,7 @@ app.patch('/api/admin/projects/:id/feature', (req, res) => {
 
   p.featured = !p.featured;
 
-  auditLogs.unshift({
+  registerAuditLog({
     id: 'log_' + Date.now(),
     actor: 'Admin Chief',
     role: 'super_admin',
@@ -4532,7 +4597,7 @@ app.delete('/api/admin/projects/:id', (req, res) => {
   const deleted = projects[index];
   projects.splice(index, 1);
 
-  auditLogs.unshift({
+  registerAuditLog({
     id: 'log_' + Date.now(),
     actor: 'Admin Chief',
     role: 'super_admin',
@@ -4565,7 +4630,7 @@ app.patch('/api/admin/gigs/:id', (req, res) => {
   if (req.body.moderationStatus !== undefined) g.moderationStatus = req.body.moderationStatus;
   if (req.body.moderationNotes !== undefined) g.moderationNotes = req.body.moderationNotes;
 
-  auditLogs.unshift({
+  registerAuditLog({
     id: 'log_' + Date.now(),
     actor: 'Admin Chief',
     role: 'super_admin',
@@ -4585,7 +4650,7 @@ app.patch('/api/admin/gigs/:id/status', (req, res) => {
   const oldStatus = g.status;
   g.status = req.body.status;
 
-  auditLogs.unshift({
+  registerAuditLog({
     id: 'log_' + Date.now(),
     actor: 'Admin Chief',
     role: 'super_admin',
@@ -4604,7 +4669,7 @@ app.patch('/api/admin/gigs/:id/feature', (req, res) => {
 
   g.featured = !g.featured;
 
-  auditLogs.unshift({
+  registerAuditLog({
     id: 'log_' + Date.now(),
     actor: 'Admin Chief',
     role: 'super_admin',
@@ -4624,7 +4689,7 @@ app.delete('/api/admin/gigs/:id', (req, res) => {
   const deleted = gigs[index];
   gigs.splice(index, 1);
 
-  auditLogs.unshift({
+  registerAuditLog({
     id: 'log_' + Date.now(),
     actor: 'Admin Chief',
     role: 'super_admin',
@@ -4644,7 +4709,7 @@ app.delete('/api/gigs/:id', (req, res) => {
   const deleted = gigs[index];
   gigs.splice(index, 1);
 
-  auditLogs.unshift({
+  registerAuditLog({
     id: 'log_' + Date.now(),
     actor: 'Freelancer / User',
     role: 'freelancer',
@@ -4672,7 +4737,7 @@ app.patch('/api/gigs/:id', (req, res) => {
   if (req.body.moderationStatus !== undefined) g.moderationStatus = req.body.moderationStatus;
   if (req.body.moderationNotes !== undefined) g.moderationNotes = req.body.moderationNotes;
 
-  auditLogs.unshift({
+  registerAuditLog({
     id: 'log_' + Date.now(),
     actor: 'Freelancer / User',
     role: 'freelancer',
@@ -4691,7 +4756,7 @@ app.patch('/api/gigs/:id/feature', (req, res) => {
 
   g.featured = !g.featured;
 
-  auditLogs.unshift({
+  registerAuditLog({
     id: 'log_' + Date.now(),
     actor: 'Freelancer / User',
     role: 'freelancer',
@@ -4715,7 +4780,7 @@ app.post('/api/proposals', requireAuth, (req, res) => {
     freelancerName: caller.name,
     freelancerAvatar: caller.avatar,
     freelancerTitle: caller.title || 'Senior Engineer',
-    coverLetter: req.body.coverLetter,
+    coverLetter: escapeHtml(req.body.coverLetter || ''),
     bidAmount: Number(req.body.bidAmount),
     deliveryDays: Number(req.body.deliveryDays),
     createdAt: new Date().toISOString().split('T')[0],
@@ -4774,7 +4839,7 @@ app.post('/api/orders', requireAuth, rateLimit(30, 60_000), (req, res) => {
       syncUserBalances();
     }
     const enriched = enrichOrderWithServiceInfo(newOrd);
-    orders.unshift(enriched);
+    recordOrder(enriched);
     saveOrdersToDisk();
     res.status(201).json(enriched);
   } catch (err: any) {
@@ -4792,7 +4857,7 @@ app.patch('/api/admin/proposals/:id', (req, res) => {
   if (req.body.deliveryDays !== undefined) p.deliveryDays = Number(req.body.deliveryDays);
   if (req.body.status !== undefined) p.status = req.body.status;
 
-  auditLogs.unshift({
+  registerAuditLog({
     id: 'log_' + Date.now(),
     actor: 'Admin Chief',
     role: 'super_admin',
@@ -4812,7 +4877,7 @@ app.patch('/api/admin/proposals/:id/status', (req, res) => {
   const oldStatus = p.status;
   p.status = req.body.status;
 
-  auditLogs.unshift({
+  registerAuditLog({
     id: 'log_' + Date.now(),
     actor: 'Admin Chief',
     role: 'super_admin',
@@ -4838,7 +4903,7 @@ app.delete('/api/admin/proposals/:id', (req, res) => {
     proj.proposalsCount -= 1;
   }
 
-  auditLogs.unshift({
+  registerAuditLog({
     id: 'log_' + Date.now(),
     actor: 'Admin Chief',
     role: 'super_admin',
@@ -4856,18 +4921,18 @@ app.patch('/api/admin/users/:id', (req, res) => {
   const u = users.find(user => user.id === req.params.id);
   if (!u) return res.status(404).json({ error: 'User not found' });
   
-  if (req.body.name !== undefined) u.name = req.body.name;
-  if (req.body.email !== undefined) u.email = req.body.email;
+  if (req.body.name !== undefined) u.name = escapeHtml(String(req.body.name));
+  if (req.body.email !== undefined) u.email = escapeHtml(String(req.body.email));
   if (req.body.role !== undefined) u.role = req.body.role;
-  if (req.body.title !== undefined) u.title = req.body.title;
-  if (req.body.bio !== undefined) u.bio = req.body.bio;
+  if (req.body.title !== undefined) u.title = escapeHtml(String(req.body.title));
+  if (req.body.bio !== undefined) u.bio = escapeHtml(String(req.body.bio));
   if (req.body.skills !== undefined) u.skills = Array.isArray(req.body.skills) ? req.body.skills : req.body.skills.split(',').map((s: string) => s.trim()).filter(Boolean);
   if (req.body.hourlyRate !== undefined) u.hourlyRate = Number(req.body.hourlyRate);
   // walletBalance is ledger-controlled and intentionally ignored here (use /api/admin/finance/adjustments)
   if (req.body.verified !== undefined) u.verified = Boolean(req.body.verified);
   if (req.body.status !== undefined) u.status = req.body.status;
 
-  auditLogs.unshift({
+  registerAuditLog({
     id: 'log_' + Date.now(),
     actor: 'Admin Chief',
     role: 'super_admin',
@@ -4887,7 +4952,7 @@ app.patch('/api/admin/users/:id/status', (req, res) => {
   const oldStatus = u.status;
   u.status = req.body.status;
 
-  auditLogs.unshift({
+  registerAuditLog({
     id: 'log_' + Date.now(),
     actor: 'Admin Chief',
     role: 'super_admin',
@@ -4918,7 +4983,7 @@ app.post('/api/admin/users/:id/impersonate', (req, res) => {
   const u = users.find(user => user.id === req.params.id);
   if (!u) return res.status(404).json({ error: 'User not found' });
 
-  auditLogs.unshift({
+  registerAuditLog({
     id: 'log_' + Date.now(),
     actor: 'Admin Chief',
     role: 'super_admin',
@@ -4938,7 +5003,7 @@ app.post('/api/admin/users/:id/stop-impersonate', (req, res) => {
   const u = users.find(user => user.id === req.params.id);
   if (!u) return res.status(404).json({ error: 'User not found' });
 
-  auditLogs.unshift({
+  registerAuditLog({
     id: 'log_' + Date.now(),
     actor: 'Admin Chief',
     role: 'super_admin',
@@ -4956,7 +5021,7 @@ app.patch('/api/admin/users/:id/verify', (req, res) => {
   if (!u) return res.status(404).json({ error: 'User not found' });
   u.verified = !u.verified;
 
-  auditLogs.unshift({
+  registerAuditLog({
     id: 'log_' + Date.now(),
     actor: 'Admin Chief',
     role: 'super_admin',
@@ -4987,7 +5052,7 @@ app.delete('/api/admin/users/:id', (req, res) => {
   gigs = gigs.filter(g => g.freelancerId !== req.params.id);
   projects = projects.filter(p => p.buyerId !== req.params.id);
 
-  auditLogs.unshift({
+  registerAuditLog({
     id: 'log_' + Date.now(),
     actor: 'Admin Chief',
     role: 'super_admin',
@@ -5019,7 +5084,7 @@ app.patch('/api/admin/disputes/:id/resolve', requireAdmin, (req, res) => {
     if (d.status.startsWith('resolved')) return res.status(409).json({ error: `Dispute is already ${d.status}.` });
     const notes = String(req.body.notes || '');
     const reason = notes.trim().length >= 5 ? notes.trim() : 'Dispute resolved by administrator';
-    const order = orders.find(o => o.id === d.orderId);
+    const order = orderIndex.get(d.orderId);
     if (status.startsWith('resolved')) {
       if (!order) return res.status(404).json({ error: 'Order for this dispute not found' });
       if (status === 'resolved_release') releaseOrderFunds(order, adminActor(req), reason);
@@ -5028,7 +5093,7 @@ app.patch('/api/admin/disputes/:id/resolve', requireAdmin, (req, res) => {
     }
     d.status = status;
     d.resolutionNotes = notes;
-    auditLogs.unshift({
+    registerAuditLog({
       id: 'log_' + randomUUID().slice(0, 12),
       actor: adminActor(req),
       role: 'super_admin',
@@ -5047,7 +5112,7 @@ app.patch('/api/admin/disputes/:id/resolve', requireAdmin, (req, res) => {
 app.post('/api/admin/tickets/:id/reply', (req, res) => {
   const t = supportTickets.find(tick => tick.id === req.params.id);
   if (!t) return res.status(404).json({ error: 'Ticket not found' });
-  t.messages.push({
+  t.recordMessage({
     sender: 'WorkPerHour Support Staff',
     text: req.body.text,
     timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
@@ -5066,12 +5131,12 @@ function broadcastMessage(message: Message, orderId: string) {
     lastMessageTime: message.timestamp 
   });
 
-  const order = orders.find(o => o.id === orderId);
+  const order = orderIndex.get(orderId);
 
   for (const client of clients) {
-    if (client.readyState === WebSocket.OPEN) {
+    if (client.readyState === WebSocket.OPEN && (client as any).isAuthenticated) {
       const clientUserId = (client as any).authenticatedUserId;
-      if (!clientUserId) continue; // never broadcast to unauthenticated sockets
+      if (!clientUserId) continue;
       const clientUser = users.find(u => u.id === clientUserId);
       const isAuthorized = !!order && canAccessOrderWorkstream(clientUser, order);
       
@@ -5087,56 +5152,24 @@ const clients = new Set<WebSocket>();
 
 wss.on('connection', (ws, req) => {
   try {
-    if (!req.url) {
-      ws.close(1008, 'Invalid connection URL');
-      return;
-    }
-    const host = req.headers.host || 'localhost';
-    let url: URL;
-    try {
-      url = new URL(req.url, `http://${host}`);
-    } catch {
-      ws.close(1008, 'Malformed URL');
-      return;
-    }
-
-    const token = url.searchParams.get('token');
-    let matchedUserId: string | null = null;
-
-    // Only a valid signed session token authenticates a socket. Raw user IDs / usernames and
-    // anonymous connections are rejected (no more fallback to an admin identity).
-    if (token) {
-      const payload = verifyToken(token);
-      if (payload && payload.id) {
-        const dbUser = users.find(u => u.id === payload.id);
-        if (dbUser && dbUser.status === 'active') {
-          matchedUserId = dbUser.id;
-        }
-      }
-    }
-
-    if (!matchedUserId) {
-      try { ws.close(4401, 'Authentication required'); } catch {}
-      return;
-    }
-    
-    (ws as any).authenticatedUserId = matchedUserId;
     clients.add(ws);
-    setupWebSocketHandlers(ws);
+    (ws as any).isAuthenticated = false;
+    
+    // Set a timeout to authenticate. If no valid AUTHENTICATE message is received within 1 second, close.
+    const authTimeout = setTimeout(() => {
+      if (!(ws as any).isAuthenticated) {
+        try { ws.close(4401, 'Authentication timeout'); } catch {}
+      }
+    }, 1000);
 
-    // Send connection acknowledgement
-    ws.send(JSON.stringify({ 
-      type: 'CONNECTED', 
-      userId: matchedUserId,
-      serverTime: new Date().toISOString() 
-    }));
+    setupWebSocketHandlers(ws, authTimeout);
   } catch (err) {
     console.error('WS Connection error:', err);
     try { ws.close(1011, 'Server error during connection'); } catch {}
   }
 });
 
-function setupWebSocketHandlers(ws: WebSocket) {
+function setupWebSocketHandlers(ws: WebSocket, authTimeout: NodeJS.Timeout) {
   // Rate limiting map for this socket: max 30 messages per 10 seconds
   let messageCount = 0;
   let resetTime = Date.now() + 10000;
@@ -5175,6 +5208,41 @@ function setupWebSocketHandlers(ws: WebSocket) {
       }
 
       if (!parsed || typeof parsed !== 'object') {
+        return;
+      }
+
+      if (parsed.type === 'AUTHENTICATE') {
+        const token = parsed.token;
+        if (!token) {
+          ws.send(JSON.stringify({ error: 'Token is required' }));
+          return;
+        }
+
+        const payload = verifyToken(token);
+        if (payload && payload.id) {
+          const dbUser = users.find(u => u.id === payload.id);
+          if (dbUser && dbUser.status === 'active') {
+            (ws as any).authenticatedUserId = dbUser.id;
+            (ws as any).isAuthenticated = true;
+            clearTimeout(authTimeout);
+            
+            ws.send(JSON.stringify({ 
+              type: 'CONNECTED', 
+              userId: dbUser.id,
+              serverTime: new Date().toISOString() 
+            }));
+            return;
+          }
+        }
+        
+        ws.send(JSON.stringify({ error: 'Invalid token' }));
+        try { ws.close(4401, 'Authentication failed'); } catch {}
+        return;
+      }
+
+      // Block all other messages until authenticated
+      if (!(ws as any).isAuthenticated) {
+        ws.send(JSON.stringify({ error: 'Authentication required' }));
         return;
       }
 

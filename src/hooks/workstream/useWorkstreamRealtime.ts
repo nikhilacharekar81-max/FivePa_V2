@@ -28,7 +28,7 @@ export function useWorkstreamRealtime({
     const token = getAuthToken();
     if (!token) return;
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.host}?token=${encodeURIComponent(token)}`;
+    const wsUrl = `${protocol}//${window.location.host}`;
 
     let reconnectTimeout: any = null;
     let isUnmounted = false;
@@ -39,7 +39,8 @@ export function useWorkstreamRealtime({
       wsRef.current = socket;
 
       socket.onopen = () => {
-        console.log('Real-time Workstream WebSocket connected successfully');
+        console.log('Workstream WebSocket connected, authenticating...');
+        socket.send(JSON.stringify({ type: 'AUTHENTICATE', token }));
         if (onReconnect) onReconnect();
       };
 

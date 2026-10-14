@@ -109,11 +109,34 @@ async function run() {
   ok('sending: outsider/anonymous rejected, participant accepted, retries deduplicated');
 
   // 4. WebSocket authentication
+  // Anonymous connections are initially accepted then closed after a short timeout if no AUTHENTICATE message arrives
   const anon = await wsOutcome(`ws://localhost:${PORT}`);
-  assert.ok(anon.closed, 'anonymous WebSocket must be closed');
-  const rawId = await wsOutcome(`ws://localhost:${PORT}?token=usr_1`);
-  assert.ok(rawId.closed, 'WebSocket with a raw user id as token must be closed');
-  ok('WebSocket: anonymous and raw-user-id connections rejected');
+  assert.ok(anon.closed, 'anonymous WebSocket must be closed after timeout');
+  
+  // The server ignores token in URL now
+  const urlToken = await wsOutcome(`ws://localhost:${PORT}?token=${buyer}`);
+  assert.ok(urlToken.closed, 'WebSocket with token in URL must be closed (no longer supported)');
+
+  // Valid authentication message
+  const validAuth = await new Promise<{ authenticated: boolean }>(resolve => {
+    const ws = new WebSocket(`ws://localhost:${PORT}`);
+    const t = setTimeout(() => { try { ws.close(); } catch {} resolve({ authenticated: false }); }, 3000);
+    ws.on('open', () => {
+      ws.send(JSON.stringify({ type: 'AUTHENTICATE', token: buyer }));
+    });
+    ws.on('message', data => {
+      const parsed = JSON.parse(data.toString());
+      if (parsed.type === 'CONNECTED') {
+        clearTimeout(t);
+        ws.close();
+        resolve({ authenticated: true });
+      }
+    });
+    ws.on('error', () => resolve({ authenticated: false }));
+  });
+  assert.ok(validAuth.authenticated, 'WebSocket should authenticate with valid AUTHENTICATE message');
+  
+  ok('WebSocket: anonymous rejected, URL token ignored, message-based auth accepted');
 
   // 5. uploads
   const fileBytes = Buffer.from('%PDF-1.4 test deliverable');
