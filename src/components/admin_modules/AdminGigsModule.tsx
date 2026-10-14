@@ -6,7 +6,6 @@ import {
   PlusCircle, Download, CheckSquare, Square, ChevronDown
 } from 'lucide-react';
 import { Gig, UserAccount } from '../../types';
-import { initialGigs, initialUsers } from '../../data/mockData';
 
 interface AdminGigsModuleProps {
   allGigs?: Gig[];
@@ -25,8 +24,8 @@ export const AdminGigsModule: React.FC<AdminGigsModuleProps> = ({
   onDeleteGig,
   onCreateGig
 }) => {
-  const effectiveGigs = (allGigs && allGigs.length > 0) ? allGigs : initialGigs;
-  const effectiveUsers = (allUsers && allUsers.length > 0) ? allUsers : initialUsers;
+  const effectiveGigs = allGigs || [];
+  const effectiveUsers = allUsers || [];
 
   const [gigs, setGigs] = useState<Gig[]>(() => {
     try {
@@ -40,10 +39,10 @@ export const AdminGigsModule: React.FC<AdminGigsModuleProps> = ({
   useEffect(() => {
     try {
       const deletedIds = JSON.parse(localStorage.getItem('workperhour_deleted_gigs') || '[]').map((d: any) => String(d));
-      const source = (allGigs && allGigs.length > 0) ? allGigs : initialGigs;
+      const source = allGigs || [];
       setGigs((source || []).filter(g => !deletedIds.includes(String(g.id))));
     } catch {
-      const source = (allGigs && allGigs.length > 0) ? allGigs : initialGigs;
+      const source = allGigs || [];
       setGigs(source || []);
     }
   }, [allGigs]);

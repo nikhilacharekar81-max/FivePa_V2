@@ -15,10 +15,10 @@ import {
   DollarSign
 } from 'lucide-react';
 import { Gig, Project } from '../../types';
-import { SEED_PROJECTS } from '../../data/completeSeedDataset';
 
 interface MarketplaceGigsViewProps {
   filteredGigs: Gig[];
+  projects?: Project[];
   currentCategory: string;
   searchQuery: string;
   setSearchQuery: (q: string) => void;
@@ -48,6 +48,7 @@ interface MarketplaceGigsViewProps {
 
 export const MarketplaceGigsView: React.FC<MarketplaceGigsViewProps> = ({
   filteredGigs,
+  projects = [],
   currentCategory,
   searchQuery,
   setSearchQuery,
@@ -457,14 +458,14 @@ export const MarketplaceGigsView: React.FC<MarketplaceGigsViewProps> = ({
             onClick={(e) => navigate('/projects', e)}
             className="inline-flex items-center gap-2 px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl transition-all shadow-xs shrink-0 cursor-pointer"
           >
-            <span>View All Projects ({SEED_PROJECTS.length})</span>
+            <span>View All Projects ({projects.length})</span>
             <ChevronRight className="w-4 h-4 text-emerald-400" />
           </button>
         </div>
 
         {/* Listicle View of Projects */}
         <div className="space-y-4">
-          {SEED_PROJECTS.slice(0, 8).map((project) => {
+          {projects.slice(0, 8).map((project) => {
             const projectUrl = `/projects/${project.id}`;
             return (
               <div

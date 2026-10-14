@@ -1902,7 +1902,7 @@ export default function App() {
             freelancerName: profileUser?.name || 'Freelancer',
             freelancerUsername: profileUser ? slugify(profileUser.name) : 'freelancer',
             freelancerAvatar: profileUser?.avatar || '',
-            title: gigId === 'gig_sample_1' ? 'I will build full-stack React & TypeScript web apps with secure Escrow' : 'I will integrate Gemini AI agents and automated workflows',
+            title: 'Professional Service Gig with Secure Escrow',
             category: 'Development & IT',
             description: 'Featured service gig.',
             price: 450,
@@ -3157,7 +3157,7 @@ export default function App() {
                 </form>
               )}
 
-              {!import.meta.env.PROD && (
+              {!import.meta.env.PROD && usersList.length > 0 && (
               <div className="pt-4 border-t border-slate-100">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-2 text-center">Instant Demo Account Login</span>
                 <div className="grid grid-cols-2 gap-2 text-xs">
@@ -3431,43 +3431,50 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-                {usersList.map(u => (
-                  <div key={u.id} className="p-5 border border-slate-200 rounded-2xl hover:border-emerald-500 hover:shadow-md transition-all flex items-center justify-between gap-4 bg-white">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <img src={u.avatar} alt={u.name} className="w-10 h-10 rounded-full object-cover border border-slate-200 shrink-0" />
-                      <div className="min-w-0">
-                        <span className="font-bold text-fiverr-dark text-sm block truncate">{u.name}</span>
-                        <span className="text-[10px] text-slate-400 uppercase font-mono">{u.role} · ${u.hourlyRate}/hr</span>
+              {usersList.length === 0 ? (
+                <div className="p-8 text-center bg-slate-50 rounded-2xl border border-slate-200 text-slate-500">
+                  <p className="text-sm font-bold text-slate-700 mb-1">No user accounts exist yet</p>
+                  <p className="text-xs text-slate-400">Create a new user account through <a href="/signup" onClick={(e) => navigate('/signup', e)} className="text-emerald-600 underline font-semibold">Signup</a> or <a href="/admin" onClick={(e) => navigate('/admin', e)} className="text-emerald-600 underline font-semibold">Admin Portal</a>.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                  {usersList.map(u => (
+                    <div key={u.id} className="p-5 border border-slate-200 rounded-2xl hover:border-emerald-500 hover:shadow-md transition-all flex items-center justify-between gap-4 bg-white">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <img src={u.avatar} alt={u.name} className="w-10 h-10 rounded-full object-cover border border-slate-200 shrink-0" />
+                        <div className="min-w-0">
+                          <span className="font-bold text-fiverr-dark text-sm block truncate">{u.name}</span>
+                          <span className="text-[10px] text-slate-400 uppercase font-mono">{u.role} · ${u.hourlyRate}/hr</span>
+                        </div>
                       </div>
-                    </div>
-                    <button
-                      onClick={async () => {
-                        try {
-                          const res = await fetch('/api/auth/demo-session', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ userId: u.id })
-                          });
-                          const data = await res.json();
-                          if (res.ok && data.token) {
-                            setAuthToken(data.token);
-                            updateCurrentUser(data.user);
-                            setImpersonatedUser(null);
-                            alert(`Switched account to ${u.name} (${u.role})`);
-                            navigate('/orders');
+                      <button
+                        onClick={async () => {
+                          try {
+                            const res = await fetch('/api/auth/demo-session', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ userId: u.id })
+                            });
+                            const data = await res.json();
+                            if (res.ok && data.token) {
+                              setAuthToken(data.token);
+                              updateCurrentUser(data.user);
+                              setImpersonatedUser(null);
+                              alert(`Switched account to ${u.name} (${u.role})`);
+                              navigate('/orders');
+                            }
+                          } catch (e) {
+                            console.warn(e);
                           }
-                        } catch (e) {
-                          console.warn(e);
-                        }
-                      }}
-                      className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-xs cursor-pointer shrink-0"
-                    >
-                      Switch to Account
-                    </button>
-                  </div>
-                ))}
-              </div>
+                        }}
+                        className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-xs cursor-pointer shrink-0"
+                      >
+                        Switch to Account
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}

@@ -130,15 +130,16 @@ export const LoginModal: React.FC<LoginModalProps> = ({
         ) : (
           <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); handleLoginSubmit(e); }}>
             <input type="email" placeholder="Email (e.g. user@example.com)" value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} required className="w-full px-4 py-2 border rounded-xl text-sm" />
-            <input type="password" placeholder="Password (default: password123)" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} required className="w-full px-4 py-2 border rounded-xl text-sm" />
+            <input type="password" placeholder="Password" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} required className="w-full px-4 py-2 border rounded-xl text-sm" />
             <button type="submit" className="w-full py-2.5 bg-slate-900 text-white font-semibold rounded-xl hover:bg-slate-800 transition cursor-pointer">Login</button>
             <button type="button" onClick={(e) => { e.preventDefault(); onClose(); setIsForgotPasswordModalOpen(true); }} className="w-full text-xs font-normal text-emerald-700 hover:text-emerald-900 cursor-pointer underline">Forgot Password?</button>
           </form>
         )}
 
-        <div className="mt-5 pt-4 border-t border-slate-100">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-2 text-center">Instant Demo Account Login</span>
-          <div className="grid grid-cols-2 gap-2 text-xs">
+        {usersList.length > 0 && (
+          <div className="mt-5 pt-4 border-t border-slate-100">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-2 text-center">Instant Demo Account Login</span>
+            <div className="grid grid-cols-2 gap-2 text-xs">
             {usersList.slice(0, 4).map(u => (
               <button
                 key={u.id}
@@ -173,6 +174,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
             ))}
           </div>
         </div>
+        )}
       </div>
     </div>
   );

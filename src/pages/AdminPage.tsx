@@ -111,8 +111,8 @@ export const AdminPage: React.FC<AdminPageProps> = ({
 
           <form onSubmit={async (e) => {
             e.preventDefault();
-            const emailToUse = loginEmail.trim() || 'admin@workperhour.com';
-            const passToUse = loginPassword.trim() || 'password123';
+            const emailToUse = loginEmail.trim();
+            const passToUse = loginPassword.trim();
             const deviceId = getDeviceId();
             try {
               const payload: any = {
@@ -232,9 +232,10 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                   <label className="block text-fiverr-dark font-bold uppercase mb-1">Admin Email ID</label>
                   <input 
                     type="email" 
-                    placeholder="admin@workperhour.com"
-                    value={loginEmail || 'admin@workperhour.com'}
+                    placeholder="Enter Admin Email"
+                    value={loginEmail}
                     onChange={(e) => setLoginEmail(e.target.value)}
+                    required
                     className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-fiverr-dark focus:outline-none focus:border-emerald-500 font-medium"
                   />
                 </div>
@@ -244,8 +245,9 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                   <input 
                     type="password" 
                     placeholder="••••••••••••"
-                    value={loginPassword || 'password123'}
+                    value={loginPassword}
                     onChange={(e) => setLoginPassword(e.target.value)}
+                    required
                     className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-fiverr-dark focus:outline-none focus:border-emerald-500"
                   />
                 </div>
@@ -256,19 +258,6 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                 >
                   Authenticate & Request Email Code
                 </button>
-
-                <div className="pt-2 text-center">
-                  <button 
-                    type="button"
-                    onClick={() => {
-                      setLoginEmail('admin@workperhour.com');
-                      setLoginPassword('password123');
-                    }}
-                    className="text-xs text-emerald-600 hover:text-emerald-700 font-semibold underline cursor-pointer"
-                  >
-                    ⚡ Click to autofill Demo Admin Credentials
-                  </button>
-                </div>
               </>
             )}
 

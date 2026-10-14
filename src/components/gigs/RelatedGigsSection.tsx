@@ -1,7 +1,6 @@
 import React from 'react';
 import { Star, Sparkles, ArrowRight, ShieldCheck } from 'lucide-react';
 import { Gig } from '../../types';
-import { SEED_GIGS } from '../../data/completeSeedDataset';
 import { slugify } from '../../utils/slugify';
 
 interface RelatedGigsSectionProps {
@@ -21,7 +20,7 @@ export const RelatedGigsSection: React.FC<RelatedGigsSectionProps> = ({
   title = "Related & Similar Services",
   maxItems = 4
 }) => {
-  const dataset = allGigs && allGigs.length > 0 ? allGigs : SEED_GIGS;
+  const dataset = allGigs || [];
 
   // Find related gigs by category or subcategory
   let related = dataset.filter(g => 
