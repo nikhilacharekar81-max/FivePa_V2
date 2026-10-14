@@ -1,6 +1,528 @@
 {
   "journals": [
     {
+      "id": "JRN-6b32e4d3-91d7-4171-83ec-a86dacf5c4f8",
+      "reference": "ORD-ord_auto_custom_days_1791995590638-RELEASE",
+      "postingDate": "2026-10-14",
+      "timestamp": "2026-10-14 16:33:10",
+      "description": "Escrow release for Order #ord_auto_custom_days_1791995590638 (Test Custom Days Order)",
+      "eventType": "ESCROW_RELEASED_TO_FREELANCER",
+      "idempotencyKey": "IDEMP-REL-ord_auto_custom_days_1791995590638",
+      "entries": [
+        {
+          "id": "ENT-6b32e4d3-91d7-4171-83ec-a86dacf5c4f8-1",
+          "journalId": "JRN-6b32e4d3-91d7-4171-83ec-a86dacf5c4f8",
+          "accountCode": "2030",
+          "accountName": "Marketplace Escrow Funds in Trust",
+          "debit": 250,
+          "credit": 0,
+          "currency": "USD",
+          "description": "Released funds held in escrow for Order #ord_auto_custom_days_1791995590638",
+          "orderId": "ord_auto_custom_days_1791995590638"
+        },
+        {
+          "id": "ENT-6b32e4d3-91d7-4171-83ec-a86dacf5c4f8-2",
+          "journalId": "JRN-6b32e4d3-91d7-4171-83ec-a86dacf5c4f8",
+          "accountCode": "2020",
+          "accountName": "Freelancer Wallets Payable",
+          "debit": 0,
+          "credit": 200,
+          "currency": "USD",
+          "description": "Credited net earnings to AutoSeller Test (after 20% commission)",
+          "userId": "usr_seller_auto_1791995590638",
+          "orderId": "ord_auto_custom_days_1791995590638"
+        },
+        {
+          "id": "ENT-6b32e4d3-91d7-4171-83ec-a86dacf5c4f8-3",
+          "journalId": "JRN-6b32e4d3-91d7-4171-83ec-a86dacf5c4f8",
+          "accountCode": "4010",
+          "accountName": "Marketplace Platform Commission Fee",
+          "debit": 0,
+          "credit": 50,
+          "currency": "USD",
+          "description": "20% platform commission on Order #ord_auto_custom_days_1791995590638",
+          "orderId": "ord_auto_custom_days_1791995590638"
+        }
+      ],
+      "totalDebit": 250,
+      "totalCredit": 250,
+      "status": "posted",
+      "actor": "System Auto-Accept"
+    },
+    {
+      "id": "JRN-1dd9038a-1e8d-433a-82ee-d6d5531bc3fb",
+      "reference": "ORD-ord_auto_custom_days_1791995590638-ESCROW-LOCK",
+      "postingDate": "2026-10-14",
+      "timestamp": "2026-10-14 16:33:10",
+      "description": "Escrow funding for Order #ord_auto_custom_days_1791995590638 (Test Custom Days Order)",
+      "eventType": "ORDER_ESCROW_FUNDED",
+      "idempotencyKey": "IDEMP-ORD-FUND-ord_auto_custom_days_1791995590638",
+      "entries": [
+        {
+          "id": "ENT-1dd9038a-1e8d-433a-82ee-d6d5531bc3fb-1",
+          "journalId": "JRN-1dd9038a-1e8d-433a-82ee-d6d5531bc3fb",
+          "accountCode": "2010",
+          "accountName": "Buyer Wallets Payable",
+          "debit": 263.75,
+          "credit": 0,
+          "currency": "USD",
+          "description": "Debited buyer wallet for order price and client fees",
+          "userId": "usr_buyer_auto_1791995590638",
+          "orderId": "ord_auto_custom_days_1791995590638"
+        },
+        {
+          "id": "ENT-1dd9038a-1e8d-433a-82ee-d6d5531bc3fb-2",
+          "journalId": "JRN-1dd9038a-1e8d-433a-82ee-d6d5531bc3fb",
+          "accountCode": "2030",
+          "accountName": "Marketplace Escrow Funds in Trust",
+          "debit": 0,
+          "credit": 250,
+          "currency": "USD",
+          "description": "Locked in escrow protection vault",
+          "orderId": "ord_auto_custom_days_1791995590638"
+        },
+        {
+          "id": "ENT-1dd9038a-1e8d-433a-82ee-d6d5531bc3fb-3",
+          "journalId": "JRN-1dd9038a-1e8d-433a-82ee-d6d5531bc3fb",
+          "accountCode": "4020",
+          "accountName": "Client Service Fee Revenue",
+          "debit": 0,
+          "credit": 13.75,
+          "currency": "USD",
+          "description": "5.5% client service fee on Order #ord_auto_custom_days_1791995590638",
+          "orderId": "ord_auto_custom_days_1791995590638"
+        }
+      ],
+      "totalDebit": 263.75,
+      "totalCredit": 263.75,
+      "status": "posted",
+      "actor": "usr_buyer_auto_1791995590638"
+    },
+    {
+      "id": "JRN-9d6c3df1-1609-4e00-a141-03f7d81dc37f",
+      "reference": "ORD-ord_auto_disabled_1791995590638-RELEASE",
+      "postingDate": "2026-10-14",
+      "timestamp": "2026-10-14 16:33:10",
+      "description": "Escrow release for Order #ord_auto_disabled_1791995590638 (Test Toggle Disabled Order)",
+      "eventType": "ESCROW_RELEASED_TO_FREELANCER",
+      "idempotencyKey": "IDEMP-REL-ord_auto_disabled_1791995590638",
+      "entries": [
+        {
+          "id": "ENT-9d6c3df1-1609-4e00-a141-03f7d81dc37f-1",
+          "journalId": "JRN-9d6c3df1-1609-4e00-a141-03f7d81dc37f",
+          "accountCode": "2030",
+          "accountName": "Marketplace Escrow Funds in Trust",
+          "debit": 180,
+          "credit": 0,
+          "currency": "USD",
+          "description": "Released funds held in escrow for Order #ord_auto_disabled_1791995590638",
+          "orderId": "ord_auto_disabled_1791995590638"
+        },
+        {
+          "id": "ENT-9d6c3df1-1609-4e00-a141-03f7d81dc37f-2",
+          "journalId": "JRN-9d6c3df1-1609-4e00-a141-03f7d81dc37f",
+          "accountCode": "2020",
+          "accountName": "Freelancer Wallets Payable",
+          "debit": 0,
+          "credit": 144,
+          "currency": "USD",
+          "description": "Credited net earnings to AutoSeller Test (after 20% commission)",
+          "userId": "usr_seller_auto_1791995590638",
+          "orderId": "ord_auto_disabled_1791995590638"
+        },
+        {
+          "id": "ENT-9d6c3df1-1609-4e00-a141-03f7d81dc37f-3",
+          "journalId": "JRN-9d6c3df1-1609-4e00-a141-03f7d81dc37f",
+          "accountCode": "4010",
+          "accountName": "Marketplace Platform Commission Fee",
+          "debit": 0,
+          "credit": 36,
+          "currency": "USD",
+          "description": "20% platform commission on Order #ord_auto_disabled_1791995590638",
+          "orderId": "ord_auto_disabled_1791995590638"
+        }
+      ],
+      "totalDebit": 180,
+      "totalCredit": 180,
+      "status": "posted",
+      "actor": "System Auto-Accept"
+    },
+    {
+      "id": "JRN-872f6e54-17a8-4051-9100-5ffd597c3fe3",
+      "reference": "ORD-ord_auto_disabled_1791995590638-ESCROW-LOCK",
+      "postingDate": "2026-10-14",
+      "timestamp": "2026-10-14 16:33:10",
+      "description": "Escrow funding for Order #ord_auto_disabled_1791995590638 (Test Toggle Disabled Order)",
+      "eventType": "ORDER_ESCROW_FUNDED",
+      "idempotencyKey": "IDEMP-ORD-FUND-ord_auto_disabled_1791995590638",
+      "entries": [
+        {
+          "id": "ENT-872f6e54-17a8-4051-9100-5ffd597c3fe3-1",
+          "journalId": "JRN-872f6e54-17a8-4051-9100-5ffd597c3fe3",
+          "accountCode": "2010",
+          "accountName": "Buyer Wallets Payable",
+          "debit": 193.4,
+          "credit": 0,
+          "currency": "USD",
+          "description": "Debited buyer wallet for order price and client fees",
+          "userId": "usr_buyer_auto_1791995590638",
+          "orderId": "ord_auto_disabled_1791995590638"
+        },
+        {
+          "id": "ENT-872f6e54-17a8-4051-9100-5ffd597c3fe3-2",
+          "journalId": "JRN-872f6e54-17a8-4051-9100-5ffd597c3fe3",
+          "accountCode": "2030",
+          "accountName": "Marketplace Escrow Funds in Trust",
+          "debit": 0,
+          "credit": 180,
+          "currency": "USD",
+          "description": "Locked in escrow protection vault",
+          "orderId": "ord_auto_disabled_1791995590638"
+        },
+        {
+          "id": "ENT-872f6e54-17a8-4051-9100-5ffd597c3fe3-3",
+          "journalId": "JRN-872f6e54-17a8-4051-9100-5ffd597c3fe3",
+          "accountCode": "4020",
+          "accountName": "Client Service Fee Revenue",
+          "debit": 0,
+          "credit": 9.9,
+          "currency": "USD",
+          "description": "5.5% client service fee on Order #ord_auto_disabled_1791995590638",
+          "orderId": "ord_auto_disabled_1791995590638"
+        },
+        {
+          "id": "ENT-872f6e54-17a8-4051-9100-5ffd597c3fe3-4",
+          "journalId": "JRN-872f6e54-17a8-4051-9100-5ffd597c3fe3",
+          "accountCode": "4030",
+          "accountName": "Small-Order Fee Revenue",
+          "debit": 0,
+          "credit": 3.5,
+          "currency": "USD",
+          "description": "Small-order fee ($3.50, order under $200) on Order #ord_auto_disabled_1791995590638",
+          "orderId": "ord_auto_disabled_1791995590638"
+        }
+      ],
+      "totalDebit": 193.4,
+      "totalCredit": 193.4,
+      "status": "posted",
+      "actor": "usr_buyer_auto_1791995590638"
+    },
+    {
+      "id": "JRN-93bf72b0-f4d1-4457-8e28-8e5c14889841",
+      "reference": "ORD-ord_auto_disputed_1791995590638-ESCROW-LOCK",
+      "postingDate": "2026-10-14",
+      "timestamp": "2026-10-14 16:33:10",
+      "description": "Escrow funding for Order #ord_auto_disputed_1791995590638 (Test Disputed Order)",
+      "eventType": "ORDER_ESCROW_FUNDED",
+      "idempotencyKey": "IDEMP-ORD-FUND-ord_auto_disputed_1791995590638",
+      "entries": [
+        {
+          "id": "ENT-93bf72b0-f4d1-4457-8e28-8e5c14889841-1",
+          "journalId": "JRN-93bf72b0-f4d1-4457-8e28-8e5c14889841",
+          "accountCode": "2010",
+          "accountName": "Buyer Wallets Payable",
+          "debit": 130.1,
+          "credit": 0,
+          "currency": "USD",
+          "description": "Debited buyer wallet for order price and client fees",
+          "userId": "usr_buyer_auto_1791995590638",
+          "orderId": "ord_auto_disputed_1791995590638"
+        },
+        {
+          "id": "ENT-93bf72b0-f4d1-4457-8e28-8e5c14889841-2",
+          "journalId": "JRN-93bf72b0-f4d1-4457-8e28-8e5c14889841",
+          "accountCode": "2030",
+          "accountName": "Marketplace Escrow Funds in Trust",
+          "debit": 0,
+          "credit": 120,
+          "currency": "USD",
+          "description": "Locked in escrow protection vault",
+          "orderId": "ord_auto_disputed_1791995590638"
+        },
+        {
+          "id": "ENT-93bf72b0-f4d1-4457-8e28-8e5c14889841-3",
+          "journalId": "JRN-93bf72b0-f4d1-4457-8e28-8e5c14889841",
+          "accountCode": "4020",
+          "accountName": "Client Service Fee Revenue",
+          "debit": 0,
+          "credit": 6.6,
+          "currency": "USD",
+          "description": "5.5% client service fee on Order #ord_auto_disputed_1791995590638",
+          "orderId": "ord_auto_disputed_1791995590638"
+        },
+        {
+          "id": "ENT-93bf72b0-f4d1-4457-8e28-8e5c14889841-4",
+          "journalId": "JRN-93bf72b0-f4d1-4457-8e28-8e5c14889841",
+          "accountCode": "4030",
+          "accountName": "Small-Order Fee Revenue",
+          "debit": 0,
+          "credit": 3.5,
+          "currency": "USD",
+          "description": "Small-order fee ($3.50, order under $200) on Order #ord_auto_disputed_1791995590638",
+          "orderId": "ord_auto_disputed_1791995590638"
+        }
+      ],
+      "totalDebit": 130.1,
+      "totalCredit": 130.1,
+      "status": "posted",
+      "actor": "usr_buyer_auto_1791995590638"
+    },
+    {
+      "id": "JRN-ca02aaa5-ebf3-46f3-8241-d4b97111cc3a",
+      "reference": "ORD-ord_auto_revised_1791995590638-ESCROW-LOCK",
+      "postingDate": "2026-10-14",
+      "timestamp": "2026-10-14 16:33:10",
+      "description": "Escrow funding for Order #ord_auto_revised_1791995590638 (Test Revision Order)",
+      "eventType": "ORDER_ESCROW_FUNDED",
+      "idempotencyKey": "IDEMP-ORD-FUND-ord_auto_revised_1791995590638",
+      "entries": [
+        {
+          "id": "ENT-ca02aaa5-ebf3-46f3-8241-d4b97111cc3a-1",
+          "journalId": "JRN-ca02aaa5-ebf3-46f3-8241-d4b97111cc3a",
+          "accountCode": "2010",
+          "accountName": "Buyer Wallets Payable",
+          "debit": 161.75,
+          "credit": 0,
+          "currency": "USD",
+          "description": "Debited buyer wallet for order price and client fees",
+          "userId": "usr_buyer_auto_1791995590638",
+          "orderId": "ord_auto_revised_1791995590638"
+        },
+        {
+          "id": "ENT-ca02aaa5-ebf3-46f3-8241-d4b97111cc3a-2",
+          "journalId": "JRN-ca02aaa5-ebf3-46f3-8241-d4b97111cc3a",
+          "accountCode": "2030",
+          "accountName": "Marketplace Escrow Funds in Trust",
+          "debit": 0,
+          "credit": 150,
+          "currency": "USD",
+          "description": "Locked in escrow protection vault",
+          "orderId": "ord_auto_revised_1791995590638"
+        },
+        {
+          "id": "ENT-ca02aaa5-ebf3-46f3-8241-d4b97111cc3a-3",
+          "journalId": "JRN-ca02aaa5-ebf3-46f3-8241-d4b97111cc3a",
+          "accountCode": "4020",
+          "accountName": "Client Service Fee Revenue",
+          "debit": 0,
+          "credit": 8.25,
+          "currency": "USD",
+          "description": "5.5% client service fee on Order #ord_auto_revised_1791995590638",
+          "orderId": "ord_auto_revised_1791995590638"
+        },
+        {
+          "id": "ENT-ca02aaa5-ebf3-46f3-8241-d4b97111cc3a-4",
+          "journalId": "JRN-ca02aaa5-ebf3-46f3-8241-d4b97111cc3a",
+          "accountCode": "4030",
+          "accountName": "Small-Order Fee Revenue",
+          "debit": 0,
+          "credit": 3.5,
+          "currency": "USD",
+          "description": "Small-order fee ($3.50, order under $200) on Order #ord_auto_revised_1791995590638",
+          "orderId": "ord_auto_revised_1791995590638"
+        }
+      ],
+      "totalDebit": 161.75,
+      "totalCredit": 161.75,
+      "status": "posted",
+      "actor": "usr_buyer_auto_1791995590638"
+    },
+    {
+      "id": "JRN-2cdd5df7-56b0-46be-b0fb-5c3ec801bc2b",
+      "reference": "ORD-ord_auto_expired_1791995590638-RELEASE",
+      "postingDate": "2026-10-14",
+      "timestamp": "2026-10-14 16:33:10",
+      "description": "Escrow release for Order #ord_auto_expired_1791995590638 (Test Expired Review Order)",
+      "eventType": "ESCROW_RELEASED_TO_FREELANCER",
+      "idempotencyKey": "IDEMP-REL-ord_auto_expired_1791995590638",
+      "entries": [
+        {
+          "id": "ENT-2cdd5df7-56b0-46be-b0fb-5c3ec801bc2b-1",
+          "journalId": "JRN-2cdd5df7-56b0-46be-b0fb-5c3ec801bc2b",
+          "accountCode": "2030",
+          "accountName": "Marketplace Escrow Funds in Trust",
+          "debit": 200,
+          "credit": 0,
+          "currency": "USD",
+          "description": "Released funds held in escrow for Order #ord_auto_expired_1791995590638",
+          "orderId": "ord_auto_expired_1791995590638"
+        },
+        {
+          "id": "ENT-2cdd5df7-56b0-46be-b0fb-5c3ec801bc2b-2",
+          "journalId": "JRN-2cdd5df7-56b0-46be-b0fb-5c3ec801bc2b",
+          "accountCode": "2020",
+          "accountName": "Freelancer Wallets Payable",
+          "debit": 0,
+          "credit": 160,
+          "currency": "USD",
+          "description": "Credited net earnings to AutoSeller Test (after 20% commission)",
+          "userId": "usr_seller_auto_1791995590638",
+          "orderId": "ord_auto_expired_1791995590638"
+        },
+        {
+          "id": "ENT-2cdd5df7-56b0-46be-b0fb-5c3ec801bc2b-3",
+          "journalId": "JRN-2cdd5df7-56b0-46be-b0fb-5c3ec801bc2b",
+          "accountCode": "4010",
+          "accountName": "Marketplace Platform Commission Fee",
+          "debit": 0,
+          "credit": 40,
+          "currency": "USD",
+          "description": "20% platform commission on Order #ord_auto_expired_1791995590638",
+          "orderId": "ord_auto_expired_1791995590638"
+        }
+      ],
+      "totalDebit": 200,
+      "totalCredit": 200,
+      "status": "posted",
+      "actor": "System Auto-Accept"
+    },
+    {
+      "id": "JRN-ee65933d-8f8b-4f52-a3f2-96025586f220",
+      "reference": "ORD-ord_auto_expired_1791995590638-ESCROW-LOCK",
+      "postingDate": "2026-10-14",
+      "timestamp": "2026-10-14 16:33:10",
+      "description": "Escrow funding for Order #ord_auto_expired_1791995590638 (Test Expired Review Order)",
+      "eventType": "ORDER_ESCROW_FUNDED",
+      "idempotencyKey": "IDEMP-ORD-FUND-ord_auto_expired_1791995590638",
+      "entries": [
+        {
+          "id": "ENT-ee65933d-8f8b-4f52-a3f2-96025586f220-1",
+          "journalId": "JRN-ee65933d-8f8b-4f52-a3f2-96025586f220",
+          "accountCode": "2010",
+          "accountName": "Buyer Wallets Payable",
+          "debit": 211,
+          "credit": 0,
+          "currency": "USD",
+          "description": "Debited buyer wallet for order price and client fees",
+          "userId": "usr_buyer_auto_1791995590638",
+          "orderId": "ord_auto_expired_1791995590638"
+        },
+        {
+          "id": "ENT-ee65933d-8f8b-4f52-a3f2-96025586f220-2",
+          "journalId": "JRN-ee65933d-8f8b-4f52-a3f2-96025586f220",
+          "accountCode": "2030",
+          "accountName": "Marketplace Escrow Funds in Trust",
+          "debit": 0,
+          "credit": 200,
+          "currency": "USD",
+          "description": "Locked in escrow protection vault",
+          "orderId": "ord_auto_expired_1791995590638"
+        },
+        {
+          "id": "ENT-ee65933d-8f8b-4f52-a3f2-96025586f220-3",
+          "journalId": "JRN-ee65933d-8f8b-4f52-a3f2-96025586f220",
+          "accountCode": "4020",
+          "accountName": "Client Service Fee Revenue",
+          "debit": 0,
+          "credit": 11,
+          "currency": "USD",
+          "description": "5.5% client service fee on Order #ord_auto_expired_1791995590638",
+          "orderId": "ord_auto_expired_1791995590638"
+        }
+      ],
+      "totalDebit": 211,
+      "totalCredit": 211,
+      "status": "posted",
+      "actor": "usr_buyer_auto_1791995590638"
+    },
+    {
+      "id": "JRN-c2b6ac23-c050-456e-ba21-04d119cfc07e",
+      "reference": "ORD-ord_auto_pending_1791995590638-ESCROW-LOCK",
+      "postingDate": "2026-10-14",
+      "timestamp": "2026-10-14 16:33:10",
+      "description": "Escrow funding for Order #ord_auto_pending_1791995590638 (Test Pending Review Order)",
+      "eventType": "ORDER_ESCROW_FUNDED",
+      "idempotencyKey": "IDEMP-ORD-FUND-ord_auto_pending_1791995590638",
+      "entries": [
+        {
+          "id": "ENT-c2b6ac23-c050-456e-ba21-04d119cfc07e-1",
+          "journalId": "JRN-c2b6ac23-c050-456e-ba21-04d119cfc07e",
+          "accountCode": "2010",
+          "accountName": "Buyer Wallets Payable",
+          "debit": 109,
+          "credit": 0,
+          "currency": "USD",
+          "description": "Debited buyer wallet for order price and client fees",
+          "userId": "usr_buyer_auto_1791995590638",
+          "orderId": "ord_auto_pending_1791995590638"
+        },
+        {
+          "id": "ENT-c2b6ac23-c050-456e-ba21-04d119cfc07e-2",
+          "journalId": "JRN-c2b6ac23-c050-456e-ba21-04d119cfc07e",
+          "accountCode": "2030",
+          "accountName": "Marketplace Escrow Funds in Trust",
+          "debit": 0,
+          "credit": 100,
+          "currency": "USD",
+          "description": "Locked in escrow protection vault",
+          "orderId": "ord_auto_pending_1791995590638"
+        },
+        {
+          "id": "ENT-c2b6ac23-c050-456e-ba21-04d119cfc07e-3",
+          "journalId": "JRN-c2b6ac23-c050-456e-ba21-04d119cfc07e",
+          "accountCode": "4020",
+          "accountName": "Client Service Fee Revenue",
+          "debit": 0,
+          "credit": 5.5,
+          "currency": "USD",
+          "description": "5.5% client service fee on Order #ord_auto_pending_1791995590638",
+          "orderId": "ord_auto_pending_1791995590638"
+        },
+        {
+          "id": "ENT-c2b6ac23-c050-456e-ba21-04d119cfc07e-4",
+          "journalId": "JRN-c2b6ac23-c050-456e-ba21-04d119cfc07e",
+          "accountCode": "4030",
+          "accountName": "Small-Order Fee Revenue",
+          "debit": 0,
+          "credit": 3.5,
+          "currency": "USD",
+          "description": "Small-order fee ($3.50, order under $200) on Order #ord_auto_pending_1791995590638",
+          "orderId": "ord_auto_pending_1791995590638"
+        }
+      ],
+      "totalDebit": 109,
+      "totalCredit": 109,
+      "status": "posted",
+      "actor": "usr_buyer_auto_1791995590638"
+    },
+    {
+      "id": "JRN-a1c01912-73d2-4d03-b67c-c045445eea21",
+      "reference": "DEP-TEST-1791995590638",
+      "postingDate": "2026-10-14",
+      "timestamp": "2026-10-14 16:33:10",
+      "description": "Deposit (gateway) - AutoBuyer Test",
+      "eventType": "DEPOSIT_SETTLED",
+      "idempotencyKey": "DEP-dep_test_1791995590638",
+      "entries": [
+        {
+          "id": "ENT-a1c01912-73d2-4d03-b67c-c045445eea21-1",
+          "journalId": "JRN-a1c01912-73d2-4d03-b67c-c045445eea21",
+          "accountCode": "1020",
+          "accountName": "Payment Processor Clearing",
+          "debit": 2000,
+          "credit": 0,
+          "currency": "USD",
+          "description": "Payment processor clearing - deposit received",
+          "userId": "usr_buyer_auto_1791995590638"
+        },
+        {
+          "id": "ENT-a1c01912-73d2-4d03-b67c-c045445eea21-2",
+          "journalId": "JRN-a1c01912-73d2-4d03-b67c-c045445eea21",
+          "accountCode": "2010",
+          "accountName": "Buyer Wallets Payable",
+          "debit": 0,
+          "credit": 2000,
+          "currency": "USD",
+          "description": "Credited AutoBuyer Test available wallet",
+          "userId": "usr_buyer_auto_1791995590638"
+        }
+      ],
+      "totalDebit": 2000,
+      "totalCredit": 2000,
+      "status": "posted",
+      "actor": "usr_buyer_auto_1791995590638"
+    },
+    {
       "id": "JRN-5f3cad09-691a-437c-b996-f934243a96bb",
       "reference": "ORD-ord_auto_custom_days_1791995101460-RELEASE",
       "postingDate": "2026-10-14",
@@ -1622,6 +2144,145 @@
   ],
   "transactions": [
     {
+      "id": "TXN-6b32e4d3-91d7-4171-83ec-a86dacf5c4f8",
+      "type": "escrow_release",
+      "amount": 250,
+      "currency": "USD",
+      "timestamp": "2026-10-14 16:33:10",
+      "status": "completed",
+      "userId": "usr_seller_auto_1791995590638",
+      "userName": "AutoSeller Test",
+      "userRole": "freelancer",
+      "relatedOrderId": "ord_auto_custom_days_1791995590638",
+      "journalId": "JRN-6b32e4d3-91d7-4171-83ec-a86dacf5c4f8",
+      "description": "Escrow release for Order #ord_auto_custom_days_1791995590638 (Test Custom Days Order)"
+    },
+    {
+      "id": "TXN-1dd9038a-1e8d-433a-82ee-d6d5531bc3fb",
+      "type": "escrow_fund",
+      "amount": 263.75,
+      "currency": "USD",
+      "timestamp": "2026-10-14 16:33:10",
+      "status": "completed",
+      "userId": "usr_buyer_auto_1791995590638",
+      "userName": "AutoBuyer Test",
+      "userRole": "buyer",
+      "relatedOrderId": "ord_auto_custom_days_1791995590638",
+      "journalId": "JRN-1dd9038a-1e8d-433a-82ee-d6d5531bc3fb",
+      "description": "Escrow funding for Order #ord_auto_custom_days_1791995590638 (Test Custom Days Order)"
+    },
+    {
+      "id": "TXN-9d6c3df1-1609-4e00-a141-03f7d81dc37f",
+      "type": "escrow_release",
+      "amount": 180,
+      "currency": "USD",
+      "timestamp": "2026-10-14 16:33:10",
+      "status": "completed",
+      "userId": "usr_seller_auto_1791995590638",
+      "userName": "AutoSeller Test",
+      "userRole": "freelancer",
+      "relatedOrderId": "ord_auto_disabled_1791995590638",
+      "journalId": "JRN-9d6c3df1-1609-4e00-a141-03f7d81dc37f",
+      "description": "Escrow release for Order #ord_auto_disabled_1791995590638 (Test Toggle Disabled Order)"
+    },
+    {
+      "id": "TXN-872f6e54-17a8-4051-9100-5ffd597c3fe3",
+      "type": "escrow_fund",
+      "amount": 193.4,
+      "currency": "USD",
+      "timestamp": "2026-10-14 16:33:10",
+      "status": "completed",
+      "userId": "usr_buyer_auto_1791995590638",
+      "userName": "AutoBuyer Test",
+      "userRole": "buyer",
+      "relatedOrderId": "ord_auto_disabled_1791995590638",
+      "journalId": "JRN-872f6e54-17a8-4051-9100-5ffd597c3fe3",
+      "description": "Escrow funding for Order #ord_auto_disabled_1791995590638 (Test Toggle Disabled Order)"
+    },
+    {
+      "id": "TXN-93bf72b0-f4d1-4457-8e28-8e5c14889841",
+      "type": "escrow_fund",
+      "amount": 130.1,
+      "currency": "USD",
+      "timestamp": "2026-10-14 16:33:10",
+      "status": "completed",
+      "userId": "usr_buyer_auto_1791995590638",
+      "userName": "AutoBuyer Test",
+      "userRole": "buyer",
+      "relatedOrderId": "ord_auto_disputed_1791995590638",
+      "journalId": "JRN-93bf72b0-f4d1-4457-8e28-8e5c14889841",
+      "description": "Escrow funding for Order #ord_auto_disputed_1791995590638 (Test Disputed Order)"
+    },
+    {
+      "id": "TXN-ca02aaa5-ebf3-46f3-8241-d4b97111cc3a",
+      "type": "escrow_fund",
+      "amount": 161.75,
+      "currency": "USD",
+      "timestamp": "2026-10-14 16:33:10",
+      "status": "completed",
+      "userId": "usr_buyer_auto_1791995590638",
+      "userName": "AutoBuyer Test",
+      "userRole": "buyer",
+      "relatedOrderId": "ord_auto_revised_1791995590638",
+      "journalId": "JRN-ca02aaa5-ebf3-46f3-8241-d4b97111cc3a",
+      "description": "Escrow funding for Order #ord_auto_revised_1791995590638 (Test Revision Order)"
+    },
+    {
+      "id": "TXN-2cdd5df7-56b0-46be-b0fb-5c3ec801bc2b",
+      "type": "escrow_release",
+      "amount": 200,
+      "currency": "USD",
+      "timestamp": "2026-10-14 16:33:10",
+      "status": "completed",
+      "userId": "usr_seller_auto_1791995590638",
+      "userName": "AutoSeller Test",
+      "userRole": "freelancer",
+      "relatedOrderId": "ord_auto_expired_1791995590638",
+      "journalId": "JRN-2cdd5df7-56b0-46be-b0fb-5c3ec801bc2b",
+      "description": "Escrow release for Order #ord_auto_expired_1791995590638 (Test Expired Review Order)"
+    },
+    {
+      "id": "TXN-ee65933d-8f8b-4f52-a3f2-96025586f220",
+      "type": "escrow_fund",
+      "amount": 211,
+      "currency": "USD",
+      "timestamp": "2026-10-14 16:33:10",
+      "status": "completed",
+      "userId": "usr_buyer_auto_1791995590638",
+      "userName": "AutoBuyer Test",
+      "userRole": "buyer",
+      "relatedOrderId": "ord_auto_expired_1791995590638",
+      "journalId": "JRN-ee65933d-8f8b-4f52-a3f2-96025586f220",
+      "description": "Escrow funding for Order #ord_auto_expired_1791995590638 (Test Expired Review Order)"
+    },
+    {
+      "id": "TXN-c2b6ac23-c050-456e-ba21-04d119cfc07e",
+      "type": "escrow_fund",
+      "amount": 109,
+      "currency": "USD",
+      "timestamp": "2026-10-14 16:33:10",
+      "status": "completed",
+      "userId": "usr_buyer_auto_1791995590638",
+      "userName": "AutoBuyer Test",
+      "userRole": "buyer",
+      "relatedOrderId": "ord_auto_pending_1791995590638",
+      "journalId": "JRN-c2b6ac23-c050-456e-ba21-04d119cfc07e",
+      "description": "Escrow funding for Order #ord_auto_pending_1791995590638 (Test Pending Review Order)"
+    },
+    {
+      "id": "TXN-a1c01912-73d2-4d03-b67c-c045445eea21",
+      "type": "deposit",
+      "amount": 2000,
+      "currency": "USD",
+      "timestamp": "2026-10-14 16:33:10",
+      "status": "completed",
+      "userId": "usr_buyer_auto_1791995590638",
+      "userName": "AutoBuyer Test",
+      "userRole": "buyer",
+      "journalId": "JRN-a1c01912-73d2-4d03-b67c-c045445eea21",
+      "description": "Deposit (gateway) - AutoBuyer Test"
+    },
+    {
       "id": "TXN-5f3cad09-691a-437c-b996-f934243a96bb",
       "type": "escrow_release",
       "amount": 250,
@@ -2147,9 +2808,135 @@
         "lastActivityAt": "2026-10-14 16:25:01",
         "createdAt": "2026-10-14 16:25:01"
       }
+    ],
+    [
+      "usr_buyer_auto_1791995590638",
+      {
+        "id": "WAL-USR_BUYER_AUTO_1791995590638",
+        "userId": "usr_buyer_auto_1791995590638",
+        "userName": "AutoBuyer Test",
+        "userEmail": "buyer_1791995590638@test.com",
+        "userRole": "buyer",
+        "currency": "USD",
+        "availableBalance": 931,
+        "pendingIncoming": 0,
+        "fundsOnHold": 620,
+        "pendingWithdrawals": 0,
+        "status": "active",
+        "lastActivityAt": "2026-10-14 16:33:10",
+        "createdAt": "2026-10-14 16:33:10"
+      }
+    ],
+    [
+      "usr_seller_auto_1791995590638",
+      {
+        "id": "WAL-USR_SELLER_AUTO_1791995590638",
+        "userId": "usr_seller_auto_1791995590638",
+        "userName": "AutoSeller Test",
+        "userEmail": "seller_1791995590638@test.com",
+        "userRole": "freelancer",
+        "currency": "USD",
+        "availableBalance": 504,
+        "pendingIncoming": 0,
+        "fundsOnHold": 0,
+        "pendingWithdrawals": 0,
+        "status": "active",
+        "lastActivityAt": "2026-10-14 16:33:10",
+        "createdAt": "2026-10-14 16:33:10"
+      }
     ]
   ],
   "auditLogs": [
+    {
+      "id": "FAUD-51bad22d-610",
+      "actor": "usr_buyer_auto_1791995590638",
+      "role": "system",
+      "action": "ESCROW_FUNDS_LOCKED",
+      "target": "Order #ord_auto_custom_days_1791995590638",
+      "reason": "Locked $250.00 in escrow; client charged $263.75 total (service fee $13.75, small-order fee $0.00)",
+      "journalId": "JRN-1dd9038a-1e8d-433a-82ee-d6d5531bc3fb",
+      "timestamp": "2026-10-14 16:33:10"
+    },
+    {
+      "id": "FAUD-f3527992-931",
+      "actor": "System Auto-Accept",
+      "role": "super_admin",
+      "action": "ESCROW_RELEASED",
+      "target": "Order #ord_auto_disabled_1791995590638",
+      "reason": "Auto-accept after buyer review window (3 days) elapsed",
+      "journalId": "JRN-9d6c3df1-1609-4e00-a141-03f7d81dc37f",
+      "timestamp": "2026-10-14 16:33:10"
+    },
+    {
+      "id": "FAUD-78b05787-17e",
+      "actor": "usr_buyer_auto_1791995590638",
+      "role": "system",
+      "action": "ESCROW_FUNDS_LOCKED",
+      "target": "Order #ord_auto_disabled_1791995590638",
+      "reason": "Locked $180.00 in escrow; client charged $193.40 total (service fee $9.90, small-order fee $3.50)",
+      "journalId": "JRN-872f6e54-17a8-4051-9100-5ffd597c3fe3",
+      "timestamp": "2026-10-14 16:33:10"
+    },
+    {
+      "id": "FAUD-3b22f808-493",
+      "actor": "usr_buyer_auto_1791995590638",
+      "role": "system",
+      "action": "ESCROW_FUNDS_LOCKED",
+      "target": "Order #ord_auto_disputed_1791995590638",
+      "reason": "Locked $120.00 in escrow; client charged $130.10 total (service fee $6.60, small-order fee $3.50)",
+      "journalId": "JRN-93bf72b0-f4d1-4457-8e28-8e5c14889841",
+      "timestamp": "2026-10-14 16:33:10"
+    },
+    {
+      "id": "FAUD-f03eef3f-fea",
+      "actor": "usr_buyer_auto_1791995590638",
+      "role": "system",
+      "action": "ESCROW_FUNDS_LOCKED",
+      "target": "Order #ord_auto_revised_1791995590638",
+      "reason": "Locked $150.00 in escrow; client charged $161.75 total (service fee $8.25, small-order fee $3.50)",
+      "journalId": "JRN-ca02aaa5-ebf3-46f3-8241-d4b97111cc3a",
+      "timestamp": "2026-10-14 16:33:10"
+    },
+    {
+      "id": "FAUD-18b2814d-206",
+      "actor": "System Auto-Accept",
+      "role": "super_admin",
+      "action": "ESCROW_RELEASED",
+      "target": "Order #ord_auto_expired_1791995590638",
+      "reason": "Auto-accept after buyer review window (3 days) elapsed",
+      "journalId": "JRN-2cdd5df7-56b0-46be-b0fb-5c3ec801bc2b",
+      "timestamp": "2026-10-14 16:33:10"
+    },
+    {
+      "id": "FAUD-b120ff01-91f",
+      "actor": "usr_buyer_auto_1791995590638",
+      "role": "system",
+      "action": "ESCROW_FUNDS_LOCKED",
+      "target": "Order #ord_auto_expired_1791995590638",
+      "reason": "Locked $200.00 in escrow; client charged $211.00 total (service fee $11.00, small-order fee $0.00)",
+      "journalId": "JRN-ee65933d-8f8b-4f52-a3f2-96025586f220",
+      "timestamp": "2026-10-14 16:33:10"
+    },
+    {
+      "id": "FAUD-4106f929-17c",
+      "actor": "usr_buyer_auto_1791995590638",
+      "role": "system",
+      "action": "ESCROW_FUNDS_LOCKED",
+      "target": "Order #ord_auto_pending_1791995590638",
+      "reason": "Locked $100.00 in escrow; client charged $109.00 total (service fee $5.50, small-order fee $3.50)",
+      "journalId": "JRN-c2b6ac23-c050-456e-ba21-04d119cfc07e",
+      "timestamp": "2026-10-14 16:33:10"
+    },
+    {
+      "id": "FAUD-353466a0-c2e",
+      "actor": "usr_buyer_auto_1791995590638",
+      "role": "system",
+      "action": "DEPOSIT_CONFIRMED",
+      "target": "Wallet #WAL-USR_BUYER_AUTO_1791995590638",
+      "reason": "gateway ref DEP-TEST-1791995590638",
+      "journalId": "JRN-a1c01912-73d2-4d03-b67c-c045445eea21",
+      "timestamp": "2026-10-14 16:33:10"
+    },
     {
       "id": "FAUD-99c48772-89e",
       "actor": "usr_buyer_auto_1791995101460",
@@ -2435,7 +3222,17 @@
     "IDEMP-ORD-FUND-ord_auto_disabled_1791995101460",
     "IDEMP-REL-ord_auto_disabled_1791995101460",
     "IDEMP-ORD-FUND-ord_auto_custom_days_1791995101460",
-    "IDEMP-REL-ord_auto_custom_days_1791995101460"
+    "IDEMP-REL-ord_auto_custom_days_1791995101460",
+    "DEP-dep_test_1791995590638",
+    "IDEMP-ORD-FUND-ord_auto_pending_1791995590638",
+    "IDEMP-ORD-FUND-ord_auto_expired_1791995590638",
+    "IDEMP-REL-ord_auto_expired_1791995590638",
+    "IDEMP-ORD-FUND-ord_auto_revised_1791995590638",
+    "IDEMP-ORD-FUND-ord_auto_disputed_1791995590638",
+    "IDEMP-ORD-FUND-ord_auto_disabled_1791995590638",
+    "IDEMP-REL-ord_auto_disabled_1791995590638",
+    "IDEMP-ORD-FUND-ord_auto_custom_days_1791995590638",
+    "IDEMP-REL-ord_auto_custom_days_1791995590638"
   ],
   "escrows": [
     [
@@ -2677,6 +3474,126 @@
         "smallOrderFee": 0,
         "feesRefunded": false
       }
+    ],
+    [
+      "ord_auto_pending_1791995590638",
+      {
+        "orderId": "ord_auto_pending_1791995590638",
+        "orderTitle": "Test Pending Review Order",
+        "buyerId": "usr_buyer_auto_1791995590638",
+        "sellerId": "usr_seller_auto_1791995590638",
+        "amount": 100,
+        "remaining": 100,
+        "refundedTotal": 0,
+        "releasedGross": 0,
+        "refundSeq": 0,
+        "status": "held",
+        "fundedAt": "2026-10-14 16:33:10",
+        "commissionPercent": 20,
+        "serviceFee": 5.5,
+        "smallOrderFee": 3.5,
+        "feesRefunded": false
+      }
+    ],
+    [
+      "ord_auto_expired_1791995590638",
+      {
+        "orderId": "ord_auto_expired_1791995590638",
+        "orderTitle": "Test Expired Review Order",
+        "buyerId": "usr_buyer_auto_1791995590638",
+        "sellerId": "usr_seller_auto_1791995590638",
+        "amount": 200,
+        "remaining": 0,
+        "refundedTotal": 0,
+        "releasedGross": 200,
+        "refundSeq": 0,
+        "status": "released",
+        "fundedAt": "2026-10-14 16:33:10",
+        "commissionPercent": 20,
+        "serviceFee": 11,
+        "smallOrderFee": 0,
+        "feesRefunded": false
+      }
+    ],
+    [
+      "ord_auto_revised_1791995590638",
+      {
+        "orderId": "ord_auto_revised_1791995590638",
+        "orderTitle": "Test Revision Order",
+        "buyerId": "usr_buyer_auto_1791995590638",
+        "sellerId": "usr_seller_auto_1791995590638",
+        "amount": 150,
+        "remaining": 150,
+        "refundedTotal": 0,
+        "releasedGross": 0,
+        "refundSeq": 0,
+        "status": "held",
+        "fundedAt": "2026-10-14 16:33:10",
+        "commissionPercent": 20,
+        "serviceFee": 8.25,
+        "smallOrderFee": 3.5,
+        "feesRefunded": false
+      }
+    ],
+    [
+      "ord_auto_disputed_1791995590638",
+      {
+        "orderId": "ord_auto_disputed_1791995590638",
+        "orderTitle": "Test Disputed Order",
+        "buyerId": "usr_buyer_auto_1791995590638",
+        "sellerId": "usr_seller_auto_1791995590638",
+        "amount": 120,
+        "remaining": 120,
+        "refundedTotal": 0,
+        "releasedGross": 0,
+        "refundSeq": 0,
+        "status": "held",
+        "fundedAt": "2026-10-14 16:33:10",
+        "commissionPercent": 20,
+        "serviceFee": 6.6,
+        "smallOrderFee": 3.5,
+        "feesRefunded": false
+      }
+    ],
+    [
+      "ord_auto_disabled_1791995590638",
+      {
+        "orderId": "ord_auto_disabled_1791995590638",
+        "orderTitle": "Test Toggle Disabled Order",
+        "buyerId": "usr_buyer_auto_1791995590638",
+        "sellerId": "usr_seller_auto_1791995590638",
+        "amount": 180,
+        "remaining": 0,
+        "refundedTotal": 0,
+        "releasedGross": 180,
+        "refundSeq": 0,
+        "status": "released",
+        "fundedAt": "2026-10-14 16:33:10",
+        "commissionPercent": 20,
+        "serviceFee": 9.9,
+        "smallOrderFee": 3.5,
+        "feesRefunded": false
+      }
+    ],
+    [
+      "ord_auto_custom_days_1791995590638",
+      {
+        "orderId": "ord_auto_custom_days_1791995590638",
+        "orderTitle": "Test Custom Days Order",
+        "buyerId": "usr_buyer_auto_1791995590638",
+        "sellerId": "usr_seller_auto_1791995590638",
+        "amount": 250,
+        "remaining": 250,
+        "refundedTotal": 0,
+        "releasedGross": 0,
+        "refundSeq": 0,
+        "status": "held",
+        "fundedAt": "2026-10-14 16:33:10",
+        "commissionPercent": 20,
+        "serviceFee": 13.75,
+        "smallOrderFee": 0,
+        "feesRefunded": false
+      }
     ]
   ],
   "payouts": [],
@@ -2782,6 +3699,118 @@
               "currency": "USD",
               "description": "20% platform commission on Order #ord_auto_disabled_1791995101460",
               "orderId": "ord_auto_disabled_1791995101460"
+            }
+          ],
+          "totalDebit": 180,
+          "totalCredit": 180,
+          "status": "posted",
+          "actor": "System Auto-Accept"
+        },
+        "freelancerNet": 144,
+        "platformFee": 36
+      }
+    ],
+    [
+      "auto_accept_ord_auto_expired_1791995590638_v1",
+      {
+        "journal": {
+          "id": "JRN-2cdd5df7-56b0-46be-b0fb-5c3ec801bc2b",
+          "reference": "ORD-ord_auto_expired_1791995590638-RELEASE",
+          "postingDate": "2026-10-14",
+          "timestamp": "2026-10-14 16:33:10",
+          "description": "Escrow release for Order #ord_auto_expired_1791995590638 (Test Expired Review Order)",
+          "eventType": "ESCROW_RELEASED_TO_FREELANCER",
+          "idempotencyKey": "IDEMP-REL-ord_auto_expired_1791995590638",
+          "entries": [
+            {
+              "id": "ENT-2cdd5df7-56b0-46be-b0fb-5c3ec801bc2b-1",
+              "journalId": "JRN-2cdd5df7-56b0-46be-b0fb-5c3ec801bc2b",
+              "accountCode": "2030",
+              "accountName": "Marketplace Escrow Funds in Trust",
+              "debit": 200,
+              "credit": 0,
+              "currency": "USD",
+              "description": "Released funds held in escrow for Order #ord_auto_expired_1791995590638",
+              "orderId": "ord_auto_expired_1791995590638"
+            },
+            {
+              "id": "ENT-2cdd5df7-56b0-46be-b0fb-5c3ec801bc2b-2",
+              "journalId": "JRN-2cdd5df7-56b0-46be-b0fb-5c3ec801bc2b",
+              "accountCode": "2020",
+              "accountName": "Freelancer Wallets Payable",
+              "debit": 0,
+              "credit": 160,
+              "currency": "USD",
+              "description": "Credited net earnings to AutoSeller Test (after 20% commission)",
+              "userId": "usr_seller_auto_1791995590638",
+              "orderId": "ord_auto_expired_1791995590638"
+            },
+            {
+              "id": "ENT-2cdd5df7-56b0-46be-b0fb-5c3ec801bc2b-3",
+              "journalId": "JRN-2cdd5df7-56b0-46be-b0fb-5c3ec801bc2b",
+              "accountCode": "4010",
+              "accountName": "Marketplace Platform Commission Fee",
+              "debit": 0,
+              "credit": 40,
+              "currency": "USD",
+              "description": "20% platform commission on Order #ord_auto_expired_1791995590638",
+              "orderId": "ord_auto_expired_1791995590638"
+            }
+          ],
+          "totalDebit": 200,
+          "totalCredit": 200,
+          "status": "posted",
+          "actor": "System Auto-Accept"
+        },
+        "freelancerNet": 160,
+        "platformFee": 40
+      }
+    ],
+    [
+      "auto_accept_ord_auto_disabled_1791995590638_v1",
+      {
+        "journal": {
+          "id": "JRN-9d6c3df1-1609-4e00-a141-03f7d81dc37f",
+          "reference": "ORD-ord_auto_disabled_1791995590638-RELEASE",
+          "postingDate": "2026-10-14",
+          "timestamp": "2026-10-14 16:33:10",
+          "description": "Escrow release for Order #ord_auto_disabled_1791995590638 (Test Toggle Disabled Order)",
+          "eventType": "ESCROW_RELEASED_TO_FREELANCER",
+          "idempotencyKey": "IDEMP-REL-ord_auto_disabled_1791995590638",
+          "entries": [
+            {
+              "id": "ENT-9d6c3df1-1609-4e00-a141-03f7d81dc37f-1",
+              "journalId": "JRN-9d6c3df1-1609-4e00-a141-03f7d81dc37f",
+              "accountCode": "2030",
+              "accountName": "Marketplace Escrow Funds in Trust",
+              "debit": 180,
+              "credit": 0,
+              "currency": "USD",
+              "description": "Released funds held in escrow for Order #ord_auto_disabled_1791995590638",
+              "orderId": "ord_auto_disabled_1791995590638"
+            },
+            {
+              "id": "ENT-9d6c3df1-1609-4e00-a141-03f7d81dc37f-2",
+              "journalId": "JRN-9d6c3df1-1609-4e00-a141-03f7d81dc37f",
+              "accountCode": "2020",
+              "accountName": "Freelancer Wallets Payable",
+              "debit": 0,
+              "credit": 144,
+              "currency": "USD",
+              "description": "Credited net earnings to AutoSeller Test (after 20% commission)",
+              "userId": "usr_seller_auto_1791995590638",
+              "orderId": "ord_auto_disabled_1791995590638"
+            },
+            {
+              "id": "ENT-9d6c3df1-1609-4e00-a141-03f7d81dc37f-3",
+              "journalId": "JRN-9d6c3df1-1609-4e00-a141-03f7d81dc37f",
+              "accountCode": "4010",
+              "accountName": "Marketplace Platform Commission Fee",
+              "debit": 0,
+              "credit": 36,
+              "currency": "USD",
+              "description": "20% platform commission on Order #ord_auto_disabled_1791995590638",
+              "orderId": "ord_auto_disabled_1791995590638"
             }
           ],
           "totalDebit": 180,

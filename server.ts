@@ -2302,6 +2302,57 @@ app.post('/api/orders/:id/revision', requireAuth, (req, res) => {
   res.json({ success: true, revision: revisionEntry, order: enrichOrderWithServiceInfo(order) });
 });
 
+// Participant (Buyer or Seller) Dispute Creation Flow
+app.post('/api/orders/:id/dispute', requireAuth, (req, res) => {
+  const order = orders.find(o => o.id === req.params.id);
+  if (!order) return res.status(404).json({ error: 'Order not found' });
+  const authUserId = (req as any).authenticatedUserId;
+  if (order.buyerId !== authUserId && order.sellerId !== authUserId) {
+    return res.status(403).json({ error: 'Forbidden: Only order participants can open a dispute.' });
+  }
+  const reason = (req.body.reason || '').trim();
+  if (!reason) {
+    return res.status(400).json({ error: 'A dispute reason is required.' });
+  }
+  const existingDispute = disputes.find(d => d.orderId === order.id && (d.status === 'open' || d.status === 'under_investigation'));
+  if (existingDispute) {
+    return res.status(400).json({ error: 'An active dispute already exists for this order.' });
+  }
+
+  const newDispute: Dispute = {
+    id: 'disp_' + Date.now(),
+    orderId: order.id,
+    raisedBy: authUserId === order.buyerId ? 'buyer' : 'seller',
+    reason,
+    evidence: req.body.evidence || '',
+    status: 'open',
+    createdAt: new Date().toISOString()
+  };
+  disputes.push(newDispute);
+  order.status = 'disputed';
+
+  const sysMsg: Message = {
+    id: 'msg_' + Date.now(),
+    orderId: order.id,
+    senderId: 'system',
+    senderName: 'WorkSphere Dispute Resolution Desk',
+    text: `🚨 Dispute opened by ${newDispute.raisedBy}: "${reason}". Order placed under review.`,
+    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    type: 'system',
+    metadata: {
+      action: 'dispute_opened',
+      disputeId: newDispute.id,
+      raisedBy: newDispute.raisedBy
+    }
+  };
+  messages.push(sysMsg);
+  saveMessagesToDisk();
+  saveOrdersToDisk();
+  broadcastMessage(sysMsg, order.id);
+
+  res.json({ success: true, dispute: newDispute, order: enrichOrderWithServiceInfo(order) });
+});
+
 // Toggle Chat Mute
 app.patch('/api/orders/:id/mute', requireRole(['admin', 'super_admin', 'support']), (req, res) => {
   const order = orders.find(o => o.id === req.params.id);
