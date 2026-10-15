@@ -1873,9 +1873,13 @@ export default function App() {
       return;
     }
     try {
-      await fetch('/api/proposals', {
+      const token = getAuthToken();
+      const res = await fetch('/api/proposals', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
         body: JSON.stringify({
           projectId,
           freelancerId: impersonatedUser ? impersonatedUser.id : currentUser.id,
@@ -1887,13 +1891,19 @@ export default function App() {
           deliveryDays: Number(proposalDays)
         })
       });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || 'Failed to submit proposal.');
+        return;
+      }
       alert('Proposal submitted successfully!');
       navigate('/projects');
       setProposalCover('');
       setProposalBid('');
       setProposalDays('');
-    } catch (err) {
-      console.error(err);
+      fetchAllAdminData();
+    } catch (err: any) {
+      alert(err?.message || 'Error submitting proposal');
     }
   };
 
@@ -1903,9 +1913,13 @@ export default function App() {
       return;
     }
     try {
-      await fetch('/api/proposals', {
+      const token = getAuthToken();
+      const res = await fetch('/api/proposals', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
         body: JSON.stringify({
           projectId,
           freelancerId: impersonatedUser ? impersonatedUser.id : currentUser.id,
@@ -1917,9 +1931,15 @@ export default function App() {
           deliveryDays
         })
       });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || 'Failed to submit proposal.');
+        return;
+      }
+      alert('Proposal submitted successfully!');
       fetchAllAdminData();
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      alert(err?.message || 'Error submitting proposal');
     }
   };
 
@@ -1982,9 +2002,13 @@ export default function App() {
       return;
     }
     try {
-      await fetch('/api/gigs', {
+      const token = getAuthToken();
+      const res = await fetch('/api/gigs', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
         body: JSON.stringify({
           freelancerId: impersonatedUser ? impersonatedUser.id : currentUser.id,
           freelancerName: impersonatedUser ? impersonatedUser.name : currentUser.name,
@@ -2001,11 +2025,16 @@ export default function App() {
           extras: newGigExtras
         })
       });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || 'Failed to publish gig.');
+        return;
+      }
       alert('Gig published successfully!');
       navigate('/gigs');
       fetchAllAdminData();
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      alert(err?.message || 'Error publishing gig');
     }
   };
 
@@ -2016,9 +2045,13 @@ export default function App() {
       return;
     }
     try {
-      await fetch('/api/projects', {
+      const token = getAuthToken();
+      const res = await fetch('/api/projects', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
         body: JSON.stringify({
           buyerId: impersonatedUser ? impersonatedUser.id : currentUser.id,
           buyerName: impersonatedUser ? impersonatedUser.name : currentUser.name,
@@ -2032,11 +2065,16 @@ export default function App() {
           featured: false
         })
       });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || 'Failed to post project.');
+        return;
+      }
       alert('Project posted successfully!');
       navigate('/projects');
       fetchAllAdminData();
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      alert(err?.message || 'Error posting project');
     }
   };
 

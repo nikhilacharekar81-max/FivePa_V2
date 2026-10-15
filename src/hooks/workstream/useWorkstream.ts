@@ -18,7 +18,9 @@ import { useWorkstreamMeeting } from './useWorkstreamMeeting';
  */
 export function useWorkstream(props?: any) {
   const list = useWorkstreamList(props);
-  const filters = useWorkstreamFilters(props);
+  // The filter hook needs the hydrated items produced by the list hook. App.tsx only passes raw `orders`,
+  // so without this the filter hook always received [] and the workstream table was empty for every user.
+  const filters = useWorkstreamFilters({ ...props, hydratedWorkstreamItems: list.hydratedWorkstreamItems });
   const selection = useWorkstreamSelection();
   const messages = useWorkstreamMessages();
 

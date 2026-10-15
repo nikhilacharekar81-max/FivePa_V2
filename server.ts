@@ -2007,10 +2007,11 @@ app.patch('/api/admin/site-settings', requireAdmin, handlePostSiteSettings);
 // Memberships & Quotas Admin Endpoints
 app.get('/api/admin/memberships', requireAdmin, (req, res) => {
   try {
+    const currentSettings = siteSettings.getSettings();
     res.json({
       success: true,
-      memberships: DEFAULT_SITE_SETTINGS.memberships,
-      marketplace: DEFAULT_SITE_SETTINGS.marketplace
+      memberships: currentSettings.memberships,
+      marketplace: currentSettings.marketplace
     });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
@@ -2052,10 +2053,11 @@ app.post('/api/admin/memberships', requireAdmin, (req, res) => {
       timestamp: new Date().toLocaleString()
     });
 
+    const activeSettings = siteSettings.getSettings();
     res.json({
       success: true,
-      memberships: DEFAULT_SITE_SETTINGS.memberships,
-      marketplace: DEFAULT_SITE_SETTINGS.marketplace
+      memberships: activeSettings.memberships,
+      marketplace: activeSettings.marketplace
     });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
@@ -2069,19 +2071,20 @@ app.get('/api/user/quota-status', requireAuth, (req, res) => {
     const user = users.find(u => u.id === authUserId);
     if (!user) return res.status(404).json({ error: 'User not found' });
 
+    const activeSettings = siteSettings.getSettings();
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-    const bidsUsed = proposals.filter(p => p.freelancerId === user.id && p.createdAt >= thirtyDaysAgo).length;
-    const jobPostsUsed = projects.filter(p => p.buyerId === user.id && p.createdAt >= thirtyDaysAgo).length;
+    const bidsUsed = proposals.filter(p => p.freelancerId === user.id && p.createdAt && p.createdAt.substring(0, 10) >= thirtyDaysAgo).length;
+    const jobPostsUsed = projects.filter(p => p.buyerId === user.id && p.createdAt && p.createdAt.substring(0, 10) >= thirtyDaysAgo).length;
 
     const freelancerPlanId = (user as any).membershipTier || 'plan_free';
-    const freelancerPlan = DEFAULT_SITE_SETTINGS.memberships.freelancerPlans.find(p => p.id === freelancerPlanId) || DEFAULT_SITE_SETTINGS.memberships.freelancerPlans[0];
+    const freelancerPlan = activeSettings.memberships.freelancerPlans.find(p => p.id === freelancerPlanId) || activeSettings.memberships.freelancerPlans[0];
 
     const buyerPlanId = (user as any).buyerMembershipTier || 'buyer_free';
-    const buyerPlan = DEFAULT_SITE_SETTINGS.memberships.buyerPlans.find(p => p.id === buyerPlanId) || DEFAULT_SITE_SETTINGS.memberships.buyerPlans[0];
+    const buyerPlan = activeSettings.memberships.buyerPlans.find(p => p.id === buyerPlanId) || activeSettings.memberships.buyerPlans[0];
 
     res.json({
       success: true,
-      membershipsEnabled: DEFAULT_SITE_SETTINGS.memberships.membershipsEnabled,
+      membershipsEnabled: activeSettings.memberships.membershipsEnabled,
       freelancer: {
         planId: freelancerPlanId,
         planName: freelancerPlan?.name || 'Standard Freelancer',
@@ -4834,9 +4837,10 @@ app.post('/api/gigs', requireAuth, (req, res) => {
   if (!caller || caller.status !== 'active') return res.status(403).json({ error: 'Account is not active' });
 
   // Enforce Gig Pricing Limits from Site Settings
+  const activeSettings = siteSettings.getSettings();
   const gigPrice = Number(req.body.price);
-  const minGigPrice = DEFAULT_SITE_SETTINGS.marketplace.minimumGigPrice ?? 10;
-  const maxGigPrice = DEFAULT_SITE_SETTINGS.marketplace.maximumGigPrice ?? 10000;
+  const minGigPrice = activeSettings.marketplace.minimumGigPrice ?? 10;
+  const maxGigPrice = activeSettings.marketplace.maximumGigPrice ?? 10000;
   if (gigPrice < minGigPrice) {
     return res.status(400).json({ error: `Gig price ($${gigPrice}) cannot be lower than the platform minimum of $${minGigPrice}.` });
   }
@@ -4845,7 +4849,7 @@ app.post('/api/gigs', requireAuth, (req, res) => {
   }
 
   // Determine publication status based on Admin Gig Moderation setting
-  const initialStatus = DEFAULT_SITE_SETTINGS.marketplace.gigModerationRequired ? 'pending' : 'published';
+  const initialStatus = activeSettings.marketplace.gigModerationRequired ? 'pending' : 'published';
 
   const newGig: Gig = {
     id: 'gig_' + Date.now(),
@@ -4878,14 +4882,15 @@ app.post('/api/projects', requireAuth, (req, res) => {
   if (!caller || caller.status !== 'active') return res.status(403).json({ error: 'Account is not active' });
 
   // Enforce Client Job Post Quota
-  if (DEFAULT_SITE_SETTINGS.memberships.membershipsEnabled) {
+  const activeSettings = siteSettings.getSettings();
+  if (activeSettings.memberships.membershipsEnabled) {
     const planId = (caller as any).buyerMembershipTier || 'buyer_free';
-    const plan = DEFAULT_SITE_SETTINGS.memberships.buyerPlans.find(p => p.id === planId) || DEFAULT_SITE_SETTINGS.memberships.buyerPlans[0];
+    const plan = activeSettings.memberships.buyerPlans.find(p => p.id === planId) || activeSettings.memberships.buyerPlans[0];
     const quotaLimit = plan?.jobPostsPerMonth ?? 10;
 
     // Count projects posted by caller in current 30-day window
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-    const recentProjects = projects.filter(p => p.buyerId === caller.id && p.createdAt >= thirtyDaysAgo);
+    const recentProjects = projects.filter(p => p.buyerId === caller.id && p.createdAt && p.createdAt.substring(0, 10) >= thirtyDaysAgo);
 
     if (recentProjects.length >= quotaLimit) {
       return res.status(403).json({
@@ -4895,7 +4900,7 @@ app.post('/api/projects', requireAuth, (req, res) => {
   }
 
   // Enforce Minimum Project Budget
-  const minBudget = DEFAULT_SITE_SETTINGS.marketplace.minimumProjectBudget ?? 20;
+  const minBudget = activeSettings.marketplace.minimumProjectBudget ?? 20;
   const budgetMin = Number(req.body.budgetMin);
   if (minBudget > 0 && budgetMin < minBudget) {
     return res.status(400).json({
@@ -5182,14 +5187,15 @@ app.post('/api/proposals', requireAuth, (req, res) => {
   if (!caller || caller.status !== 'active') return res.status(403).json({ error: 'Account is not active' });
 
   // Enforce Freelancer Proposal Quota
-  if (DEFAULT_SITE_SETTINGS.memberships.membershipsEnabled) {
+  const activeSettings = siteSettings.getSettings();
+  if (activeSettings.memberships.membershipsEnabled) {
     const planId = (caller as any).membershipTier || 'plan_free';
-    const plan = DEFAULT_SITE_SETTINGS.memberships.freelancerPlans.find(p => p.id === planId) || DEFAULT_SITE_SETTINGS.memberships.freelancerPlans[0];
+    const plan = activeSettings.memberships.freelancerPlans.find(p => p.id === planId) || activeSettings.memberships.freelancerPlans[0];
     const quotaLimit = plan?.bidsPerMonth ?? 15;
 
     // Count proposals submitted by caller in current 30-day window
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-    const recentBids = proposals.filter(p => p.freelancerId === caller.id && p.createdAt >= thirtyDaysAgo);
+    const recentBids = proposals.filter(p => p.freelancerId === caller.id && p.createdAt && p.createdAt.substring(0, 10) >= thirtyDaysAgo);
 
     if (recentBids.length >= quotaLimit) {
       return res.status(403).json({
@@ -5235,7 +5241,8 @@ app.post('/api/orders', requireAuth, rateLimit(30, 60_000), (req, res) => {
     if (buyer.status !== 'active' || seller.status !== 'active') return res.status(403).json({ error: 'Both accounts must be active to place an order.' });
 
     // Enforce Max Active Orders per Freelancer limit
-    const maxActiveOrders = DEFAULT_SITE_SETTINGS.marketplace.maxActiveOrdersPerFreelancer;
+    const activeSettings = siteSettings.getSettings();
+    const maxActiveOrders = activeSettings.marketplace.maxActiveOrdersPerFreelancer;
     if (maxActiveOrders > 0) {
       const activeSellerOrders = orders.filter(o => o.sellerId === sellerId && ['funded_in_escrow', 'in_progress', 'delivered', 'revision'].includes(o.status));
       if (activeSellerOrders.length >= maxActiveOrders) {
