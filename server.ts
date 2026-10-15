@@ -1797,57 +1797,6 @@ function enrichOrderWithServiceInfo(o: Order, isAdmin: boolean = false) {
   return base;
 }
 
-// Site & Fee Settings State
-interface SiteFeeSettings {
-  platformName: string;
-  supportEmail: string;
-  currency: string;
-  currencySymbol: string;
-  freelancerCommissionRate: number;
-  buyerProcessingFeeRate: number;
-  smallOrderFee: number;
-  smallOrderFeeThreshold: number;
-  minOrderAmount: number;
-  featuredGigFee: number;
-  urgentProjectFee: number;
-  escrowHoldDays: number;
-  autoCompleteDeliveredDays: number;
-  autoCompleteDeliveredEnabled?: boolean;
-  disputeWindowDays: number;
-  minPayoutThreshold: number;
-  instantPayoutFeeRate: number;
-  freelancerOnboardingMode: 'open' | 'moderated';
-  maintenanceMode: boolean;
-  maintenanceMessage?: string;
-  updatedAt?: string;
-  updatedBy?: string;
-}
-
-let siteFeeSettings: SiteFeeSettings = {
-  platformName: 'WorkPerHour',
-  supportEmail: 'support@workperhour.com',
-  currency: 'USD',
-  currencySymbol: '$',
-  freelancerCommissionRate: 20,
-  buyerProcessingFeeRate: DEFAULT_SITE_SETTINGS.commission.buyerProcessingFeePercent, // 5.5% client service fee
-  smallOrderFee: DEFAULT_SITE_SETTINGS.commission.smallOrderFeeAmount, // $3.50 flat
-  smallOrderFeeThreshold: DEFAULT_SITE_SETTINGS.commission.smallOrderFeeThreshold, // orders under $200
-  minOrderAmount: 10,
-  featuredGigFee: 10,
-  urgentProjectFee: 25,
-  escrowHoldDays: 14,
-  autoCompleteDeliveredDays: 3,
-  autoCompleteDeliveredEnabled: true,
-  disputeWindowDays: 14,
-  minPayoutThreshold: 50,
-  instantPayoutFeeRate: 1.5,
-  freelancerOnboardingMode: 'open',
-  maintenanceMode: false,
-  maintenanceMessage: 'WorkPerHour is undergoing brief scheduled maintenance. Escrow funds and data remain 100% secure.',
-  updatedAt: new Date().toISOString().split('T')[0],
-  updatedBy: 'Admin Chief (Super Admin)'
-};
-
 export function getReviewWindowDays(): number {
   if (process.env.REVIEW_WINDOW_DAYS !== undefined) {
     const parsed = Number(process.env.REVIEW_WINDOW_DAYS);
@@ -1856,9 +1805,6 @@ export function getReviewWindowDays(): number {
   const settings = siteSettings.getSettings();
   if (typeof settings.marketplace?.autoCompleteDeliveredDays === 'number') {
     return settings.marketplace.autoCompleteDeliveredDays;
-  }
-  if (typeof siteFeeSettings.autoCompleteDeliveredDays === 'number') {
-    return siteFeeSettings.autoCompleteDeliveredDays;
   }
   return 3;
 }
@@ -1870,175 +1816,31 @@ export function isAutoAcceptEnabled(): boolean {
   }
   const settings = siteSettings.getSettings();
   if (settings.marketplace?.autoCompleteDeliveredEnabled === false) return false;
-  if (siteFeeSettings.autoCompleteDeliveredEnabled === false) return false;
   return getReviewWindowDays() > 0;
 }
 
 // REST API Endpoints - Site & Fee Settings
 const handleGetSiteSettings = (req: Request, res: Response) => {
-  const cfg = financeLedger.getFeeConfig(); // the ledger is the source of truth for what is actually charged
-  const view = {
-    ...siteFeeSettings,
-    autoCompleteDeliveredDays: getReviewWindowDays(),
-    autoCompleteDays: getReviewWindowDays(),
-    reviewWindowDays: getReviewWindowDays(),
-    autoCompleteDeliveredEnabled: isAutoAcceptEnabled(),
-    autoCompleteEnabled: isAutoAcceptEnabled(),
-    freelancerCommissionRate: cfg.commissionPercent,
-    buyerProcessingFeeRate: cfg.buyerFeePercent,
-    clientServiceFee: cfg.buyerFeePercent, // alias used by the admin UI
-    smallOrderFee: cfg.smallOrderFee,
-    smallOrderFeeAmount: cfg.smallOrderFee, // alias used by the admin UI
-    smallOrderFeeThreshold: cfg.smallOrderThreshold,
-    minimumGigPrice: DEFAULT_SITE_SETTINGS.marketplace.minimumGigPrice,
-    maximumGigPrice: DEFAULT_SITE_SETTINGS.marketplace.maximumGigPrice,
-    minimumProjectBudget: DEFAULT_SITE_SETTINGS.marketplace.minimumProjectBudget,
-    maximumProjectBudget: DEFAULT_SITE_SETTINGS.marketplace.maximumProjectBudget,
-    gigModerationRequired: DEFAULT_SITE_SETTINGS.marketplace.gigModerationRequired,
-    projectModerationRequired: DEFAULT_SITE_SETTINGS.marketplace.projectModerationRequired
-  };
-  res.json({ success: true, settings: view, ...view });
+  const flattened = siteSettings.getFlattenedSettings();
+  res.json({ success: true, settings: flattened, ...flattened });
 };
 
 const handlePostSiteSettings = (req: Request, res: Response) => {
   try {
-    const body = req.body || {};
-
-    if (body.freelancerCommissionRate !== undefined) {
-      const num = Number(body.freelancerCommissionRate);
-      if (isNaN(num) || num < 0 || num > 100) {
-        return res.status(400).json({ error: 'Commission rate must be between 0 and 100%' });
-      }
-      body.freelancerCommissionRate = num;
-    }
-    // The admin UI sends clientServiceFee / smallOrderFeeAmount; map them onto the canonical names.
-    if (body.clientServiceFee !== undefined && body.buyerProcessingFeeRate === undefined) body.buyerProcessingFeeRate = body.clientServiceFee;
-    if (body.smallOrderFeeAmount !== undefined && body.smallOrderFee === undefined) body.smallOrderFee = body.smallOrderFeeAmount;
-    delete body.clientServiceFee;
-    delete body.smallOrderFeeAmount;
-    if (body.buyerProcessingFeeRate !== undefined) {
-      const num = Number(body.buyerProcessingFeeRate);
-      if (!Number.isFinite(num) || num < 0 || num > 100) return res.status(400).json({ error: 'Client service fee must be between 0 and 100%' });
-      body.buyerProcessingFeeRate = num;
-    }
-    if (body.smallOrderFee !== undefined) {
-      const num = Number(body.smallOrderFee);
-      if (!Number.isFinite(num) || num < 0) return res.status(400).json({ error: 'Small-order fee must be zero or more' });
-      body.smallOrderFee = num;
-    }
-    if (body.smallOrderFeeThreshold !== undefined) {
-      const num = Number(body.smallOrderFeeThreshold);
-      if (!Number.isFinite(num) || num < 0) return res.status(400).json({ error: 'Small-order threshold must be zero or more' });
-      body.smallOrderFeeThreshold = num;
-    }
-    if (body.minOrderAmount !== undefined) {
-      const num = Number(body.minOrderAmount);
-      if (isNaN(num) || num < 0) {
-        return res.status(400).json({ error: 'Minimum order amount must be zero or more' });
-      }
-      body.minOrderAmount = num;
-    }
-    if (body.escrowHoldDays !== undefined) {
-      const num = Number(body.escrowHoldDays);
-      if (isNaN(num) || num < 0) {
-        return res.status(400).json({ error: 'Escrow hold days must be a non-negative number' });
-      }
-      body.escrowHoldDays = num;
-    }
-    if (body.minPayoutThreshold !== undefined) {
-      const num = Number(body.minPayoutThreshold);
-      if (isNaN(num) || num < 0) {
-        return res.status(400).json({ error: 'Minimum payout threshold must be zero or more' });
-      }
-      body.minPayoutThreshold = num;
-    }
-
-    // Auto-accept review window configuration
-    if (body.autoCompleteDays !== undefined && body.autoCompleteDeliveredDays === undefined) {
-      body.autoCompleteDeliveredDays = body.autoCompleteDays;
-    }
-    if (body.reviewWindowDays !== undefined && body.autoCompleteDeliveredDays === undefined) {
-      body.autoCompleteDeliveredDays = body.reviewWindowDays;
-    }
-    if (body.autoCompleteEnabled !== undefined && body.autoCompleteDeliveredEnabled === undefined) {
-      body.autoCompleteDeliveredEnabled = body.autoCompleteEnabled;
-    }
-    if (body.autoCompleteDeliveredDays !== undefined) {
-      const num = Number(body.autoCompleteDeliveredDays);
-      if (!Number.isFinite(num) || num < 0) return res.status(400).json({ error: 'Review window days must be zero or more' });
-      body.autoCompleteDeliveredDays = num;
-      DEFAULT_SITE_SETTINGS.marketplace.autoCompleteDeliveredDays = num;
-      siteSettings.updateSection('marketplace', { autoCompleteDeliveredDays: num }, body.updatedBy || 'Super Admin');
-    }
-    if (body.autoCompleteDeliveredEnabled !== undefined) {
-      body.autoCompleteDeliveredEnabled = Boolean(body.autoCompleteDeliveredEnabled);
-      DEFAULT_SITE_SETTINGS.marketplace.autoCompleteDeliveredEnabled = body.autoCompleteDeliveredEnabled;
-      siteSettings.updateSection('marketplace', { autoCompleteDeliveredEnabled: body.autoCompleteDeliveredEnabled }, body.updatedBy || 'Super Admin');
-    }
-
-    // Update Gig and Project marketplace controls
-    if (body.minimumGigPrice !== undefined || body.minGigPrice !== undefined) {
-      const num = Number(body.minimumGigPrice ?? body.minGigPrice);
-      if (!isNaN(num) && num >= 0) DEFAULT_SITE_SETTINGS.marketplace.minimumGigPrice = num;
-    }
-    if (body.maximumGigPrice !== undefined || body.maxGigPrice !== undefined) {
-      const num = Number(body.maximumGigPrice ?? body.maxGigPrice);
-      if (!isNaN(num) && num >= 0) DEFAULT_SITE_SETTINGS.marketplace.maximumGigPrice = num;
-    }
-    if (body.minimumProjectBudget !== undefined || body.minProjectBudget !== undefined) {
-      const num = Number(body.minimumProjectBudget ?? body.minProjectBudget);
-      if (!isNaN(num) && num >= 0) DEFAULT_SITE_SETTINGS.marketplace.minimumProjectBudget = num;
-    }
-    if (body.maximumProjectBudget !== undefined || body.maxProjectBudget !== undefined) {
-      const num = Number(body.maximumProjectBudget ?? body.maxProjectBudget);
-      if (!isNaN(num) && num >= 0) DEFAULT_SITE_SETTINGS.marketplace.maximumProjectBudget = num;
-    }
-    if (body.gigModerationRequired !== undefined) {
-      DEFAULT_SITE_SETTINGS.marketplace.gigModerationRequired = Boolean(body.gigModerationRequired);
-    }
-    if (body.projectModerationRequired !== undefined) {
-      DEFAULT_SITE_SETTINGS.marketplace.projectModerationRequired = Boolean(body.projectModerationRequired);
-    }
-    siteSettings.updateSection('marketplace', DEFAULT_SITE_SETTINGS.marketplace, body.updatedBy || 'Super Admin');
-
-    siteFeeSettings = {
-      ...siteFeeSettings,
-      ...body,
-      updatedAt: new Date().toISOString().split('T')[0],
-      updatedBy: body.updatedBy || 'Super Admin'
-    };
-
-    // Keep global business configurations and finance ledger in sync
-    if (typeof siteFeeSettings.freelancerCommissionRate === 'number') {
-      DEFAULT_SITE_SETTINGS.commission.commissionPercent = siteFeeSettings.freelancerCommissionRate;
-      DEFAULT_SITE_SETTINGS.commission.escrowProtectionDays = siteFeeSettings.escrowHoldDays !== undefined ? siteFeeSettings.escrowHoldDays : DEFAULT_SITE_SETTINGS.commission.escrowProtectionDays;
-      DEFAULT_SITE_SETTINGS.commission.minimumOrderAmount = siteFeeSettings.minOrderAmount !== undefined ? siteFeeSettings.minOrderAmount : DEFAULT_SITE_SETTINGS.commission.minimumOrderAmount;
-      DEFAULT_SITE_SETTINGS.wallets.minimumWithdrawalAmount = siteFeeSettings.minPayoutThreshold !== undefined ? siteFeeSettings.minPayoutThreshold : DEFAULT_SITE_SETTINGS.wallets.minimumWithdrawalAmount;
-
-      DEFAULT_SITE_SETTINGS.commission.buyerProcessingFeePercent = siteFeeSettings.buyerProcessingFeeRate;
-      DEFAULT_SITE_SETTINGS.commission.smallOrderFeeAmount = siteFeeSettings.smallOrderFee;
-      DEFAULT_SITE_SETTINGS.commission.smallOrderFeeThreshold = siteFeeSettings.smallOrderFeeThreshold;
-      financeLedger.configure({
-        commissionPercent: siteFeeSettings.freelancerCommissionRate,
-        buyerFeePercent: siteFeeSettings.buyerProcessingFeeRate,
-        smallOrderFee: siteFeeSettings.smallOrderFee,
-        smallOrderThreshold: siteFeeSettings.smallOrderFeeThreshold,
-        minimumOrderAmount: siteFeeSettings.minOrderAmount !== undefined ? siteFeeSettings.minOrderAmount : 5,
-        minimumWithdrawalAmount: siteFeeSettings.minPayoutThreshold !== undefined ? siteFeeSettings.minPayoutThreshold : 0
-      });
-    }
+    const actor = (req as any).authenticatedUser?.name || req.body?.updatedBy || 'Super Admin';
+    const updatedFlattened = siteSettings.updateFromFlatObject(req.body || {}, actor);
 
     registerAuditLog({
       id: 'log_' + Date.now(),
-      actor: body.updatedBy || 'Super Admin',
+      actor,
       role: 'super_admin',
       action: 'SITE_FEE_SETTINGS_UPDATED',
       target: 'Platform Settings & Fee Structure',
-      details: `Updated settings: Commission=${siteFeeSettings.freelancerCommissionRate}%, EscrowHold=${siteFeeSettings.escrowHoldDays}d, ClientFee=${siteFeeSettings.buyerProcessingFeeRate}%, SmallOrderFee=$${siteFeeSettings.smallOrderFee} under $${siteFeeSettings.smallOrderFeeThreshold}`,
+      details: `Updated settings saved to disk and applied across backend engine: Commission=${updatedFlattened.freelancerCommissionRate}%, EscrowHold=${updatedFlattened.escrowHoldDays}d, ClientFee=${updatedFlattened.buyerProcessingFeeRate}%, SmallOrderFee=$${updatedFlattened.smallOrderFee} under $${updatedFlattened.smallOrderFeeThreshold}`,
       timestamp: new Date().toLocaleString()
     });
 
-    res.json({ success: true, settings: siteFeeSettings, ...siteFeeSettings });
+    res.json({ success: true, settings: updatedFlattened, ...updatedFlattened });
   } catch (err: any) {
     res.status(500).json({ error: err?.message || 'Failed to update site settings' });
   }

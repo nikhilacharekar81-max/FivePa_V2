@@ -1,5 +1,5 @@
-// Authoritative Settings & Shared Fee Calculation Service for WorkPerHour
-
+import fs from 'fs';
+import path from 'path';
 import { financeLedger, FinanceLedgerEngine } from './financeLedger.js';
 import { DEFAULT_FEE_CONFIG, calculateOrderFees, type FeeConfig } from '../shared/fees.js';
 
@@ -223,13 +223,49 @@ export const DEFAULT_SITE_SETTINGS: SiteSettingsState = {
 export class SiteSettingsService {
   private settings: SiteSettingsState;
   private history: SettingsHistoryItem[] = [];
+  private settingsFilePath: string;
 
   constructor() {
-    // Deep clone defaults
+    this.settingsFilePath = path.join(process.cwd(), 'data', 'site_settings.json');
     this.settings = JSON.parse(JSON.stringify(DEFAULT_SITE_SETTINGS));
+    this.loadFromDisk();
     this.seedInitialHistory();
-    // Sync initial fee rules to finance engine
     this.syncFeesToLedger();
+  }
+
+  private loadFromDisk() {
+    try {
+      const dir = path.dirname(this.settingsFilePath);
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+      if (fs.existsSync(this.settingsFilePath)) {
+        const raw = fs.readFileSync(this.settingsFilePath, 'utf-8');
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object') {
+          this.settings = {
+            website: { ...DEFAULT_SITE_SETTINGS.website, ...(parsed.website || {}) },
+            commission: { ...DEFAULT_SITE_SETTINGS.commission, ...(parsed.commission || {}) },
+            memberships: { ...DEFAULT_SITE_SETTINGS.memberships, ...(parsed.memberships || {}) },
+            marketplace: { ...DEFAULT_SITE_SETTINGS.marketplace, ...(parsed.marketplace || {}) },
+            wallets: { ...DEFAULT_SITE_SETTINGS.wallets, ...(parsed.wallets || {}) },
+            localization: { ...DEFAULT_SITE_SETTINGS.localization, ...(parsed.localization || {}) },
+            security: { ...DEFAULT_SITE_SETTINGS.security, ...(parsed.security || {}) },
+            integrations: { ...DEFAULT_SITE_SETTINGS.integrations, ...(parsed.integrations || {}) },
+          };
+        }
+      }
+    } catch (e) {
+      console.error('[SiteSettingsService] Failed to load site_settings.json from disk:', e);
+    }
+  }
+
+  public saveToDisk() {
+    try {
+      const dir = path.dirname(this.settingsFilePath);
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+      fs.writeFileSync(this.settingsFilePath, JSON.stringify(this.settings, null, 2), 'utf-8');
+    } catch (e) {
+      console.error('[SiteSettingsService] Failed to save site_settings.json to disk:', e);
+    }
   }
 
   private seedInitialHistory() {
@@ -350,6 +386,7 @@ export class SiteSettingsService {
       }
     }
 
+    this.saveToDisk();
     return JSON.parse(JSON.stringify(this.settings[section]));
   }
 
@@ -388,7 +425,135 @@ export class SiteSettingsService {
       financeLedger.setPlatformCommissionRate(DEFAULT_SITE_SETTINGS.commission.commissionPercent);
     }
 
+    this.saveToDisk();
     return this.getSettings();
+  }
+
+  public getFlattenedSettings() {
+    const s = this.settings;
+    return {
+      platformName: s.website.siteName,
+      brandName: s.website.siteName,
+      supportEmail: s.website.supportEmail,
+      currency: s.localization.defaultCurrency,
+      currencySymbol: '$',
+      freelancerCommissionRate: s.commission.commissionPercent,
+      buyerProcessingFeeRate: s.commission.buyerProcessingFeePercent,
+      clientServiceFee: s.commission.buyerProcessingFeePercent,
+      smallOrderFee: s.commission.smallOrderFeeAmount,
+      smallOrderFeeAmount: s.commission.smallOrderFeeAmount,
+      smallOrderFeeThreshold: s.commission.smallOrderFeeThreshold,
+      minOrderAmount: s.commission.minimumOrderAmount,
+      minimumOrder: s.commission.minimumOrderAmount,
+      minimumOrderAmount: s.commission.minimumOrderAmount,
+      featuredGigFee: (s.marketplace as any).featuredGigFee ?? 10,
+      urgentProjectFee: (s.marketplace as any).urgentProjectFee ?? 25,
+      escrowHoldDays: s.commission.escrowProtectionDays,
+      autoCompleteDeliveredDays: s.marketplace.autoCompleteDeliveredDays,
+      autoCompleteDays: s.marketplace.autoCompleteDeliveredDays,
+      reviewWindowDays: s.marketplace.autoCompleteDeliveredDays,
+      autoCompleteDeliveredEnabled: s.marketplace.autoCompleteDeliveredEnabled,
+      autoCompleteEnabled: s.marketplace.autoCompleteDeliveredEnabled,
+      disputeWindowDays: 14,
+      minPayoutThreshold: s.wallets.minimumWithdrawalAmount,
+      minimumWithdrawal: s.wallets.minimumWithdrawalAmount,
+      instantPayoutFeeRate: 1.5,
+      freelancerOnboardingMode: (s.marketplace as any).freelancerOnboardingMode ?? 'open',
+      maintenanceMode: s.website.maintenanceMode,
+      minimumGigPrice: s.marketplace.minimumGigPrice,
+      maximumGigPrice: s.marketplace.maximumGigPrice,
+      minimumProjectBudget: s.marketplace.minimumProjectBudget,
+      maximumProjectBudget: s.marketplace.maximumProjectBudget,
+      gigModerationRequired: s.marketplace.gigModerationRequired,
+      projectModerationRequired: s.marketplace.projectModerationRequired
+    };
+  }
+
+  public updateFromFlatObject(body: any, actor: string = 'Super Admin') {
+    if (!body || typeof body !== 'object') return this.getFlattenedSettings();
+
+    const commissionUpdates: Partial<PlatformCommissionSettings> = {};
+    const marketplaceUpdates: Partial<GigsProjectsOrdersSettings> & Record<string, any> = {};
+    const walletUpdates: Partial<WalletsWithdrawalsSettings> = {};
+    const websiteUpdates: Partial<WebsiteSettings> = {};
+    const localizationUpdates: Partial<LanguageCurrencySettings> = {};
+
+    if (body.freelancerCommissionRate !== undefined) commissionUpdates.commissionPercent = Number(body.freelancerCommissionRate);
+    if (body.clientServiceFee !== undefined || body.buyerProcessingFeeRate !== undefined) {
+      commissionUpdates.buyerProcessingFeePercent = Number(body.clientServiceFee ?? body.buyerProcessingFeeRate);
+    }
+    if (body.smallOrderFeeAmount !== undefined || body.smallOrderFee !== undefined) {
+      commissionUpdates.smallOrderFeeAmount = Number(body.smallOrderFeeAmount ?? body.smallOrderFee);
+    }
+    if (body.smallOrderFeeThreshold !== undefined) {
+      commissionUpdates.smallOrderFeeThreshold = Number(body.smallOrderFeeThreshold);
+    }
+    if (body.escrowHoldDays !== undefined) {
+      commissionUpdates.escrowProtectionDays = Number(body.escrowHoldDays);
+    }
+    if (body.minOrderAmount !== undefined || body.minimumOrder !== undefined || body.minimumOrderAmount !== undefined) {
+      commissionUpdates.minimumOrderAmount = Number(body.minOrderAmount ?? body.minimumOrder ?? body.minimumOrderAmount);
+    }
+
+    if (body.autoCompleteDays !== undefined || body.autoCompleteDeliveredDays !== undefined || body.reviewWindowDays !== undefined) {
+      marketplaceUpdates.autoCompleteDeliveredDays = Number(body.autoCompleteDays ?? body.autoCompleteDeliveredDays ?? body.reviewWindowDays);
+    }
+    if (body.autoCompleteEnabled !== undefined || body.autoCompleteDeliveredEnabled !== undefined) {
+      marketplaceUpdates.autoCompleteDeliveredEnabled = Boolean(body.autoCompleteEnabled ?? body.autoCompleteDeliveredEnabled);
+    }
+    if (body.minimumGigPrice !== undefined || body.minGigPrice !== undefined) {
+      marketplaceUpdates.minimumGigPrice = Number(body.minimumGigPrice ?? body.minGigPrice);
+    }
+    if (body.maximumGigPrice !== undefined || body.maxGigPrice !== undefined) {
+      marketplaceUpdates.maximumGigPrice = Number(body.maximumGigPrice ?? body.maxGigPrice);
+    }
+    if (body.minimumProjectBudget !== undefined || body.minProjectBudget !== undefined) {
+      marketplaceUpdates.minimumProjectBudget = Number(body.minimumProjectBudget ?? body.minProjectBudget);
+    }
+    if (body.maximumProjectBudget !== undefined || body.maxProjectBudget !== undefined) {
+      marketplaceUpdates.maximumProjectBudget = Number(body.maximumProjectBudget ?? body.maxProjectBudget);
+    }
+    if (body.gigModerationRequired !== undefined) {
+      marketplaceUpdates.gigModerationRequired = Boolean(body.gigModerationRequired);
+    }
+    if (body.projectModerationRequired !== undefined) {
+      marketplaceUpdates.projectModerationRequired = Boolean(body.projectModerationRequired);
+    }
+    if (body.featuredGigFee !== undefined || body.featureGigFee !== undefined) {
+      marketplaceUpdates.featuredGigFee = Number(body.featuredGigFee ?? body.featureGigFee);
+    }
+    if (body.urgentProjectFee !== undefined) {
+      marketplaceUpdates.urgentProjectFee = Number(body.urgentProjectFee);
+    }
+
+    if (body.minPayoutThreshold !== undefined || body.minimumWithdrawal !== undefined) {
+      walletUpdates.minimumWithdrawalAmount = Number(body.minPayoutThreshold ?? body.minimumWithdrawal);
+    }
+
+    if (body.brandName !== undefined || body.platformName !== undefined || body.siteName !== undefined) {
+      websiteUpdates.siteName = String(body.brandName ?? body.platformName ?? body.siteName);
+    }
+    if (body.supportEmail !== undefined) {
+      websiteUpdates.supportEmail = String(body.supportEmail);
+    }
+    if (body.maintenanceMode !== undefined) {
+      websiteUpdates.maintenanceMode = Boolean(body.maintenanceMode);
+    }
+
+    if (body.currency !== undefined) {
+      const curStr = String(body.currency);
+      const matched = curStr.match(/^[A-Z]{3}/);
+      if (matched) localizationUpdates.defaultCurrency = matched[0] as any;
+    }
+
+    if (Object.keys(commissionUpdates).length > 0) this.updateSection('commission', commissionUpdates, actor);
+    if (Object.keys(marketplaceUpdates).length > 0) this.updateSection('marketplace', marketplaceUpdates, actor);
+    if (Object.keys(walletUpdates).length > 0) this.updateSection('wallets', walletUpdates, actor);
+    if (Object.keys(websiteUpdates).length > 0) this.updateSection('website', websiteUpdates, actor);
+    if (Object.keys(localizationUpdates).length > 0) this.updateSection('localization', localizationUpdates, actor);
+
+    this.saveToDisk();
+    return this.getFlattenedSettings();
   }
 }
 

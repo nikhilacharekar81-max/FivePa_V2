@@ -1290,8 +1290,8 @@ var require_node = __commonJS({
           }
           break;
         case "FILE":
-          var fs3 = __require("fs");
-          stream2 = new fs3.SyncWriteStream(fd2, { autoClose: false });
+          var fs4 = __require("fs");
+          stream2 = new fs4.SyncWriteStream(fd2, { autoClose: false });
           stream2._type = "fs";
           break;
         case "PIPE":
@@ -14078,11 +14078,11 @@ var require_mime_types = __commonJS({
       }
       return exts[0];
     }
-    function lookup(path3) {
-      if (!path3 || typeof path3 !== "string") {
+    function lookup(path4) {
+      if (!path4 || typeof path4 !== "string") {
         return false;
       }
-      var extension3 = extname("x." + path3).toLowerCase().substr(1);
+      var extension3 = extname("x." + path4).toLowerCase().substr(1);
       if (!extension3) {
         return false;
       }
@@ -17695,7 +17695,7 @@ var require_path_to_regexp = __commonJS({
   "node_modules/path-to-regexp/index.js"(exports, module) {
     module.exports = pathToRegexp;
     var MATCHING_GROUP_REGEXP = /\\.|\((?:\?<(.*?)>)?(?!\?)/g;
-    function pathToRegexp(path3, keys, options) {
+    function pathToRegexp(path4, keys, options) {
       options = options || {};
       keys = keys || [];
       var strict = options.strict;
@@ -17709,8 +17709,8 @@ var require_path_to_regexp = __commonJS({
       var pos = 0;
       var backtrack = "";
       var m;
-      if (path3 instanceof RegExp) {
-        while (m = MATCHING_GROUP_REGEXP.exec(path3.source)) {
+      if (path4 instanceof RegExp) {
+        while (m = MATCHING_GROUP_REGEXP.exec(path4.source)) {
           if (m[0][0] === "\\") continue;
           keys.push({
             name: m[1] || name++,
@@ -17718,18 +17718,18 @@ var require_path_to_regexp = __commonJS({
             offset: m.index
           });
         }
-        return path3;
+        return path4;
       }
-      if (Array.isArray(path3)) {
-        path3 = path3.map(function(value) {
+      if (Array.isArray(path4)) {
+        path4 = path4.map(function(value) {
           return pathToRegexp(value, keys, options).source;
         });
-        return new RegExp(path3.join("|"), flags);
+        return new RegExp(path4.join("|"), flags);
       }
-      if (typeof path3 !== "string") {
+      if (typeof path4 !== "string") {
         throw new TypeError("path must be a string, array of strings, or regular expression");
       }
-      path3 = path3.replace(
+      path4 = path4.replace(
         /\\.|(\/)?(\.)?:(\w+)(\(.*?\))?(\*)?(\?)?|[.*]|\/\(/g,
         function(match, slash, format, key, capture, star, optional, offset) {
           if (match[0] === "\\") {
@@ -17746,7 +17746,7 @@ var require_path_to_regexp = __commonJS({
           if (slash || format) {
             backtrack = "";
           } else {
-            backtrack += path3.slice(pos, offset);
+            backtrack += path4.slice(pos, offset);
           }
           pos = offset + match.length;
           if (match === "*") {
@@ -17776,7 +17776,7 @@ var require_path_to_regexp = __commonJS({
           return result;
         }
       );
-      while (m = MATCHING_GROUP_REGEXP.exec(path3)) {
+      while (m = MATCHING_GROUP_REGEXP.exec(path4)) {
         if (m[0][0] === "\\") continue;
         if (keysOffset + i === keys.length || keys[keysOffset + i].offset > m.index) {
           keys.splice(keysOffset + i, 0, {
@@ -17788,13 +17788,13 @@ var require_path_to_regexp = __commonJS({
         }
         i++;
       }
-      path3 += strict ? "" : path3[path3.length - 1] === "/" ? "?" : "/?";
+      path4 += strict ? "" : path4[path4.length - 1] === "/" ? "?" : "/?";
       if (end) {
-        path3 += "$";
-      } else if (path3[path3.length - 1] !== "/") {
-        path3 += lookahead ? "(?=/|$)" : "(?:/|$)";
+        path4 += "$";
+      } else if (path4[path4.length - 1] !== "/") {
+        path4 += lookahead ? "(?=/|$)" : "(?:/|$)";
       }
-      return new RegExp("^" + path3, flags);
+      return new RegExp("^" + path4, flags);
     }
   }
 });
@@ -17807,19 +17807,19 @@ var require_layer = __commonJS({
     var debug = require_src()("express:router:layer");
     var hasOwnProperty = Object.prototype.hasOwnProperty;
     module.exports = Layer;
-    function Layer(path3, options, fn) {
+    function Layer(path4, options, fn) {
       if (!(this instanceof Layer)) {
-        return new Layer(path3, options, fn);
+        return new Layer(path4, options, fn);
       }
-      debug("new %o", path3);
+      debug("new %o", path4);
       var opts = options || {};
       this.handle = fn;
       this.name = fn.name || "<anonymous>";
       this.params = void 0;
       this.path = void 0;
-      this.regexp = pathRegexp(path3, this.keys = [], opts);
-      this.regexp.fast_star = path3 === "*";
-      this.regexp.fast_slash = path3 === "/" && opts.end === false;
+      this.regexp = pathRegexp(path4, this.keys = [], opts);
+      this.regexp.fast_star = path4 === "*";
+      this.regexp.fast_slash = path4 === "/" && opts.end === false;
     }
     Layer.prototype.handle_error = function handle_error(error, req, res, next) {
       var fn = this.handle;
@@ -17843,20 +17843,20 @@ var require_layer = __commonJS({
         next(err);
       }
     };
-    Layer.prototype.match = function match(path3) {
+    Layer.prototype.match = function match(path4) {
       var match2;
-      if (path3 != null) {
+      if (path4 != null) {
         if (this.regexp.fast_slash) {
           this.params = {};
           this.path = "";
           return true;
         }
         if (this.regexp.fast_star) {
-          this.params = { "0": decode_param(path3) };
-          this.path = path3;
+          this.params = { "0": decode_param(path4) };
+          this.path = path4;
           return true;
         }
-        match2 = this.regexp.exec(path3);
+        match2 = this.regexp.exec(path4);
       }
       if (!match2) {
         this.params = void 0;
@@ -17949,10 +17949,10 @@ var require_route = __commonJS({
     var slice = Array.prototype.slice;
     var toString = Object.prototype.toString;
     module.exports = Route;
-    function Route(path3) {
-      this.path = path3;
+    function Route(path4) {
+      this.path = path4;
       this.stack = [];
-      debug("new %o", path3);
+      debug("new %o", path4);
       this.methods = {};
     }
     Route.prototype._handles_method = function _handles_method(method) {
@@ -18164,8 +18164,8 @@ var require_router = __commonJS({
         if (++sync > 100) {
           return setImmediate(next, err);
         }
-        var path3 = getPathname(req);
-        if (path3 == null) {
+        var path4 = getPathname(req);
+        if (path4 == null) {
           return done(layerError);
         }
         var layer;
@@ -18173,7 +18173,7 @@ var require_router = __commonJS({
         var route;
         while (match !== true && idx < stack.length) {
           layer = stack[idx++];
-          match = matchLayer(layer, path3);
+          match = matchLayer(layer, path4);
           route = layer.route;
           if (typeof match !== "boolean") {
             layerError = layerError || match;
@@ -18211,18 +18211,18 @@ var require_router = __commonJS({
           } else if (route) {
             layer.handle_request(req, res, next);
           } else {
-            trim_prefix(layer, layerError, layerPath, path3);
+            trim_prefix(layer, layerError, layerPath, path4);
           }
           sync = 0;
         });
       }
-      function trim_prefix(layer, layerError, layerPath, path3) {
+      function trim_prefix(layer, layerError, layerPath, path4) {
         if (layerPath.length !== 0) {
-          if (layerPath !== path3.slice(0, layerPath.length)) {
+          if (layerPath !== path4.slice(0, layerPath.length)) {
             next(layerError);
             return;
           }
-          var c = path3[layerPath.length];
+          var c = path4[layerPath.length];
           if (c && c !== "/" && c !== ".") return next(layerError);
           debug("trim prefix (%s) from url %s", layerPath, req.url);
           removed = layerPath;
@@ -18300,7 +18300,7 @@ var require_router = __commonJS({
     };
     proto.use = function use(fn) {
       var offset = 0;
-      var path3 = "/";
+      var path4 = "/";
       if (typeof fn !== "function") {
         var arg = fn;
         while (Array.isArray(arg) && arg.length !== 0) {
@@ -18308,7 +18308,7 @@ var require_router = __commonJS({
         }
         if (typeof arg !== "function") {
           offset = 1;
-          path3 = fn;
+          path4 = fn;
         }
       }
       var callbacks = flatten(slice.call(arguments, offset));
@@ -18320,8 +18320,8 @@ var require_router = __commonJS({
         if (typeof fn !== "function") {
           throw new TypeError("Router.use() requires a middleware function but got a " + gettype(fn));
         }
-        debug("use %o %s", path3, fn.name || "<anonymous>");
-        var layer = new Layer(path3, {
+        debug("use %o %s", path4, fn.name || "<anonymous>");
+        var layer = new Layer(path4, {
           sensitive: this.caseSensitive,
           strict: false,
           end: false
@@ -18331,9 +18331,9 @@ var require_router = __commonJS({
       }
       return this;
     };
-    proto.route = function route(path3) {
-      var route2 = new Route(path3);
-      var layer = new Layer(path3, {
+    proto.route = function route(path4) {
+      var route2 = new Route(path4);
+      var layer = new Layer(path4, {
         sensitive: this.caseSensitive,
         strict: this.strict,
         end: true
@@ -18343,8 +18343,8 @@ var require_router = __commonJS({
       return route2;
     };
     methods.concat("all").forEach(function(method) {
-      proto[method] = function(path3) {
-        var route = this.route(path3);
+      proto[method] = function(path4) {
+        var route = this.route(path4);
         route[method].apply(route, slice.call(arguments, 1));
         return this;
       };
@@ -18380,9 +18380,9 @@ var require_router = __commonJS({
       }
       return toString.call(obj).replace(objectRegExp, "$1");
     }
-    function matchLayer(layer, path3) {
+    function matchLayer(layer, path4) {
       try {
-        return layer.match(path3);
+        return layer.match(path4);
       } catch (err) {
         return err;
       }
@@ -18500,13 +18500,13 @@ var require_view = __commonJS({
   "node_modules/express/lib/view.js"(exports, module) {
     "use strict";
     var debug = require_src()("express:view");
-    var path3 = __require("path");
-    var fs3 = __require("fs");
-    var dirname = path3.dirname;
-    var basename = path3.basename;
-    var extname = path3.extname;
-    var join = path3.join;
-    var resolve = path3.resolve;
+    var path4 = __require("path");
+    var fs4 = __require("fs");
+    var dirname = path4.dirname;
+    var basename = path4.basename;
+    var extname = path4.extname;
+    var join = path4.join;
+    var resolve = path4.resolve;
     module.exports = View;
     function View(name, options) {
       var opts = options || {};
@@ -18535,17 +18535,17 @@ var require_view = __commonJS({
       this.path = this.lookup(fileName);
     }
     View.prototype.lookup = function lookup(name) {
-      var path4;
+      var path5;
       var roots = [].concat(this.root);
       debug('lookup "%s"', name);
-      for (var i = 0; i < roots.length && !path4; i++) {
+      for (var i = 0; i < roots.length && !path5; i++) {
         var root = roots[i];
         var loc = resolve(root, name);
         var dir = dirname(loc);
         var file = basename(loc);
-        path4 = this.resolve(dir, file);
+        path5 = this.resolve(dir, file);
       }
-      return path4;
+      return path5;
     };
     View.prototype.render = function render(options, callback) {
       debug('render "%s"', this.path);
@@ -18553,21 +18553,21 @@ var require_view = __commonJS({
     };
     View.prototype.resolve = function resolve2(dir, file) {
       var ext = this.ext;
-      var path4 = join(dir, file);
-      var stat = tryStat(path4);
+      var path5 = join(dir, file);
+      var stat = tryStat(path5);
       if (stat && stat.isFile()) {
-        return path4;
+        return path5;
       }
-      path4 = join(dir, basename(file, ext), "index" + ext);
-      stat = tryStat(path4);
+      path5 = join(dir, basename(file, ext), "index" + ext);
+      stat = tryStat(path5);
       if (stat && stat.isFile()) {
-        return path4;
+        return path5;
       }
     };
-    function tryStat(path4) {
-      debug('stat "%s"', path4);
+    function tryStat(path5) {
+      debug('stat "%s"', path5);
       try {
-        return fs3.statSync(path4);
+        return fs4.statSync(path5);
       } catch (e) {
         return void 0;
       }
@@ -18921,8 +18921,8 @@ var require_types = __commonJS({
 // node_modules/mime/mime.js
 var require_mime = __commonJS({
   "node_modules/mime/mime.js"(exports, module) {
-    var path3 = __require("path");
-    var fs3 = __require("fs");
+    var path4 = __require("path");
+    var fs4 = __require("fs");
     function Mime() {
       this.types = /* @__PURE__ */ Object.create(null);
       this.extensions = /* @__PURE__ */ Object.create(null);
@@ -18943,7 +18943,7 @@ var require_mime = __commonJS({
     };
     Mime.prototype.load = function(file) {
       this._loading = file;
-      var map = {}, content = fs3.readFileSync(file, "ascii"), lines = content.split(/[\r\n]+/);
+      var map = {}, content = fs4.readFileSync(file, "ascii"), lines = content.split(/[\r\n]+/);
       lines.forEach(function(line) {
         var fields = line.replace(/\s*#.*|^\s*|\s*$/g, "").split(/\s+/);
         map[fields.shift()] = fields;
@@ -18951,8 +18951,8 @@ var require_mime = __commonJS({
       this.define(map);
       this._loading = null;
     };
-    Mime.prototype.lookup = function(path4, fallback) {
-      var ext = path4.replace(/^.*[\.\/\\]/, "").toLowerCase();
+    Mime.prototype.lookup = function(path5, fallback) {
+      var ext = path5.replace(/^.*[\.\/\\]/, "").toLowerCase();
       return this.types[ext] || fallback || this.default_type;
     };
     Mime.prototype.extension = function(mimeType) {
@@ -19181,33 +19181,33 @@ var require_send = __commonJS({
     var escapeHtml2 = require_escape_html();
     var etag = require_etag();
     var fresh = require_fresh();
-    var fs3 = __require("fs");
+    var fs4 = __require("fs");
     var mime = require_mime();
     var ms = require_ms2();
     var onFinished = require_on_finished();
     var parseRange = require_range_parser();
-    var path3 = __require("path");
+    var path4 = __require("path");
     var statuses = require_statuses();
     var Stream = __require("stream");
     var util = __require("util");
-    var extname = path3.extname;
-    var join = path3.join;
-    var normalize = path3.normalize;
-    var resolve = path3.resolve;
-    var sep = path3.sep;
+    var extname = path4.extname;
+    var join = path4.join;
+    var normalize = path4.normalize;
+    var resolve = path4.resolve;
+    var sep = path4.sep;
     var BYTES_RANGE_REGEXP = /^ *bytes=/;
     var MAX_MAXAGE = 60 * 60 * 24 * 365 * 1e3;
     var UP_PATH_REGEXP = /(?:^|[\\/])\.\.(?:[\\/]|$)/;
     module.exports = send;
     module.exports.mime = mime;
-    function send(req, path4, options) {
-      return new SendStream(req, path4, options);
+    function send(req, path5, options) {
+      return new SendStream(req, path5, options);
     }
-    function SendStream(req, path4, options) {
+    function SendStream(req, path5, options) {
       Stream.call(this);
       var opts = options || {};
       this.options = opts;
-      this.path = path4;
+      this.path = path5;
       this.req = req;
       this._acceptRanges = opts.acceptRanges !== void 0 ? Boolean(opts.acceptRanges) : true;
       this._cacheControl = opts.cacheControl !== void 0 ? Boolean(opts.cacheControl) : true;
@@ -19253,8 +19253,8 @@ var require_send = __commonJS({
       this._index = index2;
       return this;
     }, "send.index: pass index as option");
-    SendStream.prototype.root = function root(path4) {
-      this._root = resolve(String(path4));
+    SendStream.prototype.root = function root(path5) {
+      this._root = resolve(String(path5));
       debug("root %s", this._root);
       return this;
     };
@@ -19367,10 +19367,10 @@ var require_send = __commonJS({
       var lastModified = this.res.getHeader("Last-Modified");
       return parseHttpDate(lastModified) <= parseHttpDate(ifRange);
     };
-    SendStream.prototype.redirect = function redirect(path4) {
+    SendStream.prototype.redirect = function redirect(path5) {
       var res = this.res;
       if (hasListeners(this, "directory")) {
-        this.emit("directory", res, path4);
+        this.emit("directory", res, path5);
         return;
       }
       if (this.hasTrailingSlash()) {
@@ -19390,42 +19390,42 @@ var require_send = __commonJS({
     SendStream.prototype.pipe = function pipe(res) {
       var root = this._root;
       this.res = res;
-      var path4 = decode(this.path);
-      if (path4 === -1) {
+      var path5 = decode(this.path);
+      if (path5 === -1) {
         this.error(400);
         return res;
       }
-      if (~path4.indexOf("\0")) {
+      if (~path5.indexOf("\0")) {
         this.error(400);
         return res;
       }
       var parts;
       if (root !== null) {
-        if (path4) {
-          path4 = normalize("." + sep + path4);
+        if (path5) {
+          path5 = normalize("." + sep + path5);
         }
-        if (UP_PATH_REGEXP.test(path4)) {
-          debug('malicious path "%s"', path4);
+        if (UP_PATH_REGEXP.test(path5)) {
+          debug('malicious path "%s"', path5);
           this.error(403);
           return res;
         }
-        parts = path4.split(sep);
-        path4 = normalize(join(root, path4));
+        parts = path5.split(sep);
+        path5 = normalize(join(root, path5));
       } else {
-        if (UP_PATH_REGEXP.test(path4)) {
-          debug('malicious path "%s"', path4);
+        if (UP_PATH_REGEXP.test(path5)) {
+          debug('malicious path "%s"', path5);
           this.error(403);
           return res;
         }
-        parts = normalize(path4).split(sep);
-        path4 = resolve(path4);
+        parts = normalize(path5).split(sep);
+        path5 = resolve(path5);
       }
       if (containsDotFile(parts)) {
         var access = this._dotfiles;
         if (access === void 0) {
           access = parts[parts.length - 1][0] === "." ? this._hidden ? "allow" : "ignore" : "allow";
         }
-        debug('%s dotfile "%s"', access, path4);
+        debug('%s dotfile "%s"', access, path5);
         switch (access) {
           case "allow":
             break;
@@ -19439,13 +19439,13 @@ var require_send = __commonJS({
         }
       }
       if (this._index.length && this.hasTrailingSlash()) {
-        this.sendIndex(path4);
+        this.sendIndex(path5);
         return res;
       }
-      this.sendFile(path4);
+      this.sendFile(path5);
       return res;
     };
-    SendStream.prototype.send = function send2(path4, stat) {
+    SendStream.prototype.send = function send2(path5, stat) {
       var len = stat.size;
       var options = this.options;
       var opts = {};
@@ -19457,9 +19457,9 @@ var require_send = __commonJS({
         this.headersAlreadySent();
         return;
       }
-      debug('pipe "%s"', path4);
-      this.setHeader(path4, stat);
-      this.type(path4);
+      debug('pipe "%s"', path5);
+      this.setHeader(path5, stat);
+      this.type(path5);
       if (this.isConditionalGET()) {
         if (this.isPreconditionFailure()) {
           this.error(412);
@@ -19508,28 +19508,28 @@ var require_send = __commonJS({
         res.end();
         return;
       }
-      this.stream(path4, opts);
+      this.stream(path5, opts);
     };
-    SendStream.prototype.sendFile = function sendFile(path4) {
+    SendStream.prototype.sendFile = function sendFile(path5) {
       var i = 0;
       var self = this;
-      debug('stat "%s"', path4);
-      fs3.stat(path4, function onstat(err, stat) {
-        if (err && err.code === "ENOENT" && !extname(path4) && path4[path4.length - 1] !== sep) {
+      debug('stat "%s"', path5);
+      fs4.stat(path5, function onstat(err, stat) {
+        if (err && err.code === "ENOENT" && !extname(path5) && path5[path5.length - 1] !== sep) {
           return next(err);
         }
         if (err) return self.onStatError(err);
-        if (stat.isDirectory()) return self.redirect(path4);
-        self.emit("file", path4, stat);
-        self.send(path4, stat);
+        if (stat.isDirectory()) return self.redirect(path5);
+        self.emit("file", path5, stat);
+        self.send(path5, stat);
       });
       function next(err) {
         if (self._extensions.length <= i) {
           return err ? self.onStatError(err) : self.error(404);
         }
-        var p = path4 + "." + self._extensions[i++];
+        var p = path5 + "." + self._extensions[i++];
         debug('stat "%s"', p);
-        fs3.stat(p, function(err2, stat) {
+        fs4.stat(p, function(err2, stat) {
           if (err2) return next(err2);
           if (stat.isDirectory()) return next();
           self.emit("file", p, stat);
@@ -19537,7 +19537,7 @@ var require_send = __commonJS({
         });
       }
     };
-    SendStream.prototype.sendIndex = function sendIndex(path4) {
+    SendStream.prototype.sendIndex = function sendIndex(path5) {
       var i = -1;
       var self = this;
       function next(err) {
@@ -19545,9 +19545,9 @@ var require_send = __commonJS({
           if (err) return self.onStatError(err);
           return self.error(404);
         }
-        var p = join(path4, self._index[i]);
+        var p = join(path5, self._index[i]);
         debug('stat "%s"', p);
-        fs3.stat(p, function(err2, stat) {
+        fs4.stat(p, function(err2, stat) {
           if (err2) return next(err2);
           if (stat.isDirectory()) return next();
           self.emit("file", p, stat);
@@ -19556,10 +19556,10 @@ var require_send = __commonJS({
       }
       next();
     };
-    SendStream.prototype.stream = function stream(path4, options) {
+    SendStream.prototype.stream = function stream(path5, options) {
       var self = this;
       var res = this.res;
-      var stream2 = fs3.createReadStream(path4, options);
+      var stream2 = fs4.createReadStream(path5, options);
       this.emit("stream", stream2);
       stream2.pipe(res);
       function cleanup() {
@@ -19574,10 +19574,10 @@ var require_send = __commonJS({
         self.emit("end");
       });
     };
-    SendStream.prototype.type = function type(path4) {
+    SendStream.prototype.type = function type(path5) {
       var res = this.res;
       if (res.getHeader("Content-Type")) return;
-      var type2 = mime.lookup(path4);
+      var type2 = mime.lookup(path5);
       if (!type2) {
         debug("no content-type");
         return;
@@ -19586,9 +19586,9 @@ var require_send = __commonJS({
       debug("content-type %s", type2);
       res.setHeader("Content-Type", type2 + (charset ? "; charset=" + charset : ""));
     };
-    SendStream.prototype.setHeader = function setHeader(path4, stat) {
+    SendStream.prototype.setHeader = function setHeader(path5, stat) {
       var res = this.res;
-      this.emit("headers", res, path4, stat);
+      this.emit("headers", res, path5, stat);
       if (this._acceptRanges && !res.getHeader("Accept-Ranges")) {
         debug("accept ranges");
         res.setHeader("Accept-Ranges", "bytes");
@@ -19647,9 +19647,9 @@ var require_send = __commonJS({
       }
       return err instanceof Error ? createError(status, err, { expose: false }) : createError(status, err);
     }
-    function decode(path4) {
+    function decode(path5) {
       try {
-        return decodeURIComponent(path4);
+        return decodeURIComponent(path5);
       } catch (err) {
         return -1;
       }
@@ -20574,10 +20574,10 @@ var require_utils2 = __commonJS({
     var querystring = __require("querystring");
     exports.etag = createETagGenerator({ weak: false });
     exports.wetag = createETagGenerator({ weak: true });
-    exports.isAbsolute = function(path3) {
-      if ("/" === path3[0]) return true;
-      if (":" === path3[1] && ("\\" === path3[2] || "/" === path3[2])) return true;
-      if ("\\\\" === path3.substring(0, 2)) return true;
+    exports.isAbsolute = function(path4) {
+      if ("/" === path4[0]) return true;
+      if (":" === path4[1] && ("\\" === path4[2] || "/" === path4[2])) return true;
+      if ("\\\\" === path4.substring(0, 2)) return true;
     };
     exports.flatten = deprecate.function(
       flatten,
@@ -20789,7 +20789,7 @@ var require_application = __commonJS({
     };
     app2.use = function use(fn) {
       var offset = 0;
-      var path3 = "/";
+      var path4 = "/";
       if (typeof fn !== "function") {
         var arg = fn;
         while (Array.isArray(arg) && arg.length !== 0) {
@@ -20797,7 +20797,7 @@ var require_application = __commonJS({
         }
         if (typeof arg !== "function") {
           offset = 1;
-          path3 = fn;
+          path4 = fn;
         }
       }
       var fns = flatten(slice.call(arguments, offset));
@@ -20808,12 +20808,12 @@ var require_application = __commonJS({
       var router = this._router;
       fns.forEach(function(fn2) {
         if (!fn2 || !fn2.handle || !fn2.set) {
-          return router.use(path3, fn2);
+          return router.use(path4, fn2);
         }
-        debug(".use app under %s", path3);
-        fn2.mountpath = path3;
+        debug(".use app under %s", path4);
+        fn2.mountpath = path4;
         fn2.parent = this;
-        router.use(path3, function mounted_app(req, res, next) {
+        router.use(path4, function mounted_app(req, res, next) {
           var orig = req.app;
           fn2.handle(req, res, function(err) {
             setPrototypeOf(req, orig.request);
@@ -20825,9 +20825,9 @@ var require_application = __commonJS({
       }, this);
       return this;
     };
-    app2.route = function route(path3) {
+    app2.route = function route(path4) {
       this.lazyrouter();
-      return this._router.route(path3);
+      return this._router.route(path4);
     };
     app2.engine = function engine(ext, fn) {
       if (typeof fn !== "function") {
@@ -20878,7 +20878,7 @@ var require_application = __commonJS({
       }
       return this;
     };
-    app2.path = function path3() {
+    app2.path = function path4() {
       return this.parent ? this.parent.path() + this.mountpath : "";
     };
     app2.enabled = function enabled(setting) {
@@ -20894,19 +20894,19 @@ var require_application = __commonJS({
       return this.set(setting, false);
     };
     methods.forEach(function(method) {
-      app2[method] = function(path3) {
+      app2[method] = function(path4) {
         if (method === "get" && arguments.length === 1) {
-          return this.set(path3);
+          return this.set(path4);
         }
         this.lazyrouter();
-        var route = this._router.route(path3);
+        var route = this._router.route(path4);
         route[method].apply(route, slice.call(arguments, 1));
         return this;
       };
     });
-    app2.all = function all(path3) {
+    app2.all = function all(path4) {
       this.lazyrouter();
-      var route = this._router.route(path3);
+      var route = this._router.route(path4);
       var args = slice.call(arguments, 1);
       for (var i = 0; i < methods.length; i++) {
         route[methods[i]].apply(route, args);
@@ -21665,7 +21665,7 @@ var require_request = __commonJS({
       var subdomains2 = !isIP(hostname) ? hostname.split(".").reverse() : [hostname];
       return subdomains2.slice(offset);
     });
-    defineGetter(req, "path", function path3() {
+    defineGetter(req, "path", function path4() {
       return parse(this).pathname;
     });
     defineGetter(req, "hostname", function hostname() {
@@ -21987,7 +21987,7 @@ var require_response = __commonJS({
     var http = __require("http");
     var isAbsolute = require_utils2().isAbsolute;
     var onFinished = require_on_finished();
-    var path3 = __require("path");
+    var path4 = __require("path");
     var statuses = require_statuses();
     var merge = require_utils_merge();
     var sign = require_cookie_signature().sign;
@@ -21996,9 +21996,9 @@ var require_response = __commonJS({
     var setCharset = require_utils2().setCharset;
     var cookie = require_cookie();
     var send = require_send();
-    var extname = path3.extname;
+    var extname = path4.extname;
     var mime = send.mime;
-    var resolve = path3.resolve;
+    var resolve = path4.resolve;
     var vary = require_vary();
     var res = Object.create(http.ServerResponse.prototype);
     module.exports = res;
@@ -22175,26 +22175,26 @@ var require_response = __commonJS({
       this.type("txt");
       return this.send(body);
     };
-    res.sendFile = function sendFile(path4, options, callback) {
+    res.sendFile = function sendFile(path5, options, callback) {
       var done = callback;
       var req = this.req;
       var res2 = this;
       var next = req.next;
       var opts = options || {};
-      if (!path4) {
+      if (!path5) {
         throw new TypeError("path argument is required to res.sendFile");
       }
-      if (typeof path4 !== "string") {
+      if (typeof path5 !== "string") {
         throw new TypeError("path must be a string to res.sendFile");
       }
       if (typeof options === "function") {
         done = options;
         opts = {};
       }
-      if (!opts.root && !isAbsolute(path4)) {
+      if (!opts.root && !isAbsolute(path5)) {
         throw new TypeError("path must be absolute or specify root to res.sendFile");
       }
-      var pathname = encodeURI(path4);
+      var pathname = encodeURI(path5);
       var file = send(req, pathname, opts);
       sendfile(res2, file, opts, function(err) {
         if (done) return done(err);
@@ -22204,7 +22204,7 @@ var require_response = __commonJS({
         }
       });
     };
-    res.sendfile = function(path4, options, callback) {
+    res.sendfile = function(path5, options, callback) {
       var done = callback;
       var req = this.req;
       var res2 = this;
@@ -22214,7 +22214,7 @@ var require_response = __commonJS({
         done = options;
         opts = {};
       }
-      var file = send(req, path4, opts);
+      var file = send(req, path5, opts);
       sendfile(res2, file, opts, function(err) {
         if (done) return done(err);
         if (err && err.code === "EISDIR") return next();
@@ -22227,7 +22227,7 @@ var require_response = __commonJS({
       res.sendfile,
       "res.sendfile: Use res.sendFile instead"
     );
-    res.download = function download(path4, filename, options, callback) {
+    res.download = function download(path5, filename, options, callback) {
       var done = callback;
       var name = filename;
       var opts = options || null;
@@ -22244,7 +22244,7 @@ var require_response = __commonJS({
         opts = filename;
       }
       var headers = {
-        "Content-Disposition": contentDisposition(name || path4)
+        "Content-Disposition": contentDisposition(name || path5)
       };
       if (opts && opts.headers) {
         var keys = Object.keys(opts.headers);
@@ -22257,7 +22257,7 @@ var require_response = __commonJS({
       }
       opts = Object.create(opts);
       opts.headers = headers;
-      var fullPath = !opts.root ? resolve(path4) : path4;
+      var fullPath = !opts.root ? resolve(path5) : path5;
       return this.sendFile(fullPath, opts, done);
     };
     res.contentType = res.type = function contentType(type) {
@@ -22558,11 +22558,11 @@ var require_serve_static = __commonJS({
         }
         var forwardError = !fallthrough;
         var originalUrl = parseUrl.original(req);
-        var path3 = parseUrl(req).pathname;
-        if (path3 === "/" && originalUrl.pathname.substr(-1) !== "/") {
-          path3 = "";
+        var path4 = parseUrl(req).pathname;
+        if (path4 === "/" && originalUrl.pathname.substr(-1) !== "/") {
+          path4 = "";
         }
-        var stream = send(req, path3, opts);
+        var stream = send(req, path4, opts);
         stream.on("directory", onDirectory);
         if (setHeaders) {
           stream.on("headers", setHeaders);
@@ -26384,8 +26384,8 @@ var require_websocket_server = __commonJS({
 // node_modules/dotenv/lib/main.js
 var require_main = __commonJS({
   "node_modules/dotenv/lib/main.js"(exports, module) {
-    var fs3 = __require("fs");
-    var path3 = __require("path");
+    var fs4 = __require("fs");
+    var path4 = __require("path");
     var os = __require("os");
     var crypto2 = __require("crypto");
     var TIPS = [
@@ -26516,7 +26516,7 @@ var require_main = __commonJS({
       if (options && options.path && options.path.length > 0) {
         if (Array.isArray(options.path)) {
           for (const filepath of options.path) {
-            if (fs3.existsSync(filepath)) {
+            if (fs4.existsSync(filepath)) {
               possibleVaultPath = filepath.endsWith(".vault") ? filepath : `${filepath}.vault`;
             }
           }
@@ -26524,15 +26524,15 @@ var require_main = __commonJS({
           possibleVaultPath = options.path.endsWith(".vault") ? options.path : `${options.path}.vault`;
         }
       } else {
-        possibleVaultPath = path3.resolve(process.cwd(), ".env.vault");
+        possibleVaultPath = path4.resolve(process.cwd(), ".env.vault");
       }
-      if (fs3.existsSync(possibleVaultPath)) {
+      if (fs4.existsSync(possibleVaultPath)) {
         return possibleVaultPath;
       }
       return null;
     }
     function _resolveHome(envPath) {
-      return envPath[0] === "~" ? path3.join(os.homedir(), envPath.slice(1)) : envPath;
+      return envPath[0] === "~" ? path4.join(os.homedir(), envPath.slice(1)) : envPath;
     }
     function _configVault(options) {
       const debug = parseBoolean(process.env.DOTENV_CONFIG_DEBUG || options && options.debug);
@@ -26549,7 +26549,7 @@ var require_main = __commonJS({
       return { parsed };
     }
     function configDotenv(options) {
-      const dotenvPath = path3.resolve(process.cwd(), ".env");
+      const dotenvPath = path4.resolve(process.cwd(), ".env");
       let encoding = "utf8";
       let processEnv = process.env;
       if (options && options.processEnv != null) {
@@ -26577,13 +26577,13 @@ var require_main = __commonJS({
       }
       let lastError;
       const parsedAll = {};
-      for (const path4 of optionPaths) {
+      for (const path5 of optionPaths) {
         try {
-          const parsed = DotenvModule.parse(fs3.readFileSync(path4, { encoding }));
+          const parsed = DotenvModule.parse(fs4.readFileSync(path5, { encoding }));
           DotenvModule.populate(parsedAll, parsed, options);
         } catch (e) {
           if (debug) {
-            _debug(`failed to load ${path4} ${e.message}`);
+            _debug(`failed to load ${path5} ${e.message}`);
           }
           lastError = e;
         }
@@ -26596,7 +26596,7 @@ var require_main = __commonJS({
         const shortPaths = [];
         for (const filePath of optionPaths) {
           try {
-            const relative = path3.relative(process.cwd(), filePath);
+            const relative = path4.relative(process.cwd(), filePath);
             shortPaths.push(relative);
           } catch (e) {
             if (debug) {
@@ -26702,7 +26702,7 @@ var require_main = __commonJS({
 
 // server.ts
 var import_express = __toESM(require_express2(), 1);
-import fs2 from "fs";
+import fs3 from "fs";
 import { createServer } from "http";
 
 // node_modules/ws/wrapper.mjs
@@ -26717,7 +26717,7 @@ var import_websocket_server = __toESM(require_websocket_server(), 1);
 
 // server.ts
 var import_dotenv = __toESM(require_main(), 1);
-import path2 from "path";
+import path3 from "path";
 import { fileURLToPath as fileURLToPath2 } from "url";
 import { createServer as createViteServer } from "vite";
 import { randomUUID as randomUUID2, randomBytes as randomBytes2, randomInt, timingSafeEqual, createHmac } from "crypto";
@@ -29468,6 +29468,8 @@ var FinanceLedgerEngine = class _FinanceLedgerEngine {
 var financeLedger = new FinanceLedgerEngine();
 
 // src/server/siteSettings.ts
+import fs2 from "fs";
+import path2 from "path";
 var DEFAULT_SITE_SETTINGS = {
   website: {
     siteName: "WorkPerHour",
@@ -29566,9 +29568,44 @@ var DEFAULT_SITE_SETTINGS = {
 var SiteSettingsService = class {
   constructor() {
     this.history = [];
+    this.settingsFilePath = path2.join(process.cwd(), "data", "site_settings.json");
     this.settings = JSON.parse(JSON.stringify(DEFAULT_SITE_SETTINGS));
+    this.loadFromDisk();
     this.seedInitialHistory();
     this.syncFeesToLedger();
+  }
+  loadFromDisk() {
+    try {
+      const dir = path2.dirname(this.settingsFilePath);
+      if (!fs2.existsSync(dir)) fs2.mkdirSync(dir, { recursive: true });
+      if (fs2.existsSync(this.settingsFilePath)) {
+        const raw = fs2.readFileSync(this.settingsFilePath, "utf-8");
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === "object") {
+          this.settings = {
+            website: { ...DEFAULT_SITE_SETTINGS.website, ...parsed.website || {} },
+            commission: { ...DEFAULT_SITE_SETTINGS.commission, ...parsed.commission || {} },
+            memberships: { ...DEFAULT_SITE_SETTINGS.memberships, ...parsed.memberships || {} },
+            marketplace: { ...DEFAULT_SITE_SETTINGS.marketplace, ...parsed.marketplace || {} },
+            wallets: { ...DEFAULT_SITE_SETTINGS.wallets, ...parsed.wallets || {} },
+            localization: { ...DEFAULT_SITE_SETTINGS.localization, ...parsed.localization || {} },
+            security: { ...DEFAULT_SITE_SETTINGS.security, ...parsed.security || {} },
+            integrations: { ...DEFAULT_SITE_SETTINGS.integrations, ...parsed.integrations || {} }
+          };
+        }
+      }
+    } catch (e) {
+      console.error("[SiteSettingsService] Failed to load site_settings.json from disk:", e);
+    }
+  }
+  saveToDisk() {
+    try {
+      const dir = path2.dirname(this.settingsFilePath);
+      if (!fs2.existsSync(dir)) fs2.mkdirSync(dir, { recursive: true });
+      fs2.writeFileSync(this.settingsFilePath, JSON.stringify(this.settings, null, 2), "utf-8");
+    } catch (e) {
+      console.error("[SiteSettingsService] Failed to save site_settings.json to disk:", e);
+    }
   }
   seedInitialHistory() {
     this.history.push({
@@ -29669,6 +29706,7 @@ var SiteSettingsService = class {
         throw err;
       }
     }
+    this.saveToDisk();
     return JSON.parse(JSON.stringify(this.settings[section]));
   }
   // Reset a section or all settings back to default
@@ -29703,7 +29741,125 @@ var SiteSettingsService = class {
       });
       financeLedger.setPlatformCommissionRate(DEFAULT_SITE_SETTINGS.commission.commissionPercent);
     }
+    this.saveToDisk();
     return this.getSettings();
+  }
+  getFlattenedSettings() {
+    const s = this.settings;
+    return {
+      platformName: s.website.siteName,
+      brandName: s.website.siteName,
+      supportEmail: s.website.supportEmail,
+      currency: s.localization.defaultCurrency,
+      currencySymbol: "$",
+      freelancerCommissionRate: s.commission.commissionPercent,
+      buyerProcessingFeeRate: s.commission.buyerProcessingFeePercent,
+      clientServiceFee: s.commission.buyerProcessingFeePercent,
+      smallOrderFee: s.commission.smallOrderFeeAmount,
+      smallOrderFeeAmount: s.commission.smallOrderFeeAmount,
+      smallOrderFeeThreshold: s.commission.smallOrderFeeThreshold,
+      minOrderAmount: s.commission.minimumOrderAmount,
+      minimumOrder: s.commission.minimumOrderAmount,
+      minimumOrderAmount: s.commission.minimumOrderAmount,
+      featuredGigFee: s.marketplace.featuredGigFee ?? 10,
+      urgentProjectFee: s.marketplace.urgentProjectFee ?? 25,
+      escrowHoldDays: s.commission.escrowProtectionDays,
+      autoCompleteDeliveredDays: s.marketplace.autoCompleteDeliveredDays,
+      autoCompleteDays: s.marketplace.autoCompleteDeliveredDays,
+      reviewWindowDays: s.marketplace.autoCompleteDeliveredDays,
+      autoCompleteDeliveredEnabled: s.marketplace.autoCompleteDeliveredEnabled,
+      autoCompleteEnabled: s.marketplace.autoCompleteDeliveredEnabled,
+      disputeWindowDays: 14,
+      minPayoutThreshold: s.wallets.minimumWithdrawalAmount,
+      minimumWithdrawal: s.wallets.minimumWithdrawalAmount,
+      instantPayoutFeeRate: 1.5,
+      freelancerOnboardingMode: s.marketplace.freelancerOnboardingMode ?? "open",
+      maintenanceMode: s.website.maintenanceMode,
+      minimumGigPrice: s.marketplace.minimumGigPrice,
+      maximumGigPrice: s.marketplace.maximumGigPrice,
+      minimumProjectBudget: s.marketplace.minimumProjectBudget,
+      maximumProjectBudget: s.marketplace.maximumProjectBudget,
+      gigModerationRequired: s.marketplace.gigModerationRequired,
+      projectModerationRequired: s.marketplace.projectModerationRequired
+    };
+  }
+  updateFromFlatObject(body, actor = "Super Admin") {
+    if (!body || typeof body !== "object") return this.getFlattenedSettings();
+    const commissionUpdates = {};
+    const marketplaceUpdates = {};
+    const walletUpdates = {};
+    const websiteUpdates = {};
+    const localizationUpdates = {};
+    if (body.freelancerCommissionRate !== void 0) commissionUpdates.commissionPercent = Number(body.freelancerCommissionRate);
+    if (body.clientServiceFee !== void 0 || body.buyerProcessingFeeRate !== void 0) {
+      commissionUpdates.buyerProcessingFeePercent = Number(body.clientServiceFee ?? body.buyerProcessingFeeRate);
+    }
+    if (body.smallOrderFeeAmount !== void 0 || body.smallOrderFee !== void 0) {
+      commissionUpdates.smallOrderFeeAmount = Number(body.smallOrderFeeAmount ?? body.smallOrderFee);
+    }
+    if (body.smallOrderFeeThreshold !== void 0) {
+      commissionUpdates.smallOrderFeeThreshold = Number(body.smallOrderFeeThreshold);
+    }
+    if (body.escrowHoldDays !== void 0) {
+      commissionUpdates.escrowProtectionDays = Number(body.escrowHoldDays);
+    }
+    if (body.minOrderAmount !== void 0 || body.minimumOrder !== void 0 || body.minimumOrderAmount !== void 0) {
+      commissionUpdates.minimumOrderAmount = Number(body.minOrderAmount ?? body.minimumOrder ?? body.minimumOrderAmount);
+    }
+    if (body.autoCompleteDays !== void 0 || body.autoCompleteDeliveredDays !== void 0 || body.reviewWindowDays !== void 0) {
+      marketplaceUpdates.autoCompleteDeliveredDays = Number(body.autoCompleteDays ?? body.autoCompleteDeliveredDays ?? body.reviewWindowDays);
+    }
+    if (body.autoCompleteEnabled !== void 0 || body.autoCompleteDeliveredEnabled !== void 0) {
+      marketplaceUpdates.autoCompleteDeliveredEnabled = Boolean(body.autoCompleteEnabled ?? body.autoCompleteDeliveredEnabled);
+    }
+    if (body.minimumGigPrice !== void 0 || body.minGigPrice !== void 0) {
+      marketplaceUpdates.minimumGigPrice = Number(body.minimumGigPrice ?? body.minGigPrice);
+    }
+    if (body.maximumGigPrice !== void 0 || body.maxGigPrice !== void 0) {
+      marketplaceUpdates.maximumGigPrice = Number(body.maximumGigPrice ?? body.maxGigPrice);
+    }
+    if (body.minimumProjectBudget !== void 0 || body.minProjectBudget !== void 0) {
+      marketplaceUpdates.minimumProjectBudget = Number(body.minimumProjectBudget ?? body.minProjectBudget);
+    }
+    if (body.maximumProjectBudget !== void 0 || body.maxProjectBudget !== void 0) {
+      marketplaceUpdates.maximumProjectBudget = Number(body.maximumProjectBudget ?? body.maxProjectBudget);
+    }
+    if (body.gigModerationRequired !== void 0) {
+      marketplaceUpdates.gigModerationRequired = Boolean(body.gigModerationRequired);
+    }
+    if (body.projectModerationRequired !== void 0) {
+      marketplaceUpdates.projectModerationRequired = Boolean(body.projectModerationRequired);
+    }
+    if (body.featuredGigFee !== void 0 || body.featureGigFee !== void 0) {
+      marketplaceUpdates.featuredGigFee = Number(body.featuredGigFee ?? body.featureGigFee);
+    }
+    if (body.urgentProjectFee !== void 0) {
+      marketplaceUpdates.urgentProjectFee = Number(body.urgentProjectFee);
+    }
+    if (body.minPayoutThreshold !== void 0 || body.minimumWithdrawal !== void 0) {
+      walletUpdates.minimumWithdrawalAmount = Number(body.minPayoutThreshold ?? body.minimumWithdrawal);
+    }
+    if (body.brandName !== void 0 || body.platformName !== void 0 || body.siteName !== void 0) {
+      websiteUpdates.siteName = String(body.brandName ?? body.platformName ?? body.siteName);
+    }
+    if (body.supportEmail !== void 0) {
+      websiteUpdates.supportEmail = String(body.supportEmail);
+    }
+    if (body.maintenanceMode !== void 0) {
+      websiteUpdates.maintenanceMode = Boolean(body.maintenanceMode);
+    }
+    if (body.currency !== void 0) {
+      const curStr = String(body.currency);
+      const matched = curStr.match(/^[A-Z]{3}/);
+      if (matched) localizationUpdates.defaultCurrency = matched[0];
+    }
+    if (Object.keys(commissionUpdates).length > 0) this.updateSection("commission", commissionUpdates, actor);
+    if (Object.keys(marketplaceUpdates).length > 0) this.updateSection("marketplace", marketplaceUpdates, actor);
+    if (Object.keys(walletUpdates).length > 0) this.updateSection("wallets", walletUpdates, actor);
+    if (Object.keys(websiteUpdates).length > 0) this.updateSection("website", websiteUpdates, actor);
+    if (Object.keys(localizationUpdates).length > 0) this.updateSection("localization", localizationUpdates, actor);
+    this.saveToDisk();
+    return this.getFlattenedSettings();
   }
 };
 var siteSettings = new SiteSettingsService();
@@ -31125,10 +31281,10 @@ SEED_REVIEWS.push(
 
 // server.ts
 import_dotenv.default.config();
-var __dirname2 = path2.dirname(fileURLToPath2(import.meta.url));
+var __dirname2 = path3.dirname(fileURLToPath2(import.meta.url));
 var app = (0, import_express.default)();
 app.use(import_express.default.json({ limit: "10mb" }));
-var isCompiledProductionBundle = path2.basename(fileURLToPath2(import.meta.url)).startsWith("server.js");
+var isCompiledProductionBundle = path3.basename(fileURLToPath2(import.meta.url)).startsWith("server.js");
 var isNpmStart = process.env.npm_lifecycle_event === "start";
 var isExplicitProd = process.env.NODE_ENV === "production";
 var isTestEnv = process.env.NODE_ENV === "test";
@@ -32156,14 +32312,14 @@ var categories = [
 ];
 var supportTickets = [];
 var auditLogs = [];
-var DATA_DIR2 = path2.join(__dirname2, "data");
-var MESSAGES_FILE = path2.join(DATA_DIR2, "workstream_messages.json");
-var ORDERS_FILE = path2.join(DATA_DIR2, "workstream_orders.json");
-var REVIEWS_FILE = path2.join(DATA_DIR2, "workstream_reviews.json");
-var UPLOAD_INDEX_FILE = path2.join(DATA_DIR2, "workstream_uploads.json");
+var DATA_DIR2 = path3.join(__dirname2, "data");
+var MESSAGES_FILE = path3.join(DATA_DIR2, "workstream_messages.json");
+var ORDERS_FILE = path3.join(DATA_DIR2, "workstream_orders.json");
+var REVIEWS_FILE = path3.join(DATA_DIR2, "workstream_reviews.json");
+var UPLOAD_INDEX_FILE = path3.join(DATA_DIR2, "workstream_uploads.json");
 function ensureDataDirectory() {
-  if (!fs2.existsSync(DATA_DIR2)) {
-    fs2.mkdirSync(DATA_DIR2, { recursive: true });
+  if (!fs3.existsSync(DATA_DIR2)) {
+    fs3.mkdirSync(DATA_DIR2, { recursive: true });
   }
 }
 var writeQueue = /* @__PURE__ */ new Map();
@@ -32173,11 +32329,11 @@ async function writeJsonAtomic(filePath, data) {
   const existingTask = writeQueue.get(filePath) || Promise.resolve();
   const task = existingTask.then(async () => {
     ensureDataDirectory();
-    fs2.writeFileSync(tempPath, serialized, "utf-8");
-    fs2.renameSync(tempPath, filePath);
+    fs3.writeFileSync(tempPath, serialized, "utf-8");
+    fs3.renameSync(tempPath, filePath);
   }).catch((err) => {
     console.error(`Failed to atomic write ${filePath}:`, err);
-    if (fs2.existsSync(tempPath)) fs2.unlinkSync(tempPath);
+    if (fs3.existsSync(tempPath)) fs3.unlinkSync(tempPath);
   });
   writeQueue.set(filePath, task);
   return task;
@@ -32198,7 +32354,7 @@ function handleCorruption(filePath, error) {
   console.error(`CRITICAL: Data corruption in ${filePath}:`, error);
   if (process.env.ALLOW_EMPTY_DATA !== "true") {
     const backupPath = `${filePath}.corrupt-${Date.now()}`;
-    fs2.renameSync(filePath, backupPath);
+    fs3.renameSync(filePath, backupPath);
     console.error(`Refusing to start. Broken file renamed to ${backupPath}. Set ALLOW_EMPTY_DATA=true to bypass.`);
     process.exit(1);
   }
@@ -32244,9 +32400,9 @@ function loadInitialOrdersAndMessages() {
   ensureDataDirectory();
   orderIndex.clear();
   messageIndex.clear();
-  if (fs2.existsSync(ORDERS_FILE)) {
+  if (fs3.existsSync(ORDERS_FILE)) {
     try {
-      const data = fs2.readFileSync(ORDERS_FILE, "utf-8");
+      const data = fs3.readFileSync(ORDERS_FILE, "utf-8");
       const parsed = JSON.parse(data);
       if (Array.isArray(parsed) && parsed.length > 0) {
         orders = parsed;
@@ -32261,9 +32417,9 @@ function loadInitialOrdersAndMessages() {
   } else {
     orders.forEach(registerOrder);
   }
-  if (fs2.existsSync(MESSAGES_FILE)) {
+  if (fs3.existsSync(MESSAGES_FILE)) {
     try {
-      const data = fs2.readFileSync(MESSAGES_FILE, "utf-8");
+      const data = fs3.readFileSync(MESSAGES_FILE, "utf-8");
       const parsed = JSON.parse(data);
       if (Array.isArray(parsed)) {
         messages = parsed;
@@ -32272,9 +32428,9 @@ function loadInitialOrdersAndMessages() {
       handleCorruption(MESSAGES_FILE, e);
     }
   }
-  if (fs2.existsSync(REVIEWS_FILE)) {
+  if (fs3.existsSync(REVIEWS_FILE)) {
     try {
-      const data = fs2.readFileSync(REVIEWS_FILE, "utf-8");
+      const data = fs3.readFileSync(REVIEWS_FILE, "utf-8");
       const parsed = JSON.parse(data);
       if (Array.isArray(parsed)) {
         reviews = parsed;
@@ -32378,33 +32534,6 @@ function enrichOrderWithServiceInfo(o, isAdmin = false) {
   }
   return base;
 }
-var siteFeeSettings = {
-  platformName: "WorkPerHour",
-  supportEmail: "support@workperhour.com",
-  currency: "USD",
-  currencySymbol: "$",
-  freelancerCommissionRate: 20,
-  buyerProcessingFeeRate: DEFAULT_SITE_SETTINGS.commission.buyerProcessingFeePercent,
-  // 5.5% client service fee
-  smallOrderFee: DEFAULT_SITE_SETTINGS.commission.smallOrderFeeAmount,
-  // $3.50 flat
-  smallOrderFeeThreshold: DEFAULT_SITE_SETTINGS.commission.smallOrderFeeThreshold,
-  // orders under $200
-  minOrderAmount: 10,
-  featuredGigFee: 10,
-  urgentProjectFee: 25,
-  escrowHoldDays: 14,
-  autoCompleteDeliveredDays: 3,
-  autoCompleteDeliveredEnabled: true,
-  disputeWindowDays: 14,
-  minPayoutThreshold: 50,
-  instantPayoutFeeRate: 1.5,
-  freelancerOnboardingMode: "open",
-  maintenanceMode: false,
-  maintenanceMessage: "WorkPerHour is undergoing brief scheduled maintenance. Escrow funds and data remain 100% secure.",
-  updatedAt: (/* @__PURE__ */ new Date()).toISOString().split("T")[0],
-  updatedBy: "Admin Chief (Super Admin)"
-};
 function getReviewWindowDays() {
   if (process.env.REVIEW_WINDOW_DAYS !== void 0) {
     const parsed = Number(process.env.REVIEW_WINDOW_DAYS);
@@ -32413,9 +32542,6 @@ function getReviewWindowDays() {
   const settings = siteSettings.getSettings();
   if (typeof settings.marketplace?.autoCompleteDeliveredDays === "number") {
     return settings.marketplace.autoCompleteDeliveredDays;
-  }
-  if (typeof siteFeeSettings.autoCompleteDeliveredDays === "number") {
-    return siteFeeSettings.autoCompleteDeliveredDays;
   }
   return 3;
 }
@@ -32426,162 +32552,26 @@ function isAutoAcceptEnabled() {
   }
   const settings = siteSettings.getSettings();
   if (settings.marketplace?.autoCompleteDeliveredEnabled === false) return false;
-  if (siteFeeSettings.autoCompleteDeliveredEnabled === false) return false;
   return getReviewWindowDays() > 0;
 }
 var handleGetSiteSettings = (req, res) => {
-  const cfg = financeLedger.getFeeConfig();
-  const view = {
-    ...siteFeeSettings,
-    autoCompleteDeliveredDays: getReviewWindowDays(),
-    autoCompleteDays: getReviewWindowDays(),
-    reviewWindowDays: getReviewWindowDays(),
-    autoCompleteDeliveredEnabled: isAutoAcceptEnabled(),
-    autoCompleteEnabled: isAutoAcceptEnabled(),
-    freelancerCommissionRate: cfg.commissionPercent,
-    buyerProcessingFeeRate: cfg.buyerFeePercent,
-    clientServiceFee: cfg.buyerFeePercent,
-    // alias used by the admin UI
-    smallOrderFee: cfg.smallOrderFee,
-    smallOrderFeeAmount: cfg.smallOrderFee,
-    // alias used by the admin UI
-    smallOrderFeeThreshold: cfg.smallOrderThreshold,
-    minimumGigPrice: DEFAULT_SITE_SETTINGS.marketplace.minimumGigPrice,
-    maximumGigPrice: DEFAULT_SITE_SETTINGS.marketplace.maximumGigPrice,
-    minimumProjectBudget: DEFAULT_SITE_SETTINGS.marketplace.minimumProjectBudget,
-    maximumProjectBudget: DEFAULT_SITE_SETTINGS.marketplace.maximumProjectBudget,
-    gigModerationRequired: DEFAULT_SITE_SETTINGS.marketplace.gigModerationRequired,
-    projectModerationRequired: DEFAULT_SITE_SETTINGS.marketplace.projectModerationRequired
-  };
-  res.json({ success: true, settings: view, ...view });
+  const flattened = siteSettings.getFlattenedSettings();
+  res.json({ success: true, settings: flattened, ...flattened });
 };
 var handlePostSiteSettings = (req, res) => {
   try {
-    const body = req.body || {};
-    if (body.freelancerCommissionRate !== void 0) {
-      const num = Number(body.freelancerCommissionRate);
-      if (isNaN(num) || num < 0 || num > 100) {
-        return res.status(400).json({ error: "Commission rate must be between 0 and 100%" });
-      }
-      body.freelancerCommissionRate = num;
-    }
-    if (body.clientServiceFee !== void 0 && body.buyerProcessingFeeRate === void 0) body.buyerProcessingFeeRate = body.clientServiceFee;
-    if (body.smallOrderFeeAmount !== void 0 && body.smallOrderFee === void 0) body.smallOrderFee = body.smallOrderFeeAmount;
-    delete body.clientServiceFee;
-    delete body.smallOrderFeeAmount;
-    if (body.buyerProcessingFeeRate !== void 0) {
-      const num = Number(body.buyerProcessingFeeRate);
-      if (!Number.isFinite(num) || num < 0 || num > 100) return res.status(400).json({ error: "Client service fee must be between 0 and 100%" });
-      body.buyerProcessingFeeRate = num;
-    }
-    if (body.smallOrderFee !== void 0) {
-      const num = Number(body.smallOrderFee);
-      if (!Number.isFinite(num) || num < 0) return res.status(400).json({ error: "Small-order fee must be zero or more" });
-      body.smallOrderFee = num;
-    }
-    if (body.smallOrderFeeThreshold !== void 0) {
-      const num = Number(body.smallOrderFeeThreshold);
-      if (!Number.isFinite(num) || num < 0) return res.status(400).json({ error: "Small-order threshold must be zero or more" });
-      body.smallOrderFeeThreshold = num;
-    }
-    if (body.minOrderAmount !== void 0) {
-      const num = Number(body.minOrderAmount);
-      if (isNaN(num) || num < 0) {
-        return res.status(400).json({ error: "Minimum order amount must be zero or more" });
-      }
-      body.minOrderAmount = num;
-    }
-    if (body.escrowHoldDays !== void 0) {
-      const num = Number(body.escrowHoldDays);
-      if (isNaN(num) || num < 0) {
-        return res.status(400).json({ error: "Escrow hold days must be a non-negative number" });
-      }
-      body.escrowHoldDays = num;
-    }
-    if (body.minPayoutThreshold !== void 0) {
-      const num = Number(body.minPayoutThreshold);
-      if (isNaN(num) || num < 0) {
-        return res.status(400).json({ error: "Minimum payout threshold must be zero or more" });
-      }
-      body.minPayoutThreshold = num;
-    }
-    if (body.autoCompleteDays !== void 0 && body.autoCompleteDeliveredDays === void 0) {
-      body.autoCompleteDeliveredDays = body.autoCompleteDays;
-    }
-    if (body.reviewWindowDays !== void 0 && body.autoCompleteDeliveredDays === void 0) {
-      body.autoCompleteDeliveredDays = body.reviewWindowDays;
-    }
-    if (body.autoCompleteEnabled !== void 0 && body.autoCompleteDeliveredEnabled === void 0) {
-      body.autoCompleteDeliveredEnabled = body.autoCompleteEnabled;
-    }
-    if (body.autoCompleteDeliveredDays !== void 0) {
-      const num = Number(body.autoCompleteDeliveredDays);
-      if (!Number.isFinite(num) || num < 0) return res.status(400).json({ error: "Review window days must be zero or more" });
-      body.autoCompleteDeliveredDays = num;
-      DEFAULT_SITE_SETTINGS.marketplace.autoCompleteDeliveredDays = num;
-      siteSettings.updateSection("marketplace", { autoCompleteDeliveredDays: num }, body.updatedBy || "Super Admin");
-    }
-    if (body.autoCompleteDeliveredEnabled !== void 0) {
-      body.autoCompleteDeliveredEnabled = Boolean(body.autoCompleteDeliveredEnabled);
-      DEFAULT_SITE_SETTINGS.marketplace.autoCompleteDeliveredEnabled = body.autoCompleteDeliveredEnabled;
-      siteSettings.updateSection("marketplace", { autoCompleteDeliveredEnabled: body.autoCompleteDeliveredEnabled }, body.updatedBy || "Super Admin");
-    }
-    if (body.minimumGigPrice !== void 0 || body.minGigPrice !== void 0) {
-      const num = Number(body.minimumGigPrice ?? body.minGigPrice);
-      if (!isNaN(num) && num >= 0) DEFAULT_SITE_SETTINGS.marketplace.minimumGigPrice = num;
-    }
-    if (body.maximumGigPrice !== void 0 || body.maxGigPrice !== void 0) {
-      const num = Number(body.maximumGigPrice ?? body.maxGigPrice);
-      if (!isNaN(num) && num >= 0) DEFAULT_SITE_SETTINGS.marketplace.maximumGigPrice = num;
-    }
-    if (body.minimumProjectBudget !== void 0 || body.minProjectBudget !== void 0) {
-      const num = Number(body.minimumProjectBudget ?? body.minProjectBudget);
-      if (!isNaN(num) && num >= 0) DEFAULT_SITE_SETTINGS.marketplace.minimumProjectBudget = num;
-    }
-    if (body.maximumProjectBudget !== void 0 || body.maxProjectBudget !== void 0) {
-      const num = Number(body.maximumProjectBudget ?? body.maxProjectBudget);
-      if (!isNaN(num) && num >= 0) DEFAULT_SITE_SETTINGS.marketplace.maximumProjectBudget = num;
-    }
-    if (body.gigModerationRequired !== void 0) {
-      DEFAULT_SITE_SETTINGS.marketplace.gigModerationRequired = Boolean(body.gigModerationRequired);
-    }
-    if (body.projectModerationRequired !== void 0) {
-      DEFAULT_SITE_SETTINGS.marketplace.projectModerationRequired = Boolean(body.projectModerationRequired);
-    }
-    siteSettings.updateSection("marketplace", DEFAULT_SITE_SETTINGS.marketplace, body.updatedBy || "Super Admin");
-    siteFeeSettings = {
-      ...siteFeeSettings,
-      ...body,
-      updatedAt: (/* @__PURE__ */ new Date()).toISOString().split("T")[0],
-      updatedBy: body.updatedBy || "Super Admin"
-    };
-    if (typeof siteFeeSettings.freelancerCommissionRate === "number") {
-      DEFAULT_SITE_SETTINGS.commission.commissionPercent = siteFeeSettings.freelancerCommissionRate;
-      DEFAULT_SITE_SETTINGS.commission.escrowProtectionDays = siteFeeSettings.escrowHoldDays !== void 0 ? siteFeeSettings.escrowHoldDays : DEFAULT_SITE_SETTINGS.commission.escrowProtectionDays;
-      DEFAULT_SITE_SETTINGS.commission.minimumOrderAmount = siteFeeSettings.minOrderAmount !== void 0 ? siteFeeSettings.minOrderAmount : DEFAULT_SITE_SETTINGS.commission.minimumOrderAmount;
-      DEFAULT_SITE_SETTINGS.wallets.minimumWithdrawalAmount = siteFeeSettings.minPayoutThreshold !== void 0 ? siteFeeSettings.minPayoutThreshold : DEFAULT_SITE_SETTINGS.wallets.minimumWithdrawalAmount;
-      DEFAULT_SITE_SETTINGS.commission.buyerProcessingFeePercent = siteFeeSettings.buyerProcessingFeeRate;
-      DEFAULT_SITE_SETTINGS.commission.smallOrderFeeAmount = siteFeeSettings.smallOrderFee;
-      DEFAULT_SITE_SETTINGS.commission.smallOrderFeeThreshold = siteFeeSettings.smallOrderFeeThreshold;
-      financeLedger.configure({
-        commissionPercent: siteFeeSettings.freelancerCommissionRate,
-        buyerFeePercent: siteFeeSettings.buyerProcessingFeeRate,
-        smallOrderFee: siteFeeSettings.smallOrderFee,
-        smallOrderThreshold: siteFeeSettings.smallOrderFeeThreshold,
-        minimumOrderAmount: siteFeeSettings.minOrderAmount !== void 0 ? siteFeeSettings.minOrderAmount : 5,
-        minimumWithdrawalAmount: siteFeeSettings.minPayoutThreshold !== void 0 ? siteFeeSettings.minPayoutThreshold : 0
-      });
-    }
+    const actor = req.authenticatedUser?.name || req.body?.updatedBy || "Super Admin";
+    const updatedFlattened = siteSettings.updateFromFlatObject(req.body || {}, actor);
     registerAuditLog({
       id: "log_" + Date.now(),
-      actor: body.updatedBy || "Super Admin",
+      actor,
       role: "super_admin",
       action: "SITE_FEE_SETTINGS_UPDATED",
       target: "Platform Settings & Fee Structure",
-      details: `Updated settings: Commission=${siteFeeSettings.freelancerCommissionRate}%, EscrowHold=${siteFeeSettings.escrowHoldDays}d, ClientFee=${siteFeeSettings.buyerProcessingFeeRate}%, SmallOrderFee=$${siteFeeSettings.smallOrderFee} under $${siteFeeSettings.smallOrderFeeThreshold}`,
+      details: `Updated settings saved to disk and applied across backend engine: Commission=${updatedFlattened.freelancerCommissionRate}%, EscrowHold=${updatedFlattened.escrowHoldDays}d, ClientFee=${updatedFlattened.buyerProcessingFeeRate}%, SmallOrderFee=$${updatedFlattened.smallOrderFee} under $${updatedFlattened.smallOrderFeeThreshold}`,
       timestamp: (/* @__PURE__ */ new Date()).toLocaleString()
     });
-    res.json({ success: true, settings: siteFeeSettings, ...siteFeeSettings });
+    res.json({ success: true, settings: updatedFlattened, ...updatedFlattened });
   } catch (err) {
     res.status(500).json({ error: err?.message || "Failed to update site settings" });
   }
@@ -34768,12 +34758,12 @@ app.post("/api/support-tickets", requireAuth, (req, res) => {
   });
   res.status(201).json({ success: true, ticket: newTicket, ...newTicket });
 });
-var WORKSTREAM_UPLOADS_DIR = path2.join(__dirname2, "data", "uploads", "workstream");
-if (!fs2.existsSync(WORKSTREAM_UPLOADS_DIR)) {
-  fs2.mkdirSync(WORKSTREAM_UPLOADS_DIR, { recursive: true });
+var WORKSTREAM_UPLOADS_DIR = path3.join(__dirname2, "data", "uploads", "workstream");
+if (!fs3.existsSync(WORKSTREAM_UPLOADS_DIR)) {
+  fs3.mkdirSync(WORKSTREAM_UPLOADS_DIR, { recursive: true });
 }
 var WORKSTREAM_FILE_URL_PREFIX = "/api/workstream/files/";
-var WORKSTREAM_UPLOAD_INDEX_FILE = path2.join(DATA_DIR2, "workstream_uploads.json");
+var WORKSTREAM_UPLOAD_INDEX_FILE = path3.join(DATA_DIR2, "workstream_uploads.json");
 var WORKSTREAM_MAX_UPLOAD_BYTES = 25 * 1024 * 1024;
 var WORKSTREAM_ABANDONED_UPLOAD_TTL_MS = 24 * 3600 * 1e3;
 var WORKSTREAM_ALLOWED_EXTENSIONS = /* @__PURE__ */ new Set([
@@ -34834,15 +34824,15 @@ var WORKSTREAM_ALLOWED_EXTENSIONS = /* @__PURE__ */ new Set([
 var WORKSTREAM_INLINE_EXTENSIONS = /* @__PURE__ */ new Set([".png", ".jpg", ".jpeg", ".gif", ".webp", ".pdf", ".svg", ".html", ".txt"]);
 var workstreamUploadIndex = {};
 try {
-  if (fs2.existsSync(WORKSTREAM_UPLOAD_INDEX_FILE)) {
-    workstreamUploadIndex = JSON.parse(fs2.readFileSync(WORKSTREAM_UPLOAD_INDEX_FILE, "utf-8")) || {};
+  if (fs3.existsSync(WORKSTREAM_UPLOAD_INDEX_FILE)) {
+    workstreamUploadIndex = JSON.parse(fs3.readFileSync(WORKSTREAM_UPLOAD_INDEX_FILE, "utf-8")) || {};
   }
 } catch (err) {
   console.error("Failed to load workstream upload index:", err);
 }
 function workstreamFilenameFromUrl(url) {
   if (typeof url !== "string" || !url.startsWith(WORKSTREAM_FILE_URL_PREFIX)) return null;
-  const name = path2.basename(url.slice(WORKSTREAM_FILE_URL_PREFIX.length).split("?")[0]);
+  const name = path3.basename(url.slice(WORKSTREAM_FILE_URL_PREFIX.length).split("?")[0]);
   return name || null;
 }
 function workstreamFileReferencedBy(filename) {
@@ -34864,13 +34854,13 @@ function validateMessageFileInfo(fileInfo, sender) {
   if (fileInfo === void 0 || fileInfo === null) return { ok: true, fileInfo: void 0 };
   if (typeof fileInfo !== "object") return { ok: false, error: "Invalid file attachment." };
   const filename = workstreamFilenameFromUrl(fileInfo.url);
-  if (!filename || !fs2.existsSync(path2.join(WORKSTREAM_UPLOADS_DIR, filename))) {
+  if (!filename || !fs3.existsSync(path3.join(WORKSTREAM_UPLOADS_DIR, filename))) {
     return { ok: false, error: "Attachments must be uploaded files; placeholder or external URLs are not accepted." };
   }
   if (!isStaffUser(sender) && workstreamUploadIndex[filename]?.ownerId !== sender.id) {
     return { ok: false, error: "You can only attach files that you uploaded." };
   }
-  const bytes = fs2.statSync(path2.join(WORKSTREAM_UPLOADS_DIR, filename)).size;
+  const bytes = fs3.statSync(path3.join(WORKSTREAM_UPLOADS_DIR, filename)).size;
   const size = bytes > 1024 * 1024 ? `${(bytes / (1024 * 1024)).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`;
   return {
     ok: true,
@@ -34897,13 +34887,13 @@ function validateStoredWorkstreamFiles(raw, submitter) {
       });
       continue;
     }
-    if (!fs2.existsSync(path2.join(WORKSTREAM_UPLOADS_DIR, filename))) {
+    if (!fs3.existsSync(path3.join(WORKSTREAM_UPLOADS_DIR, filename))) {
       return { ok: false, error: `Uploaded file not found on server: ${filename}` };
     }
     if (submitter && !isStaffUser(submitter) && workstreamUploadIndex[filename]?.ownerId !== submitter.id) {
       return { ok: false, error: "You can only deliver files that you uploaded." };
     }
-    const bytes = fs2.statSync(path2.join(WORKSTREAM_UPLOADS_DIR, filename)).size;
+    const bytes = fs3.statSync(path3.join(WORKSTREAM_UPLOADS_DIR, filename)).size;
     const size = bytes > 1024 * 1024 ? `${(bytes / (1024 * 1024)).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`;
     const parts = filename.split("_");
     const fallbackName = parts.length > 2 ? parts.slice(2).join("_") : filename;
@@ -34920,21 +34910,21 @@ function cleanupAbandonedWorkstreamUploads() {
     const isReferenced = workstreamFileReferencedBy(filename).length > 0;
     if (isReferenced) continue;
     try {
-      fs2.unlinkSync(path2.join(WORKSTREAM_UPLOADS_DIR, filename));
+      fs3.unlinkSync(path3.join(WORKSTREAM_UPLOADS_DIR, filename));
     } catch {
     }
     delete workstreamUploadIndex[filename];
     changed = true;
   }
   try {
-    const filesOnDisk = fs2.readdirSync(WORKSTREAM_UPLOADS_DIR);
+    const filesOnDisk = fs3.readdirSync(WORKSTREAM_UPLOADS_DIR);
     for (const file of filesOnDisk) {
       if (!workstreamUploadIndex[file]) {
-        const filePath = path2.join(WORKSTREAM_UPLOADS_DIR, file);
-        const stats = fs2.statSync(filePath);
+        const filePath = path3.join(WORKSTREAM_UPLOADS_DIR, file);
+        const stats = fs3.statSync(filePath);
         if (now - stats.mtimeMs > 36e5) {
           try {
-            fs2.unlinkSync(filePath);
+            fs3.unlinkSync(filePath);
           } catch {
           }
         }
@@ -35046,14 +35036,14 @@ app.post("/api/workstream/upload", requireAuth, rateLimit(5, 6e4), import_expres
     } catch {
       decodedName = rawName;
     }
-    const safeBase = path2.basename(decodedName).replace(/[^a-zA-Z0-9._-]/g, "_") || "file";
-    const ext = path2.extname(safeBase).toLowerCase();
+    const safeBase = path3.basename(decodedName).replace(/[^a-zA-Z0-9._-]/g, "_") || "file";
+    const ext = path3.extname(safeBase).toLowerCase();
     if (ext && !WORKSTREAM_ALLOWED_EXTENSIONS.has(ext)) {
       WORKSTREAM_ALLOWED_EXTENSIONS.add(ext);
     }
-    const nameWithoutExt = path2.basename(safeBase, path2.extname(safeBase));
+    const nameWithoutExt = path3.basename(safeBase, path3.extname(safeBase));
     const storedFilename = `${Date.now()}_${randomUUID2().slice(0, 8)}_${nameWithoutExt}${ext}`;
-    const filePath = path2.join(WORKSTREAM_UPLOADS_DIR, storedFilename);
+    const filePath = path3.join(WORKSTREAM_UPLOADS_DIR, storedFilename);
     const buffer = Buffer.isBuffer(req.body) ? req.body : Buffer.from(req.body || "");
     if (!buffer || buffer.length === 0) {
       return res.status(400).json({ error: "No file data received" });
@@ -35061,7 +35051,7 @@ app.post("/api/workstream/upload", requireAuth, rateLimit(5, 6e4), import_expres
     if (buffer.length > WORKSTREAM_MAX_UPLOAD_BYTES) {
       return res.status(413).json({ error: "File is too large (25 MB maximum)." });
     }
-    fs2.writeFileSync(filePath, buffer);
+    fs3.writeFileSync(filePath, buffer);
     workstreamUploadIndex[storedFilename] = { ownerId: caller.id, createdAt: (/* @__PURE__ */ new Date()).toISOString() };
     saveWorkstreamUploadIndex();
     const bytes = buffer.length;
@@ -35079,9 +35069,9 @@ app.post("/api/workstream/upload", requireAuth, rateLimit(5, 6e4), import_expres
   }
 });
 app.get("/api/workstream/files/:filename", requireAuth, (req, res) => {
-  const filename = path2.basename(req.params.filename);
-  const filePath = path2.join(WORKSTREAM_UPLOADS_DIR, filename);
-  if (!fs2.existsSync(filePath)) {
+  const filename = path3.basename(req.params.filename);
+  const filePath = path3.join(WORKSTREAM_UPLOADS_DIR, filename);
+  if (!fs3.existsSync(filePath)) {
     return res.status(404).json({ error: "File not found" });
   }
   if (!canAccessWorkstreamFile(req.authenticatedUser, filename)) {
@@ -35089,7 +35079,7 @@ app.get("/api/workstream/files/:filename", requireAuth, (req, res) => {
   }
   const parts = filename.split("_");
   const originalName = parts.length > 2 ? parts.slice(2).join("_") : filename;
-  const ext = path2.extname(filename).toLowerCase();
+  const ext = path3.extname(filename).toLowerCase();
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("Cache-Control", "private, no-store");
   if (req.query.download === "1" || !WORKSTREAM_INLINE_EXTENSIONS.has(ext)) {
@@ -35886,9 +35876,9 @@ function setupWebSocketHandlers(ws, authTimeout) {
       });
       app.use(vite.middlewares);
     } else {
-      app.use(import_express.default.static(path2.join(__dirname2, "dist")));
+      app.use(import_express.default.static(path3.join(__dirname2, "dist")));
       app.get("*", (req, res) => {
-        res.sendFile(path2.join(__dirname2, "dist", "index.html"));
+        res.sendFile(path3.join(__dirname2, "dist", "index.html"));
       });
     }
   }
