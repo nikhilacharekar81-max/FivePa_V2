@@ -50,8 +50,19 @@ export function useWorkstreamRealtime({
           if (data.type === 'MESSAGE_RECEIVED' && data.message) {
             const incomingMsg = data.message;
             setMessages(prev => {
-              const alreadyExists = prev.some(m => m.id === incomingMsg.id);
-              if (alreadyExists) return prev;
+              const clientMsgId = incomingMsg.metadata?.clientMessageId;
+              const alreadyExists = prev.some(m => 
+                m.id === incomingMsg.id || 
+                (clientMsgId && m.metadata?.clientMessageId === clientMsgId)
+              );
+              if (alreadyExists) {
+                // If it exists but was optimistic, update it with full server data
+                return prev.map(m => 
+                  (m.id === incomingMsg.id || (clientMsgId && m.metadata?.clientMessageId === clientMsgId))
+                    ? { ...incomingMsg, status: 'sent' }
+                    : m
+                );
+              }
               const next = [...prev, incomingMsg];
               return next.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
             });

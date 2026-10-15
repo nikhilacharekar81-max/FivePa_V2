@@ -833,10 +833,43 @@ function rateLimit(max: number, windowMs: number) {
   };
 }
 
+// IP-based rate limiter specifically for WebSocket connection attempts to prevent DoS.
+const wsConnectionBuckets = new Map<string, { count: number; resetAt: number }>();
+function checkWsIpRateLimit(ip: string): boolean {
+  const max = 5; // Max 5 connection attempts
+  const windowMs = 30_000; // per 30 seconds
+  const now = Date.now();
+  const record = wsConnectionBuckets.get(ip) || { count: 0, resetAt: now + windowMs };
+  
+  if (now > record.resetAt) {
+    record.count = 0;
+    record.resetAt = now + windowMs;
+  }
+  
+  record.count++;
+  wsConnectionBuckets.set(ip, record);
+  
+  return record.count <= max;
+}
+
 
 
 const server = createServer(app);
-const wss = new WebSocketServer({ server });
+const wss = new WebSocketServer({ noServer: true });
+
+server.on('upgrade', (request, socket, head) => {
+  const ip = request.socket.remoteAddress || 'unknown';
+  if (!checkWsIpRateLimit(ip)) {
+    console.warn(`[Security] WebSocket connection attempt from ${ip} rejected: rate limit exceeded.`);
+    socket.write('HTTP/1.1 429 Too Many Requests\r\n\r\n');
+    socket.destroy();
+    return;
+  }
+  
+  wss.handleUpgrade(request, socket, head, (ws) => {
+    wss.emit('connection', ws, request);
+  });
+});
 wss.on('error', (err) => {
   console.error('WSS Server error:', err);
 });
@@ -1409,6 +1442,20 @@ function handleCorruption(filePath: string, error: any) {
 const MAX_AUDIT_LOGS = 1000;
 const orderIndex = new Map<string, Order>();
 const messageIndex = new Map<string, Message[]>();
+
+// Simple in-memory locking mechanism to prevent race conditions on sensitive order state transitions.
+const orderStateLocks = new Set<string>();
+
+function acquireOrderLock(orderId: string) {
+  if (orderStateLocks.has(orderId)) {
+    throw new Error('Action rejected: This order is currently being processed by another operation. Please retry in a moment.');
+  }
+  orderStateLocks.add(orderId);
+}
+
+function releaseOrderLock(orderId: string) {
+  orderStateLocks.delete(orderId);
+}
 
 function registerOrder(o: Order) {
   if (!o.id) return;
@@ -2216,91 +2263,102 @@ app.post('/api/orders/:id/admin-notes', requireAdmin, (req, res) => {
 
 // Upload Deliverable Override / File
 app.post('/api/orders/:id/deliverable', requireAuth, (req, res) => {
-  const order = orderIndex.get(req.params.id);
-  if (!order) return res.status(404).json({ error: 'Order not found' });
-  const authUserId = (req as any).authenticatedUserId;
-  const caller = users.find(u => u.id === authUserId);
-  const isAdmin = caller?.role === 'admin' || caller?.role === 'super_admin';
-  if (!isAdmin && order.sellerId !== authUserId) {
-    return res.status(403).json({ error: 'Forbidden: Only the seller or an administrator can submit deliverables.' });
-  }
+  const orderId = req.params.id;
+  acquireOrderLock(orderId);
+  try {
+    const order = orderIndex.get(orderId);
+    if (!order) return res.status(404).json({ error: 'Order not found' });
+    const authUserId = (req as any).authenticatedUserId;
+    const caller = users.find(u => u.id === authUserId);
+    const isAdmin = caller?.role === 'admin' || caller?.role === 'super_admin';
+    if (!isAdmin && order.sellerId !== authUserId) {
+      return res.status(403).json({ error: 'Forbidden: Only the seller or an administrator can submit deliverables.' });
+    }
 
-  // Only permit delivery submission from valid active states
-  const allowedStatuses = ['funded_in_escrow', 'in_progress', 'revision'];
-  if (!allowedStatuses.includes(order.status)) {
-    return res.status(409).json({ error: `Cannot submit a deliverable for an order in "${order.status}" status.` });
-  }
+    // Only permit delivery submission from valid active states
+    const allowedStatuses = ['funded_in_escrow', 'in_progress', 'revision'];
+    if (!allowedStatuses.includes(order.status)) {
+      return res.status(409).json({ error: `Cannot submit a deliverable for an order in "${order.status}" status.` });
+    }
 
-  if (!order.deliverableFiles) order.deliverableFiles = [];
-  if (!order.deliveryHistory) order.deliveryHistory = [];
+    if (!order.deliverableFiles) order.deliverableFiles = [];
+    if (!order.deliveryHistory) order.deliveryHistory = [];
 
-  const rawFiles = Array.isArray(req.body.files) && req.body.files.length > 0 
-    ? req.body.files 
-    : (req.body.name ? [{ name: req.body.name, size: req.body.size, url: req.body.url }] : []);
-  if (rawFiles.length === 0) {
-    return res.status(400).json({ error: 'At least one uploaded deliverable file is required.' });
-  }
-  const validation = validateStoredWorkstreamFiles(rawFiles, caller);
-  if (!validation.ok) {
-    return res.status(400).json({ error: validation.error });
-  }
+    const rawFiles = Array.isArray(req.body.files) && req.body.files.length > 0 
+      ? req.body.files 
+      : (req.body.name ? [{ name: req.body.name, size: req.body.size, url: req.body.url }] : []);
+    if (rawFiles.length === 0) {
+      return res.status(400).json({ error: 'At least one uploaded deliverable file is required.' });
+    }
+    const validation = validateStoredWorkstreamFiles(rawFiles, caller);
+    if (!validation.ok) {
+      return res.status(400).json({ error: validation.error });
+    }
 
-  const uploadedFiles = validation.files.map((f: any, idx: number) => ({
-    id: 'deliv_' + Date.now() + '_' + idx,
-    name: f.name,
-    size: f.size,
-    url: f.url,
-    uploadedAt: new Date().toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }),
-    type: 'deliverable'
-  }));
+    const uploadedFiles = validation.files.map((f: any, idx: number) => ({
+      id: 'deliv_' + Date.now() + '_' + idx,
+      name: f.name,
+      size: f.size,
+      url: f.url,
+      uploadedAt: new Date().toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }),
+      type: 'deliverable'
+    }));
 
-  order.deliverableFiles.push(...uploadedFiles);
-  order.status = 'delivered';
-  const sanitizedNotes = req.body.notes ? escapeHtml(String(req.body.notes)) : '';
-  order.deliveryNotes = sanitizedNotes;
+    order.deliverableFiles.push(...uploadedFiles);
+    order.status = 'delivered';
+    const sanitizedNotes = req.body.notes ? escapeHtml(String(req.body.notes)) : '';
+    order.deliveryNotes = sanitizedNotes;
 
-  const version = order.deliveryHistory.length + 1;
-  order.deliveryHistory.push({
-    version,
-    notes: sanitizedNotes,
-    files: uploadedFiles,
-    deliveredAt: new Date().toISOString()
-  });
+    const version = order.deliveryHistory.length + 1;
+    order.deliveryHistory.push({
+      version,
+      notes: sanitizedNotes,
+      files: uploadedFiles,
+      deliveredAt: new Date().toISOString()
+    });
 
-  if (order.revisions && order.revisions.length > 0) {
-    for (const rev of order.revisions) {
-      if (rev.status === 'requested') {
-        rev.status = 'resolved';
+    if (order.revisions && order.revisions.length > 0) {
+      for (const rev of order.revisions) {
+        if (rev.status === 'requested') {
+          rev.status = 'resolved';
+        }
       }
     }
+
+    const fileSummary = uploadedFiles.map((f: any) => `"${f.name}" (${f.size})`).join(', ');
+    const sysMsg: Message = {
+      id: 'msg_' + Date.now(),
+      orderId: order.id,
+      senderId: 'system',
+      senderName: 'WorkSphere Deliveries',
+      text: `📦 Deliverable (v${version}) submitted: ${fileSummary}${sanitizedNotes ? ` — "${sanitizedNotes}"` : ''}. Buyer review window initiated.`,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      type: 'system',
+      metadata: {
+        action: 'deliverable_submitted',
+        version,
+        notes: sanitizedNotes
+      }
+    };
+    recordMessage(sysMsg);
+    saveMessagesToDisk();
+    saveOrdersToDisk();
+    broadcastMessage(sysMsg, order.id);
+
+    res.json({ success: true, files: uploadedFiles, file: uploadedFiles[0], order: enrichOrderWithServiceInfo(order) });
+  } catch (err: any) {
+    res.status(400).json({ error: err.message });
+  } finally {
+    releaseOrderLock(orderId);
   }
-
-  const fileSummary = uploadedFiles.map((f: any) => `"${f.name}" (${f.size})`).join(', ');
-  const sysMsg: Message = {
-    id: 'msg_' + Date.now(),
-    orderId: order.id,
-    senderId: 'system',
-    senderName: 'WorkSphere Deliveries',
-    text: `📦 Deliverable (v${version}) submitted: ${fileSummary}${sanitizedNotes ? ` — "${sanitizedNotes}"` : ''}. Buyer review window initiated.`,
-    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    type: 'system',
-    metadata: {
-      action: 'deliverable_submitted',
-      version,
-      notes: sanitizedNotes
-    }
-  };
-  recordMessage(sysMsg);
-  saveMessagesToDisk();
-  saveOrdersToDisk();
-  broadcastMessage(sysMsg, order.id);
-
-  res.json({ success: true, files: uploadedFiles, file: uploadedFiles[0], order: enrichOrderWithServiceInfo(order) });
 });
 
 // Request Revision on Deliverable
 app.post('/api/orders/:id/revision', requireAuth, (req, res) => {
-  const order = orderIndex.get(req.params.id);
+  const orderId = req.params.id;
+  acquireOrderLock(orderId);
+  try {
+    const order = orderIndex.get(orderId);
   if (!order) return res.status(404).json({ error: 'Order not found' });
   const authUserId = (req as any).authenticatedUserId;
   const caller = users.find(u => u.id === authUserId);
@@ -2349,59 +2407,72 @@ app.post('/api/orders/:id/revision', requireAuth, (req, res) => {
   saveOrdersToDisk();
   broadcastMessage(sysMsg, order.id);
 
-  res.json({ success: true, revision: revisionEntry, order: enrichOrderWithServiceInfo(order) });
+    res.json({ success: true, revision: revisionEntry, order: enrichOrderWithServiceInfo(order) });
+  } catch (err: any) {
+    res.status(400).json({ error: err.message });
+  } finally {
+    releaseOrderLock(orderId);
+  }
 });
 
 // Participant (Buyer or Seller) Dispute Creation Flow
 app.post('/api/orders/:id/dispute', requireAuth, (req, res) => {
-  const order = orderIndex.get(req.params.id);
-  if (!order) return res.status(404).json({ error: 'Order not found' });
-  const authUserId = (req as any).authenticatedUserId;
-  if (order.buyerId !== authUserId && order.sellerId !== authUserId) {
-    return res.status(403).json({ error: 'Forbidden: Only order participants can open a dispute.' });
-  }
-  const rawReason = (req.body.reason || '').trim();
-  if (!rawReason) {
-    return res.status(400).json({ error: 'A dispute reason is required.' });
-  }
-  const reason = escapeHtml(rawReason);
-  const existingDispute = disputes.find(d => d.orderId === order.id && (d.status === 'open' || d.status === 'under_investigation'));
-  if (existingDispute) {
-    return res.status(400).json({ error: 'An active dispute already exists for this order.' });
-  }
-
-  const newDispute: Dispute = {
-    id: 'disp_' + Date.now(),
-    orderId: order.id,
-    raisedBy: authUserId === order.buyerId ? 'buyer' : 'seller',
-    reason,
-    evidence: escapeHtml(req.body.evidence || ''),
-    status: 'open',
-    createdAt: new Date().toISOString()
-  };
-  disputes.push(newDispute);
-  order.status = 'disputed';
-
-  const sysMsg: Message = {
-    id: 'msg_' + Date.now(),
-    orderId: order.id,
-    senderId: 'system',
-    senderName: 'WorkSphere Dispute Resolution Desk',
-    text: `🚨 Dispute opened by ${newDispute.raisedBy}: "${reason}". Order placed under review.`,
-    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    type: 'system',
-    metadata: {
-      action: 'dispute_opened',
-      disputeId: newDispute.id,
-      raisedBy: newDispute.raisedBy
+  const orderId = req.params.id;
+  acquireOrderLock(orderId);
+  try {
+    const order = orderIndex.get(orderId);
+    if (!order) return res.status(404).json({ error: 'Order not found' });
+    const authUserId = (req as any).authenticatedUserId;
+    if (order.buyerId !== authUserId && order.sellerId !== authUserId) {
+      return res.status(403).json({ error: 'Forbidden: Only order participants can open a dispute.' });
     }
-  };
-  recordMessage(sysMsg);
-  saveMessagesToDisk();
-  saveOrdersToDisk();
-  broadcastMessage(sysMsg, order.id);
+    const rawReason = (req.body.reason || '').trim();
+    if (!rawReason) {
+      return res.status(400).json({ error: 'A dispute reason is required.' });
+    }
+    const reason = escapeHtml(rawReason);
+    const existingDispute = disputes.find(d => d.orderId === order.id && (d.status === 'open' || d.status === 'under_investigation'));
+    if (existingDispute) {
+      return res.status(400).json({ error: 'An active dispute already exists for this order.' });
+    }
 
-  res.json({ success: true, dispute: newDispute, order: enrichOrderWithServiceInfo(order) });
+    const newDispute: Dispute = {
+      id: 'disp_' + Date.now(),
+      orderId: order.id,
+      raisedBy: authUserId === order.buyerId ? 'buyer' : 'seller',
+      reason,
+      evidence: escapeHtml(req.body.evidence || ''),
+      status: 'open',
+      createdAt: new Date().toISOString()
+    };
+    disputes.push(newDispute);
+    order.status = 'disputed';
+
+    const sysMsg: Message = {
+      id: 'msg_' + Date.now(),
+      orderId: order.id,
+      senderId: 'system',
+      senderName: 'WorkSphere Dispute Resolution Desk',
+      text: `🚨 Dispute opened by ${newDispute.raisedBy}: "${reason}". Order placed under review.`,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      type: 'system',
+      metadata: {
+        action: 'dispute_opened',
+        disputeId: newDispute.id,
+        raisedBy: newDispute.raisedBy
+      }
+    };
+    recordMessage(sysMsg);
+    saveMessagesToDisk();
+    saveOrdersToDisk();
+    broadcastMessage(sysMsg, order.id);
+
+    res.json({ success: true, dispute: newDispute, order: enrichOrderWithServiceInfo(order) });
+  } catch (err: any) {
+    res.status(400).json({ error: err.message });
+  } finally {
+    releaseOrderLock(orderId);
+  }
 });
 
 // Toggle Chat Mute
@@ -2489,6 +2560,8 @@ app.post('/api/users/:id/flag', requireAdmin, (req, res) => {
 
 // Force Complete & Release Funds (admin only)
 app.post('/api/orders/:id/force-complete', requireAdmin, (req, res) => {
+  const orderId = req.params.id;
+  acquireOrderLock(orderId);
   try {
     const order = orderIndex.get(req.params.id);
     if (!order) return res.status(404).json({ error: 'Order not found' });
@@ -2505,11 +2578,15 @@ app.post('/api/orders/:id/force-complete', requireAdmin, (req, res) => {
     res.json({ success: true, order: enrichOrderWithServiceInfo(order), result });
   } catch (err: any) {
     res.status(400).json({ error: err.message });
+  } finally {
+    releaseOrderLock(orderId);
   }
 });
 
 // Force Cancel & Refund Buyer (admin only). A partial refund refunds that amount and releases the rest to the seller.
 app.post('/api/orders/:id/force-cancel', requireAdmin, (req, res) => {
+  const orderId = req.params.id;
+  acquireOrderLock(orderId);
   try {
     const order = orderIndex.get(req.params.id);
     if (!order) return res.status(404).json({ error: 'Order not found' });
@@ -2537,6 +2614,8 @@ app.post('/api/orders/:id/force-cancel', requireAdmin, (req, res) => {
     res.json({ success: true, order: enrichOrderWithServiceInfo(order), result });
   } catch (err: any) {
     res.status(400).json({ error: err.message });
+  } finally {
+    releaseOrderLock(orderId);
   }
 });
 
@@ -2873,6 +2952,9 @@ app.post('/api/payments/withdraw', requireAuth, rateLimit(10, 60_000), handlePay
 
 // Release Escrow Payment (Buyer approves work)
 app.post('/api/payments/escrow/release', requireAuth, (req, res) => {
+  const { orderId } = req.body;
+  if (!orderId) return res.status(400).json({ error: 'Order ID is required' });
+  acquireOrderLock(orderId);
   try {
     const userId = (req as any).authenticatedUserId;
     const caller = users.find(u => u.id === userId);
@@ -2962,11 +3044,16 @@ app.post('/api/payments/escrow/release', requireAuth, (req, res) => {
     res.json({ success: true, order: enrichOrderWithServiceInfo(order), freelancerNet: result.freelancerNet, platformFee: result.platformFee });
   } catch (err: any) {
     res.status(400).json({ error: err.message });
+  } finally {
+    releaseOrderLock(orderId);
   }
 });
 
 // Refund Escrow Payment
 app.post('/api/payments/escrow/refund', requireAuth, (req, res) => {
+  const { orderId } = req.body;
+  if (!orderId) return res.status(400).json({ error: 'Order ID is required' });
+  acquireOrderLock(orderId);
   try {
     const userId = (req as any).authenticatedUserId;
     const caller = users.find(u => u.id === userId);
@@ -3017,6 +3104,8 @@ app.post('/api/payments/escrow/refund', requireAuth, (req, res) => {
     res.json({ success: true, order, refunded: result.refunded });
   } catch (err: any) {
     res.status(400).json({ error: err.message });
+  } finally {
+    releaseOrderLock(orderId);
   }
 });
 
@@ -4211,13 +4300,38 @@ function validateStoredWorkstreamFiles(raw: any[], submitter?: any): { ok: true;
 function cleanupAbandonedWorkstreamUploads() {
   const now = Date.now();
   let changed = false;
+
+  // 1. Clean the index of abandoned entries
   for (const [filename, rec] of Object.entries(workstreamUploadIndex)) {
-    if (now - new Date(rec.createdAt).getTime() < WORKSTREAM_ABANDONED_UPLOAD_TTL_MS) continue;
-    if (workstreamFileReferencedBy(filename).length > 0) continue;
+    const isOld = now - new Date(rec.createdAt).getTime() > WORKSTREAM_ABANDONED_UPLOAD_TTL_MS;
+    if (!isOld) continue;
+
+    const isReferenced = workstreamFileReferencedBy(filename).length > 0;
+    if (isReferenced) continue;
+
     try { fs.unlinkSync(path.join(WORKSTREAM_UPLOADS_DIR, filename)); } catch { /* already gone */ }
     delete workstreamUploadIndex[filename];
     changed = true;
   }
+
+  // 2. Deep Clean: scan filesystem for unindexed "garbage" files
+  try {
+    const filesOnDisk = fs.readdirSync(WORKSTREAM_UPLOADS_DIR);
+    for (const file of filesOnDisk) {
+      if (!workstreamUploadIndex[file]) {
+        // Unindexed file found. Check if it's old enough to be "orphaned" (e.g. 1 hour old)
+        // to avoid deleting files currently being uploaded but not yet indexed.
+        const filePath = path.join(WORKSTREAM_UPLOADS_DIR, file);
+        const stats = fs.statSync(filePath);
+        if (now - stats.mtimeMs > 3600_000) {
+          try { fs.unlinkSync(filePath); } catch {}
+        }
+      }
+    }
+  } catch (e) {
+    console.error('Error during deep Workstream cleanup:', e);
+  }
+
   if (changed) saveWorkstreamUploadIndex();
 }
 
@@ -5074,6 +5188,8 @@ app.delete('/api/admin/users/:id', (req, res) => {
 
 // Dispute Resolution Endpoint: final outcomes actually move the escrowed money
 app.patch('/api/admin/disputes/:id/resolve', requireAdmin, (req, res) => {
+  // We don't have orderId yet, so we acquire it inside the try block after looking up the dispute.
+  let lockedOrderId: string | null = null;
   try {
     const d = disputes.find(disp => disp.id === req.params.id);
     if (!d) return res.status(404).json({ error: 'Dispute not found' });
@@ -5087,6 +5203,8 @@ app.patch('/api/admin/disputes/:id/resolve', requireAdmin, (req, res) => {
     const order = orderIndex.get(d.orderId);
     if (status.startsWith('resolved')) {
       if (!order) return res.status(404).json({ error: 'Order for this dispute not found' });
+      lockedOrderId = order.id;
+      acquireOrderLock(lockedOrderId);
       if (status === 'resolved_release') releaseOrderFunds(order, adminActor(req), reason);
       else if (status === 'resolved_refund') refundOrderFunds(order, undefined, adminActor(req), reason);
       else splitOrderFunds(order, Number(req.body.refundAmount), adminActor(req), reason);
@@ -5105,6 +5223,8 @@ app.patch('/api/admin/disputes/:id/resolve', requireAdmin, (req, res) => {
     res.json(d);
   } catch (err: any) {
     res.status(400).json({ error: err.message });
+  } finally {
+    if (lockedOrderId) releaseOrderLock(lockedOrderId);
   }
 });
 
@@ -5173,6 +5293,7 @@ function setupWebSocketHandlers(ws: WebSocket, authTimeout: NodeJS.Timeout) {
   // Rate limiting map for this socket: max 30 messages per 10 seconds
   let messageCount = 0;
   let resetTime = Date.now() + 10000;
+  let authAttempts = 0;
 
   ws.on('message', (data, isBinary) => {
     try {
@@ -5212,6 +5333,13 @@ function setupWebSocketHandlers(ws: WebSocket, authTimeout: NodeJS.Timeout) {
       }
 
       if (parsed.type === 'AUTHENTICATE') {
+        authAttempts++;
+        if (authAttempts > 3) {
+          ws.send(JSON.stringify({ error: 'Too many authentication attempts' }));
+          try { ws.close(4401, 'Too many auth attempts'); } catch {}
+          return;
+        }
+
         const token = parsed.token;
         if (!token) {
           ws.send(JSON.stringify({ error: 'Token is required' }));
