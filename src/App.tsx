@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
-  Activity, Bell, Briefcase, CheckCircle2, ChevronDown, ChevronRight, Clock,
+  Activity, AlertCircle, Bell, Briefcase, CheckCircle2, ChevronDown, ChevronRight, Clock,
   Filter, Flame, Grid, Heart, HelpCircle, List, Mail, MessageSquare,
   PlusCircle, RefreshCw, Search, Send, Shield, ShieldCheck, Sparkles, Star,
   Trash2, User, Users, Wallet
@@ -65,7 +65,7 @@ import {
   UserEmail 
 } from './types';
 import { useEscrowReviews } from './useEscrowReviews';
-import { getAuthToken, setAuthToken } from './utils/authToken';
+import { getAuthToken, setAuthToken, clearAuthToken } from './utils/authToken';
 
 const CATEGORY_SLUGS: Record<string, string> = {
   'All': 'all',
@@ -238,9 +238,13 @@ export default function App() {
   const [signupConfirmPassword, setSignupConfirmPassword] = useState('');
   const [signupMobile, setSignupMobile] = useState('');
   const [signupName, setSignupName] = useState('');
+  const [signupError, setSignupError] = useState<string | null>(null);
+  const [isSubmittingSignup, setIsSubmittingSignup] = useState(false);
 
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
+  const [loginError, setLoginError] = useState<string | null>(null);
+  const [isSubmittingLogin, setIsSubmittingLogin] = useState(false);
 
   const [verifyEmail, setVerifyEmail] = useState('');
   const [verifyMobile, setVerifyMobile] = useState('');
@@ -1380,10 +1384,18 @@ export default function App() {
 
   const handleSignupSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSignupError(null);
+
     if (signupPassword !== signupConfirmPassword) {
-      alert('Passwords do not match.');
+      setSignupError('Passwords do not match. Please ensure both password fields are identical.');
       return;
     }
+    if (signupPassword.length < 6) {
+      setSignupError('Password must be at least 6 characters long.');
+      return;
+    }
+
+    setIsSubmittingSignup(true);
     try {
       const res = await fetch('/api/auth/signup', {
         method: 'POST',
@@ -1397,7 +1409,9 @@ export default function App() {
         })
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Signup failed');
+      if (!res.ok) {
+        throw new Error(data.error || 'Signup failed');
+      }
 
       if (data.token) setAuthToken(data.token);
       if (data.user) {
@@ -1406,13 +1420,21 @@ export default function App() {
       }
       setVerifyEmail(signupEmail);
       setVerifyMobile(signupMobile);
-      setMockEmailCodeDisplay(data.mockEmailCode || '');
-      setMockSmsCodeDisplay(data.mockSmsCode || '');
+      const emailCode = data.mockEmailCode || '';
+      const smsCode = data.mockSmsCode || '';
+      setMockEmailCodeDisplay(emailCode);
+      setMockSmsCodeDisplay(smsCode);
+      if (emailCode) setEmailCodeInput(emailCode);
+      if (smsCode) setSmsCodeInput(smsCode);
       setIsSignupModalOpen(false);
       setIsVerifyModalOpen(true);
-      alert('Account created successfully! Please verify your email or mobile number.');
+      if (window.location.pathname === '/signup') {
+        navigate('/verify');
+      }
     } catch (err: any) {
-      alert(err.message);
+      setSignupError(err.message || 'Signup failed. Please try again.');
+    } finally {
+      setIsSubmittingSignup(false);
     }
   };
 
@@ -1429,9 +1451,11 @@ export default function App() {
       if (currentUser) {
         updateCurrentUser(prev => prev ? { ...prev, verified: true, emailVerified: true } : null);
       }
-      alert('Email verified successfully! Your account is now verified and usable.');
       setIsVerifyModalOpen(false);
       fetchAllAdminData();
+      if (window.location.pathname === '/signup' || window.location.pathname === '/login' || window.location.pathname === '/verify') {
+        navigate('/');
+      }
     } catch (err: any) {
       alert(err.message);
     }
@@ -1446,8 +1470,9 @@ export default function App() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Resend failed');
-      setMockEmailCodeDisplay(data.mockEmailCode || '');
-      alert('New verification code sent to your email.');
+      const newCode = data.mockEmailCode || '';
+      setMockEmailCodeDisplay(newCode);
+      if (newCode) setEmailCodeInput(newCode);
     } catch (err: any) {
       alert(err.message);
     }
@@ -1466,9 +1491,11 @@ export default function App() {
       if (currentUser) {
         updateCurrentUser(prev => prev ? { ...prev, verified: true, mobileVerified: true } : null);
       }
-      alert('Mobile verified successfully via SMS! Your account is now verified and usable.');
       setIsVerifyModalOpen(false);
       fetchAllAdminData();
+      if (window.location.pathname === '/signup' || window.location.pathname === '/login' || window.location.pathname === '/verify') {
+        navigate('/');
+      }
     } catch (err: any) {
       alert(err.message);
     }
@@ -1483,8 +1510,9 @@ export default function App() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Resend SMS failed');
-      setMockSmsCodeDisplay(data.mockSmsCode || '');
-      alert('New SMS OTP dispatched.');
+      const newCode = data.mockSmsCode || '';
+      setMockSmsCodeDisplay(newCode);
+      if (newCode) setSmsCodeInput(newCode);
     } catch (err: any) {
       alert(err.message);
     }
@@ -1492,6 +1520,8 @@ export default function App() {
 
   const handleLoginSubmit = async (e?: React.FormEvent | React.MouseEvent) => {
     if (e && typeof e.preventDefault === 'function') e.preventDefault();
+    setLoginError(null);
+    setIsSubmittingLogin(true);
     try {
       let deviceId = 'unknown';
       try {
@@ -1516,13 +1546,16 @@ export default function App() {
       });
       const data = await res.json();
 
-      if (!res.ok) throw new Error(data.error || 'Login failed');
+      if (!res.ok) {
+        throw new Error(data.error || 'Invalid email or password. Please check your credentials.');
+      }
 
       if (data.requiresVerification) {
         setLoginRequiresCode(true);
         setLoginVerificationMessage(data.message || 'Verification code sent to your registered email.');
         if (data.mockEmailCode) {
           setMockEmailCodeDisplay(data.mockEmailCode);
+          setLoginCode(data.mockEmailCode);
         }
         return;
       }
@@ -1539,10 +1572,28 @@ export default function App() {
       setLoginCode('');
       setLoginEmail('');
       setLoginPassword('');
-      alert('Logged in successfully!');
+      setLoginError(null);
+      fetchAllAdminData();
+      if (window.location.pathname === '/login' || window.location.pathname === '/signup') {
+        navigate('/');
+      }
     } catch (err: any) {
-      alert(err.message);
+      setLoginError(err.message || 'Login failed. Please check your email and password.');
+    } finally {
+      setIsSubmittingLogin(false);
     }
+  };
+
+  const handleLogout = () => {
+    setImpersonatedUser(null);
+    updateCurrentUser(null);
+    clearAuthToken();
+    localStorage.removeItem('user');
+    localStorage.removeItem('current_user');
+    setLoginEmail('');
+    setLoginPassword('');
+    setLoginError(null);
+    navigate('/login');
   };
 
   const handleForgotRequest = async (e: React.FormEvent) => {
@@ -3040,175 +3091,421 @@ export default function App() {
         {/* VIEW: LOGIN WEBPAGE (/login) */}
         {isLoginRoute && (
           <div className="max-w-md mx-auto space-y-6 font-sans py-8">
-            <div className="bg-white border border-slate-200 rounded-3xl p-8 shadow-sm space-y-6">
-              <div className="text-center space-y-1">
-                <div className="w-12 h-12 rounded-2xl bg-slate-900 text-emerald-400 flex items-center justify-center font-bold text-xl mx-auto shadow-md mb-3">
-                  W
+            {currentUser ? (
+              <div className="bg-white border border-emerald-200 rounded-3xl p-8 shadow-sm space-y-5 text-center">
+                <div className="w-14 h-14 bg-emerald-100 text-emerald-700 rounded-2xl flex items-center justify-center mx-auto">
+                  <CheckCircle2 className="w-8 h-8" />
                 </div>
-                <h1 className="text-2xl font-bold text-fiverr-dark">Login to WorkPerHour</h1>
-                <p className="text-xs text-fiverr-muted">Enter your email credentials or test authentication below.</p>
-              </div>
-
-              {loginRequiresCode ? (
-                <form className="space-y-4">
-                  <div className="p-3 bg-amber-50 border border-amber-200 rounded-2xl text-xs text-amber-800 space-y-1">
-                    <div className="flex items-center gap-1.5 font-bold text-amber-900">
-                      <ShieldCheck className="w-4 h-4 text-amber-600" />
-                      <span>Device Verification Code Required</span>
-                    </div>
-                    <p>{loginVerificationMessage || `Enter the 6-digit verification code sent to ${loginEmail}.`}</p>
-                  </div>
-
-                  {mockEmailCodeDisplay && (
-                    <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 flex items-center justify-between">
-                      <span>Test / Demo OTP:</span>
-                      <span className="font-mono font-bold text-sm bg-white px-2 py-0.5 rounded border border-emerald-200">{mockEmailCodeDisplay}</span>
-                    </div>
-                  )}
-
-                  <div>
-                    <label className="text-xs font-bold text-fiverr-dark uppercase block mb-1">Enter 6-Digit Email Code</label>
-                    <input 
-                      type="text" 
-                      maxLength={6} 
-                      placeholder="123456" 
-                      value={loginCode} 
-                      onChange={(e) => setLoginCode(e.target.value)} 
-                      required 
-                      autoFocus
-                      className="w-full px-4 py-3 border border-slate-200 rounded-xl text-center text-lg font-mono font-bold tracking-widest bg-white focus:outline-emerald-500" 
-                    />
-                  </div>
-
-                  <button type="button" onClick={() => handleLoginSubmit()} className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition cursor-pointer text-xs">
-                    Verify Code & Complete Login
+                <div>
+                  <h1 className="text-xl font-bold text-slate-900">You are already signed in!</h1>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Currently authenticated as <strong>{currentUser.name}</strong> ({currentUser.email}).
+                  </p>
+                </div>
+                <div className="flex flex-col sm:flex-row justify-center gap-3 pt-2">
+                  <button 
+                    onClick={(e) => navigate('/', e)} 
+                    className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs transition cursor-pointer shadow-xs"
+                  >
+                    Go to Marketplace
                   </button>
-
-                  <div className="flex items-center justify-between text-xs pt-1">
-                    <button 
-                      type="button" 
-                      onClick={async () => {
-                        try {
-                          const res = await fetch('/api/auth/resend-email-code', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ email: loginEmail })
-                          });
-                          const data = await res.json();
-                          if (res.ok && data.mockEmailCode) {
-                            setMockEmailCodeDisplay(data.mockEmailCode);
-                            alert('New verification code sent to your email.');
-                          }
-                        } catch (e) {
-                          console.warn(e);
-                        }
-                      }} 
-                      className="text-emerald-700 font-semibold hover:underline cursor-pointer"
-                    >
-                      Resend Code
-                    </button>
-                    <button 
-                      type="button" 
-                      onClick={() => { setLoginRequiresCode(false); setLoginCode(''); }} 
-                      className="text-fiverr-muted hover:text-slate-800 cursor-pointer"
-                    >
-                      Back to Password
-                    </button>
-                  </div>
-                </form>
-              ) : (
-                <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); handleLoginSubmit(e); }}>
-                  <div>
-                    <label className="block text-xs font-bold text-fiverr-dark uppercase mb-1">Email Address</label>
-                    <input type="email" placeholder="e.g. elena@example.com" value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} required className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-slate-900" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-fiverr-dark uppercase mb-1">Password</label>
-                    <input type="password" placeholder="Password (default: password123)" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} required className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-slate-900" />
-                  </div>
-                  <button type="submit" className="w-full py-3 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 transition cursor-pointer text-xs">Sign In</button>
-                  <div className="flex items-center justify-between text-xs pt-2">
-                    <button type="button" onClick={(e) => navigate('/forgot-password', e)} className="text-emerald-700 font-semibold hover:underline cursor-pointer">Forgot Password?</button>
-                    <button type="button" onClick={(e) => navigate('/signup', e)} className="text-fiverr-muted hover:text-slate-900 cursor-pointer">Create an account</button>
-                  </div>
-                </form>
-              )}
-
-              {!import.meta.env.PROD && usersList.length > 0 && (
-              <div className="pt-4 border-t border-slate-100">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-2 text-center">Instant Demo Account Login</span>
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  {usersList.slice(0, 4).map(u => (
-                    <button
-                      key={u.id}
-                      type="button"
-                      onClick={async () => {
-                        try {
-                          const res = await fetch('/api/auth/demo-session', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ userId: u.id })
-                          });
-                          const data = await res.json();
-                          if (res.ok && data.token) {
-                            setAuthToken(data.token);
-                            updateCurrentUser(data.user);
-                            setImpersonatedUser(null);
-                            navigate('/orders');
-                          }
-                        } catch (e) {
-                          console.warn(e);
-                        }
-                      }}
-                      className="p-2 border border-slate-200 rounded-xl hover:border-emerald-500 hover:bg-emerald-50/50 text-left transition cursor-pointer"
-                    >
-                      <div className="font-bold text-fiverr-dark truncate">{u.name}</div>
-                      <div className="text-[10px] text-slate-400 capitalize">{u.role}</div>
-                    </button>
-                  ))}
+                  <button 
+                    onClick={() => handleLogout()} 
+                    className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition cursor-pointer"
+                  >
+                    Log Out / Switch Account
+                  </button>
                 </div>
               </div>
-              )}
-            </div>
+            ) : (
+              <div className="bg-white border border-slate-200 rounded-3xl p-8 shadow-sm space-y-6">
+                <div className="text-center space-y-1">
+                  <div className="w-12 h-12 rounded-2xl bg-slate-900 text-emerald-400 flex items-center justify-center font-bold text-xl mx-auto shadow-md mb-3">
+                    W
+                  </div>
+                  <h1 className="text-2xl font-bold text-fiverr-dark">Login to WorkPerHour</h1>
+                  <p className="text-xs text-fiverr-muted">Enter your email credentials or test authentication below.</p>
+                </div>
+
+                {loginError && (
+                  <div className="p-3.5 bg-red-50 border border-red-200 rounded-2xl text-xs text-red-800 space-y-1">
+                    <div className="flex items-center gap-2 font-bold text-red-900">
+                      <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
+                      <span>{loginError}</span>
+                    </div>
+                  </div>
+                )}
+
+                {loginRequiresCode ? (
+                  <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); handleLoginSubmit(e); }}>
+                    <div className="p-3 bg-amber-50 border border-amber-200 rounded-2xl text-xs text-amber-800 space-y-1">
+                      <div className="flex items-center gap-1.5 font-bold text-amber-900">
+                        <ShieldCheck className="w-4 h-4 text-amber-600 shrink-0" />
+                        <span>Device Verification Code Required</span>
+                      </div>
+                      <p>{loginVerificationMessage || `Enter the 6-digit verification code sent to ${loginEmail}.`}</p>
+                    </div>
+
+                    {mockEmailCodeDisplay && (
+                      <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-2xl text-xs text-emerald-800 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold flex items-center gap-1 text-[11px] uppercase tracking-wider text-emerald-900">
+                            <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+                            <span>Demo 2FA OTP</span>
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setLoginCode(mockEmailCodeDisplay)}
+                            className="text-[11px] font-bold text-emerald-700 hover:underline cursor-pointer"
+                          >
+                            Auto-fill
+                          </button>
+                        </div>
+                        <div className="flex items-center justify-between bg-white px-3 py-1.5 rounded-xl border border-emerald-200">
+                          <span className="font-mono font-bold text-base tracking-widest text-emerald-700">{mockEmailCodeDisplay}</span>
+                          <button
+                            type="button"
+                            onClick={() => setLoginCode(mockEmailCodeDisplay)}
+                            className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-[10px] transition cursor-pointer"
+                          >
+                            Use Code
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    <div>
+                      <label className="text-xs font-bold text-fiverr-dark uppercase block mb-1">Enter 6-Digit Email Code</label>
+                      <input 
+                        type="text" 
+                        maxLength={6} 
+                        placeholder="123456" 
+                        value={loginCode} 
+                        onChange={(e) => setLoginCode(e.target.value.replace(/\D/g, ''))} 
+                        required 
+                        autoFocus
+                        className="w-full px-4 py-3 border border-slate-200 rounded-xl text-center text-lg font-mono font-bold tracking-widest bg-white focus:outline-emerald-500" 
+                      />
+                    </div>
+
+                    <button 
+                      type="submit" 
+                      disabled={isSubmittingLogin}
+                      className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white font-bold rounded-xl transition cursor-pointer text-xs flex items-center justify-center gap-2 shadow-xs"
+                    >
+                      {isSubmittingLogin && <RefreshCw className="w-4 h-4 animate-spin" />}
+                      <span>{isSubmittingLogin ? 'Verifying...' : 'Verify Code & Complete Login'}</span>
+                    </button>
+
+                    <div className="flex items-center justify-between text-xs pt-1">
+                      <button 
+                        type="button" 
+                        onClick={async () => {
+                          try {
+                            const res = await fetch('/api/auth/resend-email-code', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ email: loginEmail })
+                            });
+                            const data = await res.json();
+                            if (res.ok && data.mockEmailCode) {
+                              setMockEmailCodeDisplay(data.mockEmailCode);
+                              setLoginCode(data.mockEmailCode);
+                            }
+                          } catch (e) {
+                            console.warn(e);
+                          }
+                        }} 
+                        className="text-emerald-700 font-semibold hover:underline cursor-pointer"
+                      >
+                        Resend Code
+                      </button>
+                      <button 
+                        type="button" 
+                        onClick={() => { setLoginRequiresCode(false); setLoginCode(''); }} 
+                        className="text-fiverr-muted hover:text-slate-800 cursor-pointer"
+                      >
+                        Back to Password
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); handleLoginSubmit(e); }}>
+                    <div>
+                      <label className="block text-xs font-bold text-fiverr-dark uppercase mb-1">Email Address</label>
+                      <input type="email" placeholder="e.g. elena@example.com" value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} required className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-slate-900" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-fiverr-dark uppercase mb-1">Password</label>
+                      <input type="password" placeholder="Password (default: password123)" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} required className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-slate-900" />
+                    </div>
+                    <button 
+                      type="submit" 
+                      disabled={isSubmittingLogin}
+                      className="w-full py-3 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 disabled:opacity-60 transition cursor-pointer text-xs flex items-center justify-center gap-2"
+                    >
+                      {isSubmittingLogin && <RefreshCw className="w-4 h-4 animate-spin" />}
+                      <span>{isSubmittingLogin ? 'Signing In...' : 'Sign In'}</span>
+                    </button>
+                    <div className="flex items-center justify-between text-xs pt-2">
+                      <button type="button" onClick={(e) => navigate('/forgot-password', e)} className="text-emerald-700 font-semibold hover:underline cursor-pointer">Forgot Password?</button>
+                      <button type="button" onClick={(e) => navigate('/signup', e)} className="text-fiverr-muted hover:text-slate-900 cursor-pointer">Create an account</button>
+                    </div>
+                  </form>
+                )}
+
+                {usersList.length > 0 && !loginRequiresCode && (
+                  <div className="pt-4 border-t border-slate-100">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-2 text-center">Instant Demo Account Login</span>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      {usersList.slice(0, 4).map(u => (
+                        <button
+                          key={u.id}
+                          type="button"
+                          onClick={() => {
+                            updateCurrentUser(u);
+                            setAuthToken('mock_token_' + u.id);
+                            setImpersonatedUser(null);
+                            fetchAllAdminData();
+                            navigate('/');
+                          }}
+                          className="p-2 border border-slate-200 rounded-xl hover:border-emerald-500 hover:bg-emerald-50/50 text-left transition cursor-pointer flex items-center gap-2 group"
+                        >
+                          <img src={u.avatar} alt={u.name} className="w-7 h-7 rounded-full object-cover shrink-0" />
+                          <div className="min-w-0">
+                            <div className="font-bold text-fiverr-dark truncate group-hover:text-emerald-700">{u.name}</div>
+                            <div className="text-[10px] text-slate-400 capitalize">{u.role.replace('_', ' ')}</div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 
         {/* VIEW: SIGNUP WEBPAGE (/signup) */}
         {isSignupRoute && (
           <div className="max-w-md mx-auto space-y-6 font-sans py-8">
-            <div className="bg-white border border-slate-200 rounded-3xl p-8 shadow-sm space-y-6">
-              <div className="text-center space-y-1">
-                <h1 className="text-2xl font-bold text-fiverr-dark">Create WorkPerHour Account</h1>
-                <p className="text-xs text-fiverr-muted">Join the secure escrow marketplace for freelancers and clients.</p>
+            {currentUser && (currentUser.emailVerified || currentUser.verified) ? (
+              <div className="bg-white border border-emerald-200 rounded-3xl p-8 shadow-sm space-y-5 text-center">
+                <div className="w-14 h-14 bg-emerald-100 text-emerald-700 rounded-2xl flex items-center justify-center mx-auto">
+                  <CheckCircle2 className="w-8 h-8" />
+                </div>
+                <div>
+                  <h1 className="text-xl font-bold text-slate-900">You are already signed in!</h1>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Currently authenticated as <strong>{currentUser.name}</strong> ({currentUser.email}).
+                  </p>
+                </div>
+                <div className="flex flex-col sm:flex-row justify-center gap-3 pt-2">
+                  <button 
+                    onClick={(e) => navigate('/', e)} 
+                    className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs transition cursor-pointer shadow-xs"
+                  >
+                    Go to Marketplace
+                  </button>
+                  <button 
+                    onClick={() => handleLogout()} 
+                    className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition cursor-pointer"
+                  >
+                    Log Out / Switch Account
+                  </button>
+                </div>
               </div>
+            ) : currentUser && (!currentUser.emailVerified && !currentUser.verified) ? (
+              <div className="bg-white border border-emerald-200 rounded-3xl p-8 shadow-sm space-y-6">
+                <div className="text-center space-y-1">
+                  <div className="w-12 h-12 bg-emerald-100 text-emerald-700 rounded-2xl flex items-center justify-center mx-auto mb-2">
+                    <CheckCircle2 className="w-7 h-7" />
+                  </div>
+                  <h1 className="text-2xl font-bold text-fiverr-dark">Account Created Successfully!</h1>
+                  <p className="text-xs text-fiverr-muted">
+                    Welcome, <strong>{currentUser.name}</strong>! Please verify your email to activate all features.
+                  </p>
+                </div>
 
-              <form onSubmit={handleSignupSubmit} className="space-y-4 text-xs">
-                <div>
-                  <label className="block text-fiverr-dark font-bold uppercase mb-1">Full Name</label>
-                  <input type="text" placeholder="John Doe" value={signupName} onChange={(e) => setSignupName(e.target.value)} required className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900" />
+                {mockEmailCodeDisplay && (
+                  <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-2xl space-y-2 text-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-emerald-900">
+                        <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>Sandbox Verification Code</span>
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setEmailCodeInput(mockEmailCodeDisplay)}
+                        className="text-[11px] font-bold text-emerald-700 hover:underline cursor-pointer"
+                      >
+                        Auto-fill
+                      </button>
+                    </div>
+                    <div className="flex items-center justify-between bg-white px-3.5 py-2 rounded-xl border border-emerald-200">
+                      <span className="font-mono font-bold text-lg tracking-widest text-emerald-700">{mockEmailCodeDisplay}</span>
+                      <button
+                        type="button"
+                        onClick={() => setEmailCodeInput(mockEmailCodeDisplay)}
+                        className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-xs transition cursor-pointer"
+                      >
+                        Use Code
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                <form onSubmit={handleVerifyEmailSubmit} className="space-y-4 text-xs">
+                  <div>
+                    <label className="block text-slate-700 font-bold uppercase mb-1">Enter 6-Digit Email Code</label>
+                    <input 
+                      type="text" 
+                      maxLength={6} 
+                      placeholder="123456" 
+                      value={emailCodeInput} 
+                      onChange={(e) => setEmailCodeInput(e.target.value.replace(/\D/g, ''))} 
+                      required 
+                      className="w-full px-4 py-3 border border-slate-200 rounded-xl text-center font-mono font-bold text-xl tracking-widest focus:ring-2 focus:ring-emerald-500" 
+                    />
+                  </div>
+
+                  <button 
+                    type="submit" 
+                    className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition cursor-pointer shadow-xs text-sm"
+                  >
+                    Verify Email & Continue
+                  </button>
+
+                  <div className="flex items-center justify-between text-xs pt-2">
+                    <button 
+                      type="button" 
+                      onClick={handleResendEmailCode}
+                      className="text-emerald-700 font-semibold hover:underline cursor-pointer"
+                    >
+                      Resend Code
+                    </button>
+                    <button 
+                      type="button" 
+                      onClick={() => setIsEmailModalOpen(true)}
+                      className="text-slate-600 hover:text-slate-900 cursor-pointer underline"
+                    >
+                      View In-App Email Inbox
+                    </button>
+                  </div>
+                </form>
+              </div>
+            ) : (
+              <div className="bg-white border border-slate-200 rounded-3xl p-8 shadow-sm space-y-6">
+                <div className="text-center space-y-1">
+                  <h1 className="text-2xl font-bold text-fiverr-dark">Create WorkPerHour Account</h1>
+                  <p className="text-xs text-fiverr-muted">Join the secure escrow marketplace for freelancers and clients.</p>
                 </div>
-                <div>
-                  <label className="block text-fiverr-dark font-bold uppercase mb-1">Email Address</label>
-                  <input type="email" placeholder="john@example.com" value={signupEmail} onChange={(e) => setSignupEmail(e.target.value)} required className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900" />
-                </div>
-                <div>
-                  <label className="block text-fiverr-dark font-bold uppercase mb-1">Mobile Phone Number</label>
-                  <input type="tel" placeholder="+1 (555) 000-0000" value={signupMobile} onChange={(e) => setSignupMobile(e.target.value)} required className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900" />
-                </div>
-                <div>
-                  <label className="block text-fiverr-dark font-bold uppercase mb-1">Password</label>
-                  <input type="password" placeholder="At least 6 characters" value={signupPassword} onChange={(e) => setSignupPassword(e.target.value)} required className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900" />
-                </div>
-                <div>
-                  <label className="block text-fiverr-dark font-bold uppercase mb-1">Confirm Password</label>
-                  <input type="password" placeholder="Re-enter password" value={signupConfirmPassword} onChange={(e) => setSignupConfirmPassword(e.target.value)} required className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900" />
-                </div>
-                <button type="submit" className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition cursor-pointer">Register Account</button>
-                <div className="text-center pt-2">
-                  <button type="button" onClick={(e) => navigate('/login', e)} className="text-emerald-700 font-semibold hover:underline cursor-pointer">Already have an account? Login</button>
-                </div>
-              </form>
-            </div>
+
+                {signupError && (
+                  <div className="p-3.5 bg-red-50 border border-red-200 rounded-2xl text-xs text-red-800 space-y-2">
+                    <div className="flex items-center gap-2 font-bold text-red-900">
+                      <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
+                      <span>{signupError}</span>
+                    </div>
+                    {signupError.toLowerCase().includes('already exists') && (
+                      <div className="pt-1">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            setLoginEmail(signupEmail);
+                            navigate('/login', e);
+                          }}
+                          className="px-3.5 py-1.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl transition cursor-pointer text-xs flex items-center gap-1.5"
+                        >
+                          <span>Log In to Existing Account</span>
+                          <span>→</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <form onSubmit={handleSignupSubmit} className="space-y-4 text-xs">
+                  <div>
+                    <label className="block text-fiverr-dark font-bold uppercase mb-1">Full Name</label>
+                    <input 
+                      type="text" 
+                      placeholder="e.g. John Doe" 
+                      value={signupName} 
+                      onChange={(e) => setSignupName(e.target.value)} 
+                      required 
+                      className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-hidden" 
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-fiverr-dark font-bold uppercase mb-1">Email Address</label>
+                    <input 
+                      type="email" 
+                      placeholder="you@example.com" 
+                      value={signupEmail} 
+                      onChange={(e) => setSignupEmail(e.target.value)} 
+                      required 
+                      className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-hidden" 
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-fiverr-dark font-bold uppercase mb-1">Mobile Phone Number</label>
+                    <input 
+                      type="tel" 
+                      placeholder="+1 (555) 000-0000" 
+                      value={signupMobile} 
+                      onChange={(e) => setSignupMobile(e.target.value)} 
+                      required 
+                      className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-hidden" 
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-fiverr-dark font-bold uppercase mb-1">Password</label>
+                    <input 
+                      type="password" 
+                      placeholder="At least 6 characters" 
+                      value={signupPassword} 
+                      onChange={(e) => setSignupPassword(e.target.value)} 
+                      required 
+                      className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-hidden" 
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-fiverr-dark font-bold uppercase mb-1">Confirm Password</label>
+                    <input 
+                      type="password" 
+                      placeholder="Re-enter password" 
+                      value={signupConfirmPassword} 
+                      onChange={(e) => setSignupConfirmPassword(e.target.value)} 
+                      required 
+                      className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-hidden" 
+                    />
+                  </div>
+
+                  <button 
+                    type="submit" 
+                    disabled={isSubmittingSignup}
+                    className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white font-bold rounded-xl transition cursor-pointer flex items-center justify-center gap-2 shadow-xs"
+                  >
+                    {isSubmittingSignup && <RefreshCw className="w-4 h-4 animate-spin" />}
+                    <span>{isSubmittingSignup ? 'Creating Account...' : 'Register Account'}</span>
+                  </button>
+
+                  <div className="text-center pt-2">
+                    <button 
+                      type="button" 
+                      onClick={(e) => {
+                        setLoginEmail(signupEmail);
+                        navigate('/login', e);
+                      }} 
+                      className="text-emerald-700 font-semibold hover:underline cursor-pointer"
+                    >
+                      Already have an account? Login
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
           </div>
         )}
 
@@ -3271,35 +3568,172 @@ export default function App() {
         {/* VIEW: VERIFY CODE WEBPAGE (/verify) */}
         {isVerifyRoute && (
           <div className="max-w-md mx-auto space-y-6 font-sans py-8">
-            <div className="bg-white border border-slate-200 rounded-3xl p-8 shadow-sm space-y-6">
-              <div className="text-center space-y-1">
-                <h1 className="text-2xl font-bold text-fiverr-dark">Verify Your Account</h1>
-                <p className="text-xs text-fiverr-muted">Enter your email or SMS 6-digit verification code below.</p>
+            {currentUser && (currentUser.emailVerified || currentUser.verified) ? (
+              <div className="bg-white border border-emerald-200 rounded-3xl p-8 shadow-sm space-y-5 text-center">
+                <div className="w-14 h-14 bg-emerald-100 text-emerald-700 rounded-2xl flex items-center justify-center mx-auto">
+                  <CheckCircle2 className="w-8 h-8" />
+                </div>
+                <div>
+                  <h1 className="text-xl font-bold text-slate-900">Your Account is Verified!</h1>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Authenticated as <strong>{currentUser.name}</strong> ({currentUser.email}).
+                  </p>
+                </div>
+                <div className="flex flex-col sm:flex-row justify-center gap-3 pt-2">
+                  <button 
+                    onClick={(e) => navigate('/', e)} 
+                    className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs transition cursor-pointer shadow-xs"
+                  >
+                    Go to Marketplace
+                  </button>
+                  <button 
+                    onClick={(e) => navigate('/orders', e)} 
+                    className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition cursor-pointer"
+                  >
+                    View My Orders
+                  </button>
+                </div>
               </div>
+            ) : (
+              <div className="bg-white border border-slate-200 rounded-3xl p-8 shadow-sm space-y-6">
+                <div className="text-center space-y-1">
+                  <h1 className="text-2xl font-bold text-fiverr-dark">Verify Your Account</h1>
+                  <p className="text-xs text-fiverr-muted">
+                    {verificationMode === 'email' 
+                      ? (verifyEmail ? `Enter the 6-digit code generated for ${verifyEmail}` : 'Enter your 6-digit email OTP below.')
+                      : (verifyMobile ? `Enter the 6-digit SMS OTP for ${verifyMobile}` : 'Enter your 6-digit SMS OTP below.')}
+                  </p>
+                </div>
 
-              <div className="flex border-b border-slate-200 text-xs font-bold">
-                <button onClick={() => setVerificationMode('email')} className={`flex-1 py-2 text-center cursor-pointer ${verificationMode === 'email' ? 'border-b-2 border-slate-900 text-slate-900' : 'text-slate-400'}`}>Email Verification</button>
-                <button onClick={() => setVerificationMode('sms')} className={`flex-1 py-2 text-center cursor-pointer ${verificationMode === 'sms' ? 'border-b-2 border-slate-900 text-slate-900' : 'text-slate-400'}`}>SMS Verification</button>
+                {/* Tab Selector */}
+                <div className="flex bg-slate-100 p-1 rounded-2xl">
+                  <button 
+                    onClick={() => setVerificationMode('email')} 
+                    className={`flex-1 py-2 text-center text-xs font-bold rounded-xl transition cursor-pointer ${verificationMode === 'email' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-800'}`}
+                  >
+                    Email Verification
+                  </button>
+                  <button 
+                    onClick={() => setVerificationMode('sms')} 
+                    className={`flex-1 py-2 text-center text-xs font-bold rounded-xl transition cursor-pointer ${verificationMode === 'sms' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-800'}`}
+                  >
+                    SMS Verification
+                  </button>
+                </div>
+
+                {/* Sandbox / Demo OTP Banner */}
+                {(verificationMode === 'email' ? mockEmailCodeDisplay : mockSmsCodeDisplay) ? (
+                  <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-2xl space-y-2 text-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-emerald-900">
+                        <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>Sandbox / Demo Verification Code</span>
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const code = verificationMode === 'email' ? mockEmailCodeDisplay : mockSmsCodeDisplay;
+                          if (verificationMode === 'email') setEmailCodeInput(code);
+                          else setSmsCodeInput(code);
+                        }}
+                        className="text-[11px] font-bold text-emerald-700 hover:underline cursor-pointer"
+                      >
+                        Auto-fill
+                      </button>
+                    </div>
+                    <div className="flex items-center justify-between bg-white px-3.5 py-2 rounded-xl border border-emerald-200">
+                      <span className="font-mono font-bold text-xl tracking-widest text-emerald-700">
+                        {verificationMode === 'email' ? mockEmailCodeDisplay : mockSmsCodeDisplay}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const code = verificationMode === 'email' ? mockEmailCodeDisplay : mockSmsCodeDisplay;
+                          if (verificationMode === 'email') setEmailCodeInput(code);
+                          else setSmsCodeInput(code);
+                        }}
+                        className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-xs transition cursor-pointer"
+                      >
+                        Use Code
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs flex items-center justify-between text-slate-600">
+                    <span>Need your verification code?</span>
+                    <button 
+                      type="button"
+                      onClick={verificationMode === 'email' ? handleResendEmailCode : handleResendSmsCode}
+                      className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-xs transition cursor-pointer"
+                    >
+                      Generate Code
+                    </button>
+                  </div>
+                )}
+
+                {verificationMode === 'email' ? (
+                  <form onSubmit={handleVerifyEmailSubmit} className="space-y-4 text-xs">
+                    <div>
+                      <label className="block font-bold text-fiverr-dark uppercase mb-1">Enter 6-Digit Email Code</label>
+                      <input 
+                        type="text" 
+                        maxLength={6} 
+                        placeholder="123456" 
+                        value={emailCodeInput} 
+                        onChange={(e) => setEmailCodeInput(e.target.value.replace(/\D/g, ''))} 
+                        required 
+                        className="w-full px-4 py-3 border border-slate-200 rounded-xl text-center font-mono font-bold text-xl tracking-widest focus:ring-2 focus:ring-emerald-500" 
+                      />
+                    </div>
+                    <button type="submit" className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition cursor-pointer text-sm shadow-xs">
+                      Verify Email Code
+                    </button>
+                  </form>
+                ) : (
+                  <form onSubmit={handleVerifySmsSubmit} className="space-y-4 text-xs">
+                    <div>
+                      <label className="block font-bold text-fiverr-dark uppercase mb-1">Enter 6-Digit SMS OTP</label>
+                      <input 
+                        type="text" 
+                        maxLength={6} 
+                        placeholder="123456" 
+                        value={smsCodeInput} 
+                        onChange={(e) => setSmsCodeInput(e.target.value.replace(/\D/g, ''))} 
+                        required 
+                        className="w-full px-4 py-3 border border-slate-200 rounded-xl text-center font-mono font-bold text-xl tracking-widest focus:ring-2 focus:ring-emerald-500" 
+                      />
+                    </div>
+                    <button type="submit" className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition cursor-pointer text-sm shadow-xs">
+                      Verify SMS Code
+                    </button>
+                  </form>
+                )}
+
+                <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-100">
+                  <button 
+                    type="button" 
+                    onClick={verificationMode === 'email' ? handleResendEmailCode : handleResendSmsCode}
+                    className="text-emerald-700 font-semibold hover:underline cursor-pointer"
+                  >
+                    Resend Code
+                  </button>
+                  <button 
+                    type="button" 
+                    onClick={() => setIsEmailModalOpen(true)}
+                    className="text-slate-600 hover:text-slate-900 cursor-pointer underline font-medium"
+                  >
+                    Open In-App Email Inbox
+                  </button>
+                  <button 
+                    type="button" 
+                    onClick={(e) => navigate('/login', e)}
+                    className="text-fiverr-muted hover:text-slate-900 cursor-pointer"
+                  >
+                    Back to Login
+                  </button>
+                </div>
               </div>
-
-              {verificationMode === 'email' ? (
-                <form onSubmit={handleVerifyEmailSubmit} className="space-y-4 text-xs">
-                  <div>
-                    <label className="block font-bold text-fiverr-dark uppercase mb-1">Enter 6-Digit Email Code</label>
-                    <input type="text" maxLength={6} placeholder="123456" value={emailCodeInput} onChange={(e) => setEmailCodeInput(e.target.value)} required className="w-full px-4 py-3 border border-slate-200 rounded-xl text-center font-mono font-bold text-lg" />
-                  </div>
-                  <button type="submit" className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition cursor-pointer">Verify Email Code</button>
-                </form>
-              ) : (
-                <form onSubmit={handleVerifySmsSubmit} className="space-y-4 text-xs">
-                  <div>
-                    <label className="block font-bold text-fiverr-dark uppercase mb-1">Enter 6-Digit SMS OTP</label>
-                    <input type="text" maxLength={6} placeholder="123456" value={smsCodeInput} onChange={(e) => setSmsCodeInput(e.target.value)} required className="w-full px-4 py-3 border border-slate-200 rounded-xl text-center font-mono font-bold text-lg" />
-                  </div>
-                  <button type="submit" className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition cursor-pointer">Verify SMS Code</button>
-                </form>
-              )}
-            </div>
+            )}
           </div>
         )}
 
@@ -3939,6 +4373,8 @@ export default function App() {
         fetchAllAdminData={fetchAllAdminData}
         setIsForgotPasswordModalOpen={setIsForgotPasswordModalOpen}
         setMockEmailCodeDisplay={setMockEmailCodeDisplay}
+        loginError={loginError}
+        isSubmittingLogin={isSubmittingLogin}
       />
 
       <SignupModal
@@ -3955,6 +4391,13 @@ export default function App() {
         setSignupPassword={setSignupPassword}
         signupConfirmPassword={signupConfirmPassword}
         setSignupConfirmPassword={setSignupConfirmPassword}
+        signupError={signupError}
+        isSubmittingSignup={isSubmittingSignup}
+        onSwitchToLogin={() => {
+          setIsSignupModalOpen(false);
+          setLoginEmail(signupEmail);
+          setIsLoginModalOpen(true);
+        }}
       />
 
       <VerifyModal
@@ -3970,6 +4413,14 @@ export default function App() {
         handleVerifySmsSubmit={handleVerifySmsSubmit}
         handleResendEmailCode={handleResendEmailCode}
         handleResendSmsCode={handleResendSmsCode}
+        verifyEmail={verifyEmail}
+        verifyMobile={verifyMobile}
+        mockEmailCodeDisplay={mockEmailCodeDisplay}
+        mockSmsCodeDisplay={mockSmsCodeDisplay}
+        onOpenEmailInbox={() => {
+          setIsVerifyModalOpen(false);
+          setIsEmailModalOpen(true);
+        }}
       />
 
       {/* GLOBAL INSPECT GIG DETAILS MODAL */}

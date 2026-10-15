@@ -14,6 +14,7 @@ export interface Review {
   reviewerName?: string;
   reviewerAvatar?: string;
   buyerName?: string;
+  buyerAvatar?: string;
   userName?: string;
   avatar?: string;
   userAvatar?: string;
@@ -84,27 +85,66 @@ export interface Project {
   buyerMemberSince?: string;
   buyerProjectsPosted?: number;
   attachments?: Array<{ name: string; size: string; url?: string }>;
+  clarificationQuestions?: Array<any>;
+}
 
+export interface Proposal {
+  id: string;
+  projectId: string;
+  freelancerId: string;
+  freelancerName: string;
+  freelancerAvatar: string;
+  freelancerTitle: string;
+  coverLetter: string;
+  bidAmount: number;
+  deliveryDays: number;
+  createdAt: string;
+  status: 'pending' | 'accepted' | 'rejected';
+}
 
+export interface DeliveryRecord {
+  version: number;
+  notes?: string;
+  message?: string;
+  files: Array<{ id?: string; name: string; size: string; url: string; uploadedAt?: string }>;
+  deliveredAt: string;
+}
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+export interface Order {
+  id: string;
+  title: string;
+  buyerId: string;
+  sellerId: string;
+  amount: number;
+  status: 'funded_in_escrow' | 'in_progress' | 'delivered' | 'completed' | 'disputed' | 'revision' | 'cancelled';
+  createdAt: string;
+  completedAt?: string;
+  dueDate: string;
+  requirements?: string;
+  deliverables?: string;
+  deliverableFiles?: Array<{ id?: string; name: string; url: string; size: string; uploadedAt?: string }>;
+  revisions?: Array<{ id: string; requestedAt: string; reason: string; status: string; version?: number; deliveryVersion?: number }>;
+  adminNotes?: string;
+  isMuted?: boolean;
+  escrowProtectionStartDate?: string;
+  escrowProtectionEndDate?: string;
+  gigId?: string;
+  projectId?: string;
+  serviceUrl?: string;
+  gigSlug?: string;
+  sellerUsername?: string;
+  buyerUsername?: string;
+  serviceTitle?: string;
+  serviceThumbnail?: string;
+  isTimerPaused?: boolean;
+  feeBreakdown?: OrderFeeBreakdown;
+  deliveryHistory?: DeliveryRecord[];
+  deliveryNotes?: string;
+  acceptedVersion?: number;
+  reviewWindowDays?: number;
+  reviewWindowExpiresAt?: string;
+  review?: Review;
+}
 
 export interface UserAccount {
   id: string;
@@ -140,6 +180,7 @@ export interface UserAccount {
   languages?: string[];
   certifications?: string[];
   knownDevices?: string[];
+  password?: string;
 }
 
 export type User = UserAccount;

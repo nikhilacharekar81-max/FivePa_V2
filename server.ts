@@ -175,6 +175,7 @@ function resolveAuthenticatedUserId(req: Request): string | null {
   if (authUser && typeof authUser === 'string' && authUser.trim()) {
     return authUser.trim();
   }
+  return null;
 }
 // ROBUST USER ACCOUNT SYSTEM & VERIFICATION
 // ==========================================
@@ -263,6 +264,9 @@ app.post('/api/auth/signup', async (req, res) => {
       attempts: 0
     });
 
+    console.log(`[AUTH SIGNUP] Email verification code for ${normalizedEmail}: ${emailCode}`);
+    console.log(`[AUTH SIGNUP] SMS verification code for ${mobile.trim()}: ${smsCode}`);
+
     userEmails.unshift({
       id: 'email_' + Date.now(),
       userId: newUserId,
@@ -335,6 +339,19 @@ app.post('/api/auth/resend-email-code', (req, res) => {
     attempts: 0
   });
 
+  const user = users.find(u => u.email && u.email.toLowerCase() === normalizedEmail);
+  userEmails.unshift({
+    id: 'email_' + Date.now(),
+    userId: user?.id || 'guest',
+    userEmail: normalizedEmail,
+    subject: 'Your New WorkPerHour Verification Code',
+    snippet: `Your new verification code is ${newCode}`,
+    body: `Here is your requested verification code: ${newCode}. It is valid for 15 minutes.`,
+    date: new Date().toLocaleDateString(),
+    read: false
+  });
+
+  console.log(`[AUTH RESEND] Email verification code for ${normalizedEmail}: ${newCode}`);
   res.json({ success: true, message: 'New verification code generated and sent.', mockEmailCode: newCode });
 });
 
@@ -385,6 +402,7 @@ app.post('/api/auth/resend-sms-code', (req, res) => {
     attempts: 0
   });
 
+  console.log(`[AUTH RESEND] SMS verification code for ${cleanMobile}: ${newCode}`);
   res.json({ success: true, message: 'New SMS OTP dispatched.', mockSmsCode: newCode });
 });
 
@@ -978,10 +996,11 @@ interface Order {
   amount: number;
   status: 'funded_in_escrow' | 'in_progress' | 'delivered' | 'completed' | 'disputed' | 'revision' | 'cancelled';
   createdAt: string;
+  completedAt?: string;
   dueDate: string;
   requirements?: string;
   deliverables?: string;
-  deliverableFiles?: Array<{ id: string; name: string; url: string; size: string; uploadedAt: string }>;
+  deliverableFiles?: Array<{ id?: string; name: string; url: string; size: string; uploadedAt?: string }>;
   revisions?: Array<{ id: string; requestedAt: string; reason: string; status: string }>;
   adminNotes?: string;
   isMuted?: boolean;
@@ -999,8 +1018,9 @@ interface Order {
   feeBreakdown?: OrderFeeBreakdown;
   deliveryHistory?: Array<{
     version: number;
-    notes: string;
-    files: Array<{ id: string; name: string; size: string; url: string; uploadedAt?: string }>;
+    notes?: string;
+    message?: string;
+    files: Array<{ id?: string; name: string; size: string; url: string; uploadedAt?: string }>;
     deliveredAt: string;
   }>;
   deliveryNotes?: string;
@@ -1109,6 +1129,10 @@ interface Message {
     deliveryVersion?: number;
     requirementText?: string;
     clientMessageId?: string;
+    acceptedVersion?: number;
+    reviewWindowDays?: number;
+    disputeId?: string;
+    raisedBy?: string;
   };
 }
 
@@ -4380,7 +4404,7 @@ export function processAutoAcceptOrders(customNow?: number): Array<{
     }
 
     // 5. Must skip disputed orders
-    if (order.status === 'disputed') continue;
+    if ((order.status as string) === 'disputed') continue;
     const hasDispute = disputes.some(
       d => d.orderId === order.id && (d.status === 'open' || d.status === 'under_investigation')
     );
@@ -5232,7 +5256,7 @@ app.patch('/api/admin/disputes/:id/resolve', requireAdmin, (req, res) => {
 app.post('/api/admin/tickets/:id/reply', (req, res) => {
   const t = supportTickets.find(tick => tick.id === req.params.id);
   if (!t) return res.status(404).json({ error: 'Ticket not found' });
-  t.recordMessage({
+  t.messages.push({
     sender: 'WorkPerHour Support Staff',
     text: req.body.text,
     timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })

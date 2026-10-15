@@ -36,6 +36,46 @@ async function run() {
   const buyerId = 'usr_buyer_auto_' + T0;
   const sellerId = 'usr_seller_auto_' + T0;
 
+  const buyer: UserAccount = {
+    id: buyerId,
+    name: 'Auto Buyer',
+    email: `buyer_${T0}@test.com`,
+    role: 'buyer',
+    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb',
+    title: 'Client',
+    rating: 5,
+    reviewsCount: 0,
+    hourlyRate: 0,
+    earned: 0,
+    completedJobs: 0,
+    bio: '',
+    skills: [],
+    status: 'active',
+    verified: true,
+    walletBalance: 2000,
+    createdAt: new Date().toISOString()
+  };
+
+  const seller: UserAccount = {
+    id: sellerId,
+    name: 'Auto Seller',
+    email: `seller_${T0}@test.com`,
+    role: 'freelancer',
+    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb',
+    title: 'Freelancer',
+    rating: 5,
+    reviewsCount: 0,
+    hourlyRate: 50,
+    earned: 0,
+    completedJobs: 0,
+    bio: '',
+    skills: [],
+    status: 'active',
+    verified: true,
+    walletBalance: 0,
+    createdAt: new Date().toISOString()
+  };
+
   users.push(buyer, seller);
   financeLedger.ensureWallet({ userId: buyerId, name: buyer.name, email: buyer.email, role: 'buyer' });
   financeLedger.ensureWallet({ userId: sellerId, name: seller.name, email: seller.email, role: 'freelancer' });
@@ -223,17 +263,17 @@ async function run() {
 
     }]
   };
-  orders.push(order6);
+  orders.push(order4);
 
   // At day 4 (4 days < 5 days): should NOT auto-accept
   const res4Days = processAutoAcceptOrders(T0);
-  assert.ok(!res4Days.some(p => p.orderId === orderId6), 'Order at 4 days with 5-day window must NOT auto-accept');
-  assert.strictEqual(order6.status, 'delivered');
+  assert.ok(!res4Days.some(p => p.orderId === orderId4), 'Order at 4 days with 5-day window must NOT auto-accept');
+  assert.strictEqual(order4.status, 'delivered');
 
   // Fast forward clock by 2 more days (fake clock = T0 + 2 days, so 6 days after delivery): should auto-accept!
   const res6Days = processAutoAcceptOrders(T0 + 2 * ONE_DAY_MS);
-  assert.ok(res6Days.some(p => p.orderId === orderId6), 'Order at 6 days with 5-day window MUST auto-accept');
-  assert.strictEqual(order6.status, 'completed');
+  assert.ok(res6Days.some(p => p.orderId === orderId4), 'Order at 6 days with 5-day window MUST auto-accept');
+  assert.strictEqual(order4.status, 'completed');
   ok('configurable window (custom 5 days) and fake-clock fast-forwarding verified');
 
   // Reset site settings back to default 3 days
