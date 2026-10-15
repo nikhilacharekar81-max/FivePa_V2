@@ -157,10 +157,12 @@ export interface Order {
     version: number;
     notes?: string;
     message?: string;
+    reference?: string;
     files: Array<{ id?: string; name: string; size: string; url: string; uploadedAt?: string }>;
     deliveredAt: string;
   }>;
   deliveryNotes?: string;
+  deliveryReference?: string;
   acceptedVersion?: number;
   reviewWindowDays?: number;
   reviewWindowExpiresAt?: string;
@@ -272,6 +274,7 @@ export interface Message {
     milestoneTitle?: string;
     version?: number;
     notes?: string;
+    reference?: string;
     reason?: string;
     rating?: number;
     comment?: string;

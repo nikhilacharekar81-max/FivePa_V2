@@ -18,7 +18,7 @@ export function useWorkstreamDelivery({
   setMessages
 }: UseWorkstreamDeliveryProps) {
 
-  const handleDeliverWork = async (delivery: { notes: string; files: Array<{ name: string; size: string; url: string }> }): Promise<boolean> => {
+  const handleDeliverWork = async (delivery: { notes: string; reference?: string; files: Array<{ name: string; size: string; url: string }> }): Promise<boolean> => {
     if (!selectedOrder) return false;
 
     try {
@@ -31,6 +31,7 @@ export function useWorkstreamDelivery({
         },
         body: JSON.stringify({
           notes: delivery.notes,
+          reference: delivery.reference,
           files: delivery.files
         })
       });

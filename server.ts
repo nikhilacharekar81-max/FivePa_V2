@@ -1122,10 +1122,12 @@ interface Order {
     version: number;
     notes?: string;
     message?: string;
+    reference?: string;
     files: Array<{ id?: string; name: string; size: string; url: string; uploadedAt?: string }>;
     deliveredAt: string;
   }>;
   deliveryNotes?: string;
+  deliveryReference?: string;
   acceptedVersion?: number;
   reviewWindowDays?: number;
   reviewWindowExpiresAt?: string;
@@ -1233,6 +1235,7 @@ interface Message {
     milestoneTitle?: string;
     version?: number;
     notes?: string;
+    reference?: string;
     reason?: string;
     rating?: number;
     comment?: string;
@@ -2554,16 +2557,32 @@ app.post('/api/orders/:id/deliverable', requireAuth, (req, res) => {
     const rawFiles = Array.isArray(req.body.files) && req.body.files.length > 0 
       ? req.body.files 
       : (req.body.name ? [{ name: req.body.name, size: req.body.size, url: req.body.url }] : []);
-    if (rawFiles.length === 0) {
-      return res.status(400).json({ error: 'At least one uploaded deliverable file is required.' });
+
+    // A delivery may be a file, a URL/reference (plain text), a written message, or any combination.
+    // URL/reference text is accepted as-is: no reachability/domain/scheme checks, never made clickable.
+    const rawNotes = typeof req.body.notes === 'string' ? req.body.notes
+      : (typeof req.body.message === 'string' ? req.body.message : '');
+    const rawReference = typeof req.body.reference === 'string' ? req.body.reference
+      : (typeof req.body.referenceUrl === 'string' ? req.body.referenceUrl
+      : (!req.body.name && typeof req.body.url === 'string' ? req.body.url : ''));
+    const trimmedNotes = rawNotes.trim();
+    const trimmedReference = rawReference.trim();
+
+    if (rawFiles.length === 0 && !trimmedNotes && !trimmedReference) {
+      return res.status(400).json({ error: 'Add a file, a URL/reference, or a written completion message to submit a delivery.' });
     }
-    const validation = validateStoredWorkstreamFiles(rawFiles, caller);
-    if (!validation.ok) {
-      return res.status(400).json({ error: validation.error });
+
+    let validatedFiles: Array<{ name: string; size: string; url: string }> = [];
+    if (rawFiles.length > 0) {
+      const validation = validateStoredWorkstreamFiles(rawFiles, caller);
+      if (!validation.ok) {
+        return res.status(400).json({ error: validation.error });
+      }
+      validatedFiles = validation.files;
     }
 
     const isDraft = Boolean(req.body.isDraft);
-    const uploadedFiles = validation.files.map((f: any, idx: number) => ({
+    const uploadedFiles = validatedFiles.map((f: any, idx: number) => ({
       id: 'deliv_' + Date.now() + '_' + idx,
       name: f.name,
       size: f.size,
@@ -2574,13 +2593,17 @@ app.post('/api/orders/:id/deliverable', requireAuth, (req, res) => {
 
     order.deliverableFiles.push(...uploadedFiles);
     order.status = isDraft ? 'draft_review' : 'delivered';
-    const sanitizedNotes = req.body.notes ? escapeHtml(String(req.body.notes)) : '';
+    const sanitizedNotes = trimmedNotes ? escapeHtml(trimmedNotes) : '';
+    // Reference is stored verbatim (trimmed, length-capped) and only ever rendered as plain text by React.
+    const storedReference = trimmedReference.slice(0, 2000);
     order.deliveryNotes = sanitizedNotes;
+    order.deliveryReference = storedReference;
 
     const version = order.deliveryHistory.length + 1;
     order.deliveryHistory.push({
       version,
       notes: sanitizedNotes,
+      reference: storedReference || undefined,
       files: uploadedFiles,
       deliveredAt: new Date().toISOString()
     });
@@ -2593,7 +2616,10 @@ app.post('/api/orders/:id/deliverable', requireAuth, (req, res) => {
       }
     }
 
-    const fileSummary = uploadedFiles.map((f: any) => `"${f.name}" (${f.size})`).join(', ');
+    const summaryParts: string[] = [];
+    if (uploadedFiles.length > 0) summaryParts.push(uploadedFiles.map((f: any) => `"${f.name}" (${f.size})`).join(', '));
+    if (storedReference) summaryParts.push(`Reference: ${storedReference}`);
+    const fileSummary = summaryParts.length > 0 ? summaryParts.join(' | ') : 'written completion update';
     const sysMsg: Message = {
       id: 'msg_' + Date.now(),
       orderId: order.id,
@@ -2605,7 +2631,8 @@ app.post('/api/orders/:id/deliverable', requireAuth, (req, res) => {
       metadata: {
         action: 'deliverable_submitted',
         version,
-        notes: sanitizedNotes
+        notes: sanitizedNotes,
+        reference: storedReference || undefined
       }
     };
     recordMessage(sysMsg);

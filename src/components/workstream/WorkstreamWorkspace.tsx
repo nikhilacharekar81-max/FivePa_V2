@@ -301,6 +301,12 @@ export const WorkstreamWorkspace: React.FC<WorkstreamWorkspaceProps> = ({
                     ? `You have ${reviewDays} days from delivery to review the work. If no revisions or disputes are requested, escrow funds automatically release to the seller.`
                     : `The buyer has ${reviewDays} days to review delivery v${latestDelivery?.version || 1}. Escrow automatically releases upon window expiry.`}
                 </p>
+                {((order as any).deliveryReference || latestDelivery?.reference) && (
+                  <div className="mt-1.5 p-2 bg-amber-100/60 rounded-lg text-[11px] font-mono text-amber-950 border border-amber-300/60 break-all select-all">
+                    <span className="font-bold font-sans text-amber-900 block text-[10px] uppercase tracking-wider">Submitted Reference URL / Text:</span>
+                    {(order as any).deliveryReference || latestDelivery?.reference}
+                  </div>
+                )}
               </div>
             </div>
             {currentUser?.id === order.buyerId && (

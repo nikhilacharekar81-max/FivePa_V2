@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { X, Send, Paperclip, FileText, CheckCircle2 } from 'lucide-react';
+import { X, Send, Paperclip, FileText, CheckCircle2, Link as LinkIcon } from 'lucide-react';
 import { WorkstreamItem } from './types';
 import { uploadWorkstreamFile } from '../../utils/workstreamUpload';
 
@@ -9,8 +9,9 @@ interface WorkstreamDeliverModalProps {
   onClose: () => void;
   onSubmitDelivery: (delivery: {
     notes: string;
+    reference?: string;
     files: Array<{ name: string; size: string; url: string }>;
-  }) => void;
+  }) => void | Promise<boolean | void>;
 }
 
 export const WorkstreamDeliverModal: React.FC<WorkstreamDeliverModalProps> = ({
@@ -19,7 +20,8 @@ export const WorkstreamDeliverModal: React.FC<WorkstreamDeliverModalProps> = ({
   onClose,
   onSubmitDelivery
 }) => {
-  const [notes, setNotes] = useState('Hi! I have completed all agreed deliverables for your review. Please inspect the attached assets.');
+  const [notes, setNotes] = useState('Hi! I have completed all agreed deliverables for your review. Please inspect the submitted assets.');
+  const [reference, setReference] = useState('');
   const [attachedFiles, setAttachedFiles] = useState<Array<{ name: string; size: string; url: string }>>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -45,8 +47,14 @@ export const WorkstreamDeliverModal: React.FC<WorkstreamDeliverModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!notes.trim() && !reference.trim() && attachedFiles.length === 0) {
+      alert('Add a file, a URL/reference link, or a written message to submit a delivery.');
+      return;
+    }
+
     await onSubmitDelivery({
       notes: notes.trim(),
+      reference: reference.trim() || undefined,
       files: attachedFiles
     });
     onClose();
@@ -76,16 +84,30 @@ export const WorkstreamDeliverModal: React.FC<WorkstreamDeliverModalProps> = ({
         <form onSubmit={handleSubmit} className="space-y-4 text-xs">
           <div>
             <label className="block text-fiverr-dark font-bold uppercase tracking-wider text-[10px] mb-1.5">
-              Delivery Notes & Presentation
+              Delivery Notes & Completion Presentation
             </label>
             <textarea
-              rows={4}
-              required
+              rows={3}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Explain deliverables, provide live test links, or include installation steps..."
               className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-fiverr-dark placeholder-slate-400 focus:outline-none focus:border-emerald-500 focus:bg-white resize-none leading-relaxed"
             />
+          </div>
+
+          <div>
+            <label className="block text-fiverr-dark font-bold uppercase tracking-wider text-[10px] mb-1.5 flex items-center gap-1">
+              <LinkIcon className="w-3 h-3 text-slate-500" />
+              <span>Reference Link / Live Deliverable URL (Optional)</span>
+            </label>
+            <input
+              type="text"
+              value={reference}
+              onChange={(e) => setReference(e.target.value)}
+              placeholder="e.g. https://github.com/myorg/project or Figma preview link"
+              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-fiverr-dark placeholder-slate-400 focus:outline-none focus:border-emerald-500 focus:bg-white"
+            />
+            <p className="text-[10px] text-slate-400 mt-1">Rendered as plain text verbatim for client verification.</p>
           </div>
 
           <div>
