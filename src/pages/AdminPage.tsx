@@ -50,7 +50,7 @@ export interface AdminPageProps {
   smallOrderFeeAmount?: number;
   escrowProtectionDays?: number;
   navigate: (to: string, e?: React.MouseEvent) => void;
-  fetchAllAdminData: () => Promise<void> | void;
+  refresh: () => Promise<void> | void;
   getDeviceId?: () => string;
 }
 
@@ -71,7 +71,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
   smallOrderFeeAmount = 3.5,
   escrowProtectionDays = 14,
   navigate,
-  fetchAllAdminData,
+  refresh,
   getDeviceId = defaultGetDeviceId
 }) => {
   // Navigation: 21 Admin Modules
@@ -146,7 +146,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
               setAdminLoginRequiresCode(false);
               setAdminLoginCode('');
               alert('Admin session verified successfully! Welcome to Admin Dashboard.');
-              fetchAllAdminData();
+              refresh();
             } catch (err: any) {
               alert(err.message);
             }
@@ -443,7 +443,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
             users={usersList}
             gigs={gigs}
             currentUser={effectiveAdminUser}
-            onRefreshOrders={fetchAllAdminData}
+            onRefreshOrders={refresh}
             getGigUrl={(gig: any) => `/${gig.freelancerUsername || 'user'}/${gig.slug || gig.id}`}
           />
         )}
@@ -466,7 +466,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
             projects={projects}
             proposals={proposals}
             currentUser={effectiveAdminUser}
-            onBalanceUpdate={fetchAllAdminData}
+            onBalanceUpdate={refresh}
           />
         )}
 
@@ -531,7 +531,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
             initialSmallOrderFeeThreshold={smallOrderFeeThreshold}
             initialSmallOrderFeeAmount={smallOrderFeeAmount}
             initialEscrowHoldDays={escrowProtectionDays}
-            onSettingsSaved={() => fetchAllAdminData()}
+            onSettingsSaved={() => refresh()}
           />
         )}
 

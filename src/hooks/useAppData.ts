@@ -20,6 +20,7 @@ export const useAppData = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [supportTickets, setSupportTickets] = useState<SupportTicket[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
+  const [userEmails, setUserEmails] = useState<string[]>([]);
   
   const [platformFee, setPlatformFee] = useState<number>(DEFAULT_FEE_CONFIG.commissionPercent);
   const [clientServiceFee, setClientServiceFee] = useState<number>(DEFAULT_FEE_CONFIG.buyerFeePercent);
@@ -29,6 +30,15 @@ export const useAppData = () => {
   
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const fetchUserEmails = async (userId: string) => {
+    try {
+      const res = await fetch(`/api/user-emails/${userId}`);
+      if (res.ok) setUserEmails(await res.json());
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   useEffect(() => {
     if (DatabaseService.Users && DatabaseService.Users.length > 0) setUsers(DatabaseService.Users);
@@ -139,6 +149,7 @@ export const useAppData = () => {
     categories, setCategories,
     supportTickets, setSupportTickets,
     auditLogs, setAuditLogs,
+    userEmails, setUserEmails, fetchUserEmails,
     platformFee, setPlatformFee,
     clientServiceFee, setClientServiceFee,
     smallOrderFeeThreshold, setSmallOrderFeeThreshold,

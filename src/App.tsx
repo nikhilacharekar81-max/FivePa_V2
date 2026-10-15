@@ -144,7 +144,7 @@ export default function App() {
     smallOrderFeeThreshold, setSmallOrderFeeThreshold,
     smallOrderFeeAmount, setSmallOrderFeeAmount,
     escrowProtectionDays, setEscrowProtectionDays,
-    refresh
+    refresh, userEmails, setUserEmails, fetchUserEmails
   } = useAppData();
 
 
@@ -209,7 +209,7 @@ export default function App() {
   const [activeFeatureDropdownGigId, setActiveFeatureDropdownGigId] = useState<string | null>(null);
 
   // User Notifications & Support Desk Modal State
-  const [userEmails, setUserEmails] = useState<UserEmail[]>([]);
+
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
   const [isSupportModalOpen, setIsSupportModalOpen] = useState(false);
   const [isUserSwitchModalOpen, setIsUserSwitchModalOpen] = useState(false);
@@ -594,10 +594,10 @@ export default function App() {
     const token = getAuthToken();
     if (token) {
         loadUserSession().then(() => {
-          fetchAllAdminData();
+          refresh();
         });
     } else {
-        fetchAllAdminData();
+        refresh();
     }
   }, []);
 
@@ -645,37 +645,17 @@ export default function App() {
     }
   };
 
-  const fetchUserEmails = async (userId: string) => {
-    try {
-      const res = await fetch(`/api/user-emails/${userId}`);
-      const data = await safeJson(res, []);
-      setUserEmails(data);
-    } catch (e) {
-      console.error(e);
-    }
-  };
+
+
+
 
   useEffect(() => {
     const activeUserId = impersonatedUser ? impersonatedUser.id : (currentUser ? currentUser.id : null);
     if (activeUserId) {
         fetchUserEmails(activeUserId);
-        fetchAllAdminData();
+        refresh();
     }
   }, [impersonatedUser, currentUser]);
-
-  const fetchAllAdminData = async () => {
-    try {
-      await refresh();
-      const activeUserId = impersonatedUser ? impersonatedUser.id : (currentUser ? currentUser.id : null);
-      if (activeUserId) {
-        fetchUserEmails(activeUserId);
-      }
-    } catch (e) {
-      console.error('Error refreshing app data:', e);
-    }
-  };
-
-
 
   const handleContactSeller = async (sellerId: string, sellerName: string, gigTitle: string, gigId?: string, projectId?: string) => {
     const currentUid = impersonatedUser ? impersonatedUser.id : currentUser?.id;
@@ -891,7 +871,7 @@ export default function App() {
       await fetch(`/api/admin/users/${user.id}/impersonate`, { method: 'POST' });
       setImpersonatedUser(user);
       fetchUserEmails(user.id);
-      fetchAllAdminData();
+      refresh();
       alert(`Started Super Admin Impersonation of ${user.name}. Security notice sent via chat and email.`);
       navigate('/gigs');
     } catch (e) {
@@ -911,7 +891,7 @@ export default function App() {
     }
     setImpersonatedUser(null);
     if (currentUser) fetchUserEmails(currentUser.id);
-    fetchAllAdminData();
+    refresh();
     alert('Impersonation ended. Returned to Admin Console.');
     navigate('/admin');
   };
@@ -946,7 +926,7 @@ export default function App() {
       if (inspectingUser?.id === editingUser.id) setInspectingUser(updated);
       setEditingUser(null);
       alert(`Updated user profile for ${updated.name}`);
-      fetchAllAdminData();
+      refresh();
     } catch (err) {
       console.error(err);
     }
@@ -958,7 +938,7 @@ export default function App() {
       const updated = await res.json();
       setUsersList(prev => prev.map(u => u.id === id ? updated : u));
       if (inspectingUser?.id === id) setInspectingUser(updated);
-      fetchAllAdminData();
+      refresh();
     } catch (err) {
       console.error(err);
     }
@@ -980,7 +960,7 @@ export default function App() {
       } else {
         alert(`User ${targetUser?.name || id} activated successfully.`);
       }
-      fetchAllAdminData();
+      refresh();
     } catch (e) {
       console.error(e);
     }
@@ -993,7 +973,7 @@ export default function App() {
       setUsersList(prev => prev.filter(u => u.id !== userId));
       if (inspectingUser?.id === userId) setInspectingUser(null);
       alert('User account and all associated listings permanently deleted.');
-      fetchAllAdminData();
+      refresh();
     } catch (err) {
       console.error(err);
     }
@@ -1013,7 +993,7 @@ export default function App() {
       if (editingProject?.id === projectId) setEditingProject(updated);
       if (moderatingProject?.id === projectId) setModeratingProject(updated);
       alert(`Project status updated to "${newStatus.toUpperCase()}".`);
-      fetchAllAdminData();
+      refresh();
     } catch (err) {
       console.error(err);
     }
@@ -1025,7 +1005,7 @@ export default function App() {
       const updated = await res.json();
       setProjects(prev => prev.map(p => p.id === projectId ? updated : p));
       if (viewingProject?.id === projectId) setViewingProject(updated);
-      fetchAllAdminData();
+      refresh();
     } catch (err) {
       console.error(err);
     }
@@ -1059,7 +1039,7 @@ export default function App() {
       setProjects(prev => prev.map(p => p.id === editingProject.id ? updated : p));
       setEditingProject(null);
       alert(`Project "${updated.title}" updated successfully.`);
-      fetchAllAdminData();
+      refresh();
     } catch (err) {
       console.error(err);
     }
@@ -1087,7 +1067,7 @@ export default function App() {
       setProjects(prev => prev.map(p => p.id === moderatingProject.id ? updated : p));
       setModeratingProject(null);
       alert(`Moderation review recorded for project "${updated.title}".`);
-      fetchAllAdminData();
+      refresh();
     } catch (err) {
       console.error(err);
     }
@@ -1100,7 +1080,7 @@ export default function App() {
       setProjects(prev => prev.filter(p => p.id !== projectId));
       if (viewingProject?.id === projectId) setViewingProject(null);
       alert('Project deleted successfully.');
-      fetchAllAdminData();
+      refresh();
     } catch (err) {
       console.error(err);
     }
@@ -1118,7 +1098,7 @@ export default function App() {
       setGigs(prev => prev.map(g => g.id === gigId ? updated : g));
       if (viewingGig?.id === gigId) setViewingGig(updated);
       alert(`Service status updated to "${newStatus.toUpperCase()}".`);
-      fetchAllAdminData();
+      refresh();
     } catch (err) {
       console.error(err);
     }
@@ -1131,7 +1111,7 @@ export default function App() {
       setGigs(prev => prev.map(g => g.id === gigId ? updated : g));
       if (viewingGig?.id === gigId) setViewingGig(updated);
       alert(`Service featured status toggled!`);
-      fetchAllAdminData();
+      refresh();
     } catch (err) {
       console.error(err);
     }
@@ -1182,7 +1162,7 @@ export default function App() {
       setEditingGig(null);
       setDeleteSuccessToast(`Gig "${updatedGig.title}" updated successfully.`);
       setTimeout(() => setDeleteSuccessToast(null), 3500);
-      fetchAllAdminData();
+      refresh();
     } catch (err) {
       console.error(err);
     }
@@ -1210,7 +1190,7 @@ export default function App() {
       setGigs(prev => prev.map(g => g.id === moderatingGig.id ? updated : g));
       setModeratingGig(null);
       alert(`Moderation review recorded for service/gig "${updated.title}".`);
-      fetchAllAdminData();
+      refresh();
     } catch (err) {
       console.error(err);
     }
@@ -1248,7 +1228,7 @@ export default function App() {
       setDeleteSuccessToast(null);
     }, 4000);
 
-    fetchAllAdminData();
+    refresh();
   };
 
   const handleOpenEditProposalModal = (p: Proposal) => {
@@ -1274,7 +1254,7 @@ export default function App() {
       setProposals(prev => prev.map(p => p.id === editingProposal.id ? updated : p));
       setEditingProposal(null);
       alert(`Proposal #${updated.id} updated successfully.`);
-      fetchAllAdminData();
+      refresh();
     } catch (err) {
       console.error(err);
     }
@@ -1290,7 +1270,7 @@ export default function App() {
       const updated = await res.json();
       setProposals(prev => prev.map(p => p.id === proposalId ? updated : p));
       alert(`Proposal status updated to ${newStatus}.`);
-      fetchAllAdminData();
+      refresh();
     } catch (err) {
       console.error(err);
     }
@@ -1303,7 +1283,7 @@ export default function App() {
       setProposals(prev => prev.filter(p => p.id !== proposalId));
       if (viewingProposal?.id === proposalId) setViewingProposal(null);
       alert('Proposal deleted successfully.');
-      fetchAllAdminData();
+      refresh();
     } catch (err) {
       console.error(err);
     }
@@ -1383,7 +1363,7 @@ export default function App() {
         updateCurrentUser(prev => prev ? { ...prev, verified: true, emailVerified: true } : null);
       }
       setIsVerifyModalOpen(false);
-      fetchAllAdminData();
+      refresh();
       if (window.location.pathname === '/signup' || window.location.pathname === '/login' || window.location.pathname === '/verify') {
         navigate('/');
       }
@@ -1423,7 +1403,7 @@ export default function App() {
         updateCurrentUser(prev => prev ? { ...prev, verified: true, mobileVerified: true } : null);
       }
       setIsVerifyModalOpen(false);
-      fetchAllAdminData();
+      refresh();
       if (window.location.pathname === '/signup' || window.location.pathname === '/login' || window.location.pathname === '/verify') {
         navigate('/');
       }
@@ -1504,7 +1484,7 @@ export default function App() {
       setLoginEmail('');
       setLoginPassword('');
       setLoginError(null);
-      fetchAllAdminData();
+      refresh();
       if (window.location.pathname === '/login' || window.location.pathname === '/signup') {
         navigate('/');
       }
@@ -1610,7 +1590,7 @@ export default function App() {
       setDisputes(prev => prev.map(d => d.id === id ? updated : d));
       setDisputeNotesText('');
       alert(`Dispute #${id} resolved successfully.`);
-      fetchAllAdminData();
+      refresh();
     } catch (e) {
       console.error(e);
     }
@@ -1663,7 +1643,7 @@ export default function App() {
       const res = await fetch(`/api/admin/payouts/${payoutId}/approve`, { method: 'PATCH' });
       const updated = await res.json();
       setPayouts(prev => prev.map(p => p.id === payoutId ? updated : p));
-      fetchAllAdminData();
+      refresh();
     } catch (e) {
       console.error(e);
     }
@@ -1673,7 +1653,7 @@ export default function App() {
       const res = await fetch(`/api/admin/payouts/${payoutId}/process`, { method: 'PATCH' });
       const updated = await res.json();
       setPayouts(prev => prev.map(p => p.id === payoutId ? updated : p));
-      fetchAllAdminData();
+      refresh();
     } catch (e) {
       console.error(e);
     }
@@ -1683,7 +1663,7 @@ export default function App() {
       const res = await fetch(`/api/admin/payouts/${payoutId}/fail`, { method: 'PATCH' });
       const updated = await res.json();
       setPayouts(prev => prev.map(p => p.id === payoutId ? updated : p));
-      fetchAllAdminData();
+      refresh();
     } catch (e) {
       console.error(e);
     }
@@ -1721,7 +1701,7 @@ export default function App() {
       setOrders(prev => [newOrd, ...prev]);
       setSelectedOrder(newOrd);
       fetchMessages(newOrd.id);
-      fetchAllAdminData();
+      refresh();
       navigate('/orders');
     } catch (err) {
       console.error(err);
@@ -1826,7 +1806,7 @@ export default function App() {
       setProposalCover('');
       setProposalBid('');
       setProposalDays('');
-      fetchAllAdminData();
+      refresh();
     } catch (err: any) {
       alert(err?.message || 'Error submitting proposal');
     }
@@ -1862,7 +1842,7 @@ export default function App() {
         return;
       }
       alert('Proposal submitted successfully!');
-      fetchAllAdminData();
+      refresh();
     } catch (err: any) {
       alert(err?.message || 'Error submitting proposal');
     }
@@ -1908,7 +1888,7 @@ export default function App() {
     }
 
     alert('Gig successfully featured for 7 days! ($10 fee charged to wallet)');
-    fetchAllAdminData();
+    refresh();
   };
 
   const handleOptimizeGigWithAI = async () => {
@@ -1957,7 +1937,7 @@ export default function App() {
       }
       alert('Gig published successfully!');
       navigate('/gigs');
-      fetchAllAdminData();
+      refresh();
     } catch (err: any) {
       alert(err?.message || 'Error publishing gig');
     }
@@ -1997,7 +1977,7 @@ export default function App() {
       }
       alert('Project posted successfully!');
       navigate('/projects');
-      fetchAllAdminData();
+      refresh();
     } catch (err: any) {
       alert(err?.message || 'Error posting project');
     }
@@ -2111,7 +2091,7 @@ export default function App() {
         smallOrderFeeAmount={smallOrderFeeAmount}
         escrowProtectionDays={escrowProtectionDays}
         navigate={navigate}
-        fetchAllAdminData={refresh}
+        refresh={refresh}
         getDeviceId={getDeviceId}
       />
     );
@@ -3240,7 +3220,7 @@ export default function App() {
                             setAuthToken(session.token);
                             updateCurrentUser(session.user);
                             setImpersonatedUser(null);
-                            fetchAllAdminData();
+                            refresh();
                             navigate('/');
                           }}
                           className="p-2 border border-slate-200 rounded-xl hover:border-emerald-500 hover:bg-emerald-50/50 text-left transition cursor-pointer flex items-center gap-2 group"
@@ -4254,7 +4234,7 @@ export default function App() {
       <EmailNotificationsModal 
         isOpen={isEmailModalOpen} 
         onClose={() => setIsEmailModalOpen(false)} 
-        userEmails={userEmails} 
+        userEmails={userEmails as any} 
         userEmail={(impersonatedUser || currentUser)?.email || ''} 
         onMarkAsRead={async (id) => {
           await fetch(`/api/user-emails/${id}/read`, { method: 'PATCH' });
@@ -4307,7 +4287,7 @@ export default function App() {
               projects={projects} 
               proposals={proposals} 
               currentUser={(impersonatedUser || currentUser)!} 
-              onBalanceUpdate={fetchAllAdminData}
+              onBalanceUpdate={refresh}
             />
           </div>
         ) : (
@@ -4344,7 +4324,7 @@ export default function App() {
         usersList={usersList}
         updateCurrentUser={updateCurrentUser}
         setImpersonatedUser={setImpersonatedUser}
-        fetchAllAdminData={fetchAllAdminData}
+        refresh={refresh}
         setIsForgotPasswordModalOpen={setIsForgotPasswordModalOpen}
         setMockEmailCodeDisplay={setMockEmailCodeDisplay}
         loginError={loginError}

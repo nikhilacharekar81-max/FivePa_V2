@@ -20,7 +20,8 @@ assert(ordersBody.includes('resolveGigOrderPrice('), 'POST /api/orders prices gi
 assert(ordersBody.indexOf('resolveGigOrderPrice(') < ordersBody.indexOf('financeLedger.fundEscrow('), 'Server price is resolved before escrow is funded');
 
 // 2. Startup + admin save must push every fee rule into the ledger.
-const configureCalls = server.match(/financeLedger\.configure\(\{[\s\S]*?\}\);/g) || [];
+const serverCode = read('server.ts') + read('src/server/siteSettings.ts');
+const configureCalls = serverCode.match(/financeLedger\.configure\(\{[\s\S]*?\}\);/g) || [];
 assert(configureCalls.length >= 2 && configureCalls.every(c => c.includes('buyerFeePercent') && c.includes('smallOrderFee') && c.includes('smallOrderThreshold')),
   'Every financeLedger.configure() call carries commission + client fee + small-order fee + threshold');
 

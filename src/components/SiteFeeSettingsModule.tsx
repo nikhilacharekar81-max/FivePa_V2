@@ -16,12 +16,14 @@ interface SiteFeeSettingsModuleProps {
   onSettingsSaved?: (newSettings?: any) => void;
 }
 
+import { DEFAULT_FEE_CONFIG } from '../shared/fees';
+
 export const SiteFeeSettingsModule: React.FC<SiteFeeSettingsModuleProps> = ({
   currentUser,
-  initialTakeRate = 20,
-  initialClientServiceFee = 5.5,
-  initialSmallOrderFeeThreshold = 200,
-  initialSmallOrderFeeAmount = 3.5,
+  initialTakeRate = DEFAULT_FEE_CONFIG.commissionPercent,
+  initialClientServiceFee = DEFAULT_FEE_CONFIG.buyerFeePercent,
+  initialSmallOrderFeeThreshold = DEFAULT_FEE_CONFIG.smallOrderThreshold,
+  initialSmallOrderFeeAmount = DEFAULT_FEE_CONFIG.smallOrderFee,
   initialEscrowHoldDays = 14,
   onSettingsSaved
 }) => {

@@ -20,7 +20,7 @@ interface LoginModalProps {
   usersList: UserAccount[];
   updateCurrentUser: (u: UserAccount) => void;
   setImpersonatedUser: any;
-  fetchAllAdminData: () => void;
+  refresh: () => void;
   setIsForgotPasswordModalOpen: (val: boolean) => void;
   setMockEmailCodeDisplay: any;
   loginError?: string | null;
@@ -44,7 +44,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   usersList,
   updateCurrentUser,
   setImpersonatedUser,
-  fetchAllAdminData,
+  refresh,
   setIsForgotPasswordModalOpen,
   setMockEmailCodeDisplay,
   loginError,
@@ -236,7 +236,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                     updateCurrentUser(session.user);
                     setImpersonatedUser(null);
                     onClose();
-                    fetchAllAdminData();
+                    refresh();
                   }}
                   className="p-2 border border-slate-200 hover:border-emerald-500 hover:bg-emerald-50/50 rounded-xl text-left transition-all cursor-pointer group flex items-center gap-2"
                 >
