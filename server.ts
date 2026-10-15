@@ -3004,14 +3004,7 @@ app.post('/api/payments/escrow/release', requireAuth, (req, res) => {
       return res.status(400).json({ error: 'Cannot release escrow: Order is under active dispute. Resolve the dispute first.' });
     }
 
-    const allowedStatuses = ['delivered', 'revision'];
-    if (!allowedStatuses.includes(order.status)) {
-      return res.status(400).json({ error: 'Cannot release escrow: work has not been delivered yet.' });
-    }
 
-    if (!Array.isArray(order.deliveryHistory) || order.deliveryHistory.length === 0) {
-      return res.status(400).json({ error: 'Cannot release escrow before deliverables have been submitted by the seller.' });
-    }
 
     // If releasing while in revision, mark all requested revisions as resolved
     if (order.status === 'revision' && Array.isArray(order.revisions)) {

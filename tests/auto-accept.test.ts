@@ -219,9 +219,10 @@ async function run() {
       version: 1,
       deliveredAt: new Date(T0 - 4 * ONE_DAY_MS).toISOString(),
       message: 'v1 deliverable',
-
+      files: []
     }],
     revisions: [{
+      id: 'rev_1',
       version: 1,
       requestedAt: new Date(T0 - 3 * ONE_DAY_MS).toISOString(),
       reason: 'Please adjust color palette',
@@ -247,9 +248,56 @@ async function run() {
     actor: buyerId
   });
 
+  disputes.push({
+    id: 'disp_' + T0,
+    orderId: orderId4,
+    buyerId,
+    sellerId,
+    reason: 'Defect',
+    status: 'open',
+    createdAt: new Date().toISOString()
+  } as any);
+
   const order4: Order = {
     id: orderId4,
     title: 'Test Disputed Order',
+    buyerId,
+    sellerId,
+    amount: 120,
+    status: 'delivered',
+    createdAt: new Date(T0 - 10 * ONE_DAY_MS).toISOString(),
+    dueDate: new Date(T0 + 2 * ONE_DAY_MS).toISOString(),
+    deliveryHistory: [{
+      version: 1,
+      deliveredAt: new Date(T0 - 8 * ONE_DAY_MS).toISOString(),
+      message: 'v1 deliverable',
+      files: []
+    }]
+  };
+  orders.push(order4);
+
+  const resDispute = processAutoAcceptOrders(T0);
+  assert.ok(!resDispute.some(p => p.orderId === orderId4), 'Order with open dispute must NOT be auto-accepted');
+  assert.strictEqual(order4.status, 'delivered', 'Status must stay delivered while disputed');
+  ok('order with open dispute is exempted from auto-accept');
+
+  // Test configurable review window (e.g. set autoCompleteDeliveredDays to 5 days)
+  siteSettings.updateSection('marketplace', { autoCompleteDeliveredDays: 5, autoCompleteDeliveredEnabled: true }, 'Test Custom Window');
+  assert.strictEqual(getReviewWindowDays(), 5, 'Review window must now be 5 days');
+
+  const orderId5 = 'ord_custom_window_' + T0;
+  financeLedger.fundEscrow({
+    orderId: orderId5,
+    orderTitle: 'Test Custom Window Order',
+    amount: 120,
+    buyerId,
+    sellerId,
+    actor: buyerId
+  });
+
+  const order5: Order = {
+    id: orderId5,
+    title: 'Test Custom Window Order',
     buyerId,
     sellerId,
     amount: 120,
@@ -258,22 +306,22 @@ async function run() {
     dueDate: new Date(T0 + 2 * ONE_DAY_MS).toISOString(),
     deliveryHistory: [{
       version: 1,
-      deliveredAt: new Date(T0 - 5 * ONE_DAY_MS).toISOString(),
+      deliveredAt: new Date(T0 - 4 * ONE_DAY_MS).toISOString(),
       message: 'v1 deliverable',
-
+      files: []
     }]
   };
-  orders.push(order4);
+  orders.push(order5);
 
   // At day 4 (4 days < 5 days): should NOT auto-accept
   const res4Days = processAutoAcceptOrders(T0);
-  assert.ok(!res4Days.some(p => p.orderId === orderId4), 'Order at 4 days with 5-day window must NOT auto-accept');
-  assert.strictEqual(order4.status, 'delivered');
+  assert.ok(!res4Days.some(p => p.orderId === orderId5), 'Order at 4 days with 5-day window must NOT auto-accept');
+  assert.strictEqual(order5.status, 'delivered');
 
   // Fast forward clock by 2 more days (fake clock = T0 + 2 days, so 6 days after delivery): should auto-accept!
   const res6Days = processAutoAcceptOrders(T0 + 2 * ONE_DAY_MS);
-  assert.ok(res6Days.some(p => p.orderId === orderId4), 'Order at 6 days with 5-day window MUST auto-accept');
-  assert.strictEqual(order4.status, 'completed');
+  assert.ok(res6Days.some(p => p.orderId === orderId5), 'Order at 6 days with 5-day window MUST auto-accept');
+  assert.strictEqual(order5.status, 'completed');
   ok('configurable window (custom 5 days) and fake-clock fast-forwarding verified');
 
   // Reset site settings back to default 3 days
