@@ -1642,8 +1642,11 @@ function loadInitialOrdersAndMessages() {
     try {
       const data = fs.readFileSync(ORDERS_FILE, 'utf-8');
       const parsed = JSON.parse(data);
-      if (Array.isArray(parsed)) {
+      if (Array.isArray(parsed) && parsed.length > 0) {
         orders = parsed;
+        orders.forEach(registerOrder);
+      } else {
+        orders = [...SEED_ORDERS];
         orders.forEach(registerOrder);
       }
     } catch (e) {
@@ -1886,7 +1889,13 @@ const handleGetSiteSettings = (req: Request, res: Response) => {
     clientServiceFee: cfg.buyerFeePercent, // alias used by the admin UI
     smallOrderFee: cfg.smallOrderFee,
     smallOrderFeeAmount: cfg.smallOrderFee, // alias used by the admin UI
-    smallOrderFeeThreshold: cfg.smallOrderThreshold
+    smallOrderFeeThreshold: cfg.smallOrderThreshold,
+    minimumGigPrice: DEFAULT_SITE_SETTINGS.marketplace.minimumGigPrice,
+    maximumGigPrice: DEFAULT_SITE_SETTINGS.marketplace.maximumGigPrice,
+    minimumProjectBudget: DEFAULT_SITE_SETTINGS.marketplace.minimumProjectBudget,
+    maximumProjectBudget: DEFAULT_SITE_SETTINGS.marketplace.maximumProjectBudget,
+    gigModerationRequired: DEFAULT_SITE_SETTINGS.marketplace.gigModerationRequired,
+    projectModerationRequired: DEFAULT_SITE_SETTINGS.marketplace.projectModerationRequired
   };
   res.json({ success: true, settings: view, ...view });
 };
@@ -1966,6 +1975,31 @@ const handlePostSiteSettings = (req: Request, res: Response) => {
       DEFAULT_SITE_SETTINGS.marketplace.autoCompleteDeliveredEnabled = body.autoCompleteDeliveredEnabled;
       siteSettings.updateSection('marketplace', { autoCompleteDeliveredEnabled: body.autoCompleteDeliveredEnabled }, body.updatedBy || 'Super Admin');
     }
+
+    // Update Gig and Project marketplace controls
+    if (body.minimumGigPrice !== undefined || body.minGigPrice !== undefined) {
+      const num = Number(body.minimumGigPrice ?? body.minGigPrice);
+      if (!isNaN(num) && num >= 0) DEFAULT_SITE_SETTINGS.marketplace.minimumGigPrice = num;
+    }
+    if (body.maximumGigPrice !== undefined || body.maxGigPrice !== undefined) {
+      const num = Number(body.maximumGigPrice ?? body.maxGigPrice);
+      if (!isNaN(num) && num >= 0) DEFAULT_SITE_SETTINGS.marketplace.maximumGigPrice = num;
+    }
+    if (body.minimumProjectBudget !== undefined || body.minProjectBudget !== undefined) {
+      const num = Number(body.minimumProjectBudget ?? body.minProjectBudget);
+      if (!isNaN(num) && num >= 0) DEFAULT_SITE_SETTINGS.marketplace.minimumProjectBudget = num;
+    }
+    if (body.maximumProjectBudget !== undefined || body.maxProjectBudget !== undefined) {
+      const num = Number(body.maximumProjectBudget ?? body.maxProjectBudget);
+      if (!isNaN(num) && num >= 0) DEFAULT_SITE_SETTINGS.marketplace.maximumProjectBudget = num;
+    }
+    if (body.gigModerationRequired !== undefined) {
+      DEFAULT_SITE_SETTINGS.marketplace.gigModerationRequired = Boolean(body.gigModerationRequired);
+    }
+    if (body.projectModerationRequired !== undefined) {
+      DEFAULT_SITE_SETTINGS.marketplace.projectModerationRequired = Boolean(body.projectModerationRequired);
+    }
+    siteSettings.updateSection('marketplace', DEFAULT_SITE_SETTINGS.marketplace, body.updatedBy || 'Super Admin');
 
     siteFeeSettings = {
       ...siteFeeSettings,
@@ -2667,6 +2701,11 @@ app.post('/api/orders/:id/revision', requireAuth, (req, res) => {
     return res.status(409).json({ error: `Cannot request revisions for an order in "${order.status}" status.` });
   }
 
+  const hasDelivery = (Array.isArray(order.deliverableFiles) && order.deliverableFiles.length > 0) || (Array.isArray(order.deliveryHistory) && order.deliveryHistory.length > 0) || ['delivered', 'revision', 'draft_review', 'work_in_progress'].includes(order.status);
+  if (!hasDelivery) {
+    return res.status(409).json({ error: 'Cannot request revisions before work or a draft has been delivered by the freelancer.' });
+  }
+
   const rawReason = (req.body.reason || '').trim();
   if (!rawReason) {
     return res.status(400).json({ error: 'A revision reason is required.' });
@@ -3276,7 +3315,10 @@ app.post('/api/payments/escrow/release', requireAuth, (req, res) => {
       return res.status(400).json({ error: 'Cannot release escrow: Order is under active dispute. Resolve the dispute first.' });
     }
 
-
+    const hasDelivery = (Array.isArray(order.deliverableFiles) && order.deliverableFiles.length > 0) || (Array.isArray(order.deliveryHistory) && order.deliveryHistory.length > 0) || order.status === 'delivered';
+    if (!isAdmin && !hasDelivery) {
+      return res.status(400).json({ error: 'Cannot release escrow before work has been delivered by the freelancer.' });
+    }
 
     // If releasing while in revision, mark all requested revisions as resolved
     if (order.status === 'revision' && Array.isArray(order.revisions)) {
@@ -4356,25 +4398,10 @@ app.post('/api/reviews', requireAuth, (req, res) => {
     return res.status(409).json({ error: `Reviews can only be submitted for completed or cancelled Workstreams (current status: ${order.status}).` });
   }
 
-  // Check if review already exists for this order & reviewer -> Update existing review
+  // Check if review already exists for this order & reviewer -> Block duplicate submission (409)
   const existingReview = reviews.find(r => r.orderId === order.id && r.reviewerId === caller.id) || (order.review && order.review.reviewerId === caller.id ? order.review : null);
   if (existingReview) {
-    existingReview.rating = numRating;
-    existingReview.comment = escapeHtml(comment.trim());
-    existingReview.updatedAt = new Date().toISOString();
-    order.review = existingReview;
-    saveReviewsToDisk();
-    saveOrdersToDisk();
-
-    const resolvedTargetUserId = targetUserId || (caller.id === order.buyerId ? order.sellerId : order.buyerId);
-    const targetUser = users.find(u => u.id === resolvedTargetUserId);
-    if (targetUser) {
-      const userReviews = reviews.filter(r => r.targetUserId === resolvedTargetUserId);
-      targetUser.reviewsCount = userReviews.length;
-      targetUser.rating = Number((userReviews.reduce((sum, r) => sum + r.rating, 0) / userReviews.length).toFixed(1));
-    }
-
-    return res.json({ success: true, updated: true, review: existingReview, order: enrichOrderWithServiceInfo(order) });
+    return res.status(409).json({ error: 'A review has already been submitted for this order. Use PUT /api/reviews/:id to edit your review.' });
   }
 
   const resolvedTargetUserId = targetUserId || (caller.id === order.buyerId ? order.sellerId : order.buyerId);
@@ -4693,10 +4720,12 @@ function validateMessageFileInfo(fileInfo: any, sender: any):
 }
 
 // Validates that client-submitted file records point at files actually stored by the upload endpoint
-// AND uploaded by the submitting user (or staff).
 function validateStoredWorkstreamFiles(raw: any[], submitter?: any): { ok: true; files: Array<{ name: string; size: string; url: string }> } | { ok: false; error: string } {
   const out: Array<{ name: string; size: string; url: string }> = [];
   for (const f of raw) {
+    if (f?.url === '#' || !f?.url || String(f.url).trim() === '#') {
+      return { ok: false, error: 'Placeholder file URL "#" is not permitted as a file deliverable.' };
+    }
     const filename = workstreamFilenameFromUrl(f?.url);
     if (!filename) {
       out.push({

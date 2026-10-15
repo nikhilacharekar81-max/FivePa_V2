@@ -17378,8 +17378,8 @@ var require_escape_html = __commonJS({
   "node_modules/escape-html/index.js"(exports, module) {
     "use strict";
     var matchHtmlRegExp = /["'&<>]/;
-    module.exports = escapeHtml;
-    function escapeHtml(string) {
+    module.exports = escapeHtml2;
+    function escapeHtml2(string) {
       var str = "" + string;
       var match = matchHtmlRegExp.exec(str);
       if (!match) {
@@ -17510,7 +17510,7 @@ var require_finalhandler = __commonJS({
     "use strict";
     var debug = require_src()("finalhandler");
     var encodeUrl = require_encodeurl();
-    var escapeHtml = require_escape_html();
+    var escapeHtml2 = require_escape_html();
     var onFinished = require_on_finished();
     var parseUrl = require_parseurl();
     var statuses = require_statuses();
@@ -17522,7 +17522,7 @@ var require_finalhandler = __commonJS({
     };
     var isFinished = onFinished.isFinished;
     function createHtmlDocument(message) {
-      var body = escapeHtml(message).replace(NEWLINE_REGEXP, "<br>").replace(DOUBLE_SPACE_REGEXP, " &nbsp;");
+      var body = escapeHtml2(message).replace(NEWLINE_REGEXP, "<br>").replace(DOUBLE_SPACE_REGEXP, " &nbsp;");
       return '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<title>Error</title>\n</head>\n<body>\n<pre>' + body + "</pre>\n</body>\n</html>\n";
     }
     module.exports = finalhandler;
@@ -19178,7 +19178,7 @@ var require_send = __commonJS({
     var deprecate = require_depd()("send");
     var destroy = require_destroy();
     var encodeUrl = require_encodeurl();
-    var escapeHtml = require_escape_html();
+    var escapeHtml2 = require_escape_html();
     var etag = require_etag();
     var fresh = require_fresh();
     var fs3 = __require("fs");
@@ -19278,7 +19278,7 @@ var require_send = __commonJS({
       }
       var res = this.res;
       var msg = statuses.message[status] || String(status);
-      var doc = createHtmlDocument("Error", escapeHtml(msg));
+      var doc = createHtmlDocument("Error", escapeHtml2(msg));
       clearHeaders(res);
       if (err && err.headers) {
         setHeaders(res, err.headers);
@@ -19378,7 +19378,7 @@ var require_send = __commonJS({
         return;
       }
       var loc = encodeUrl(collapseLeadingSlashes(this.path + "/"));
-      var doc = createHtmlDocument("Redirecting", "Redirecting to " + escapeHtml(loc));
+      var doc = createHtmlDocument("Redirecting", "Redirecting to " + escapeHtml2(loc));
       res.statusCode = 301;
       res.setHeader("Content-Type", "text/html; charset=UTF-8");
       res.setHeader("Content-Length", Buffer.byteLength(doc));
@@ -21983,7 +21983,7 @@ var require_response = __commonJS({
     var createError = require_http_errors();
     var deprecate = require_depd()("express");
     var encodeUrl = require_encodeurl();
-    var escapeHtml = require_escape_html();
+    var escapeHtml2 = require_escape_html();
     var http = __require("http");
     var isAbsolute = require_utils2().isAbsolute;
     var onFinished = require_on_finished();
@@ -22389,7 +22389,7 @@ var require_response = __commonJS({
           body = statuses.message[status] + ". Redirecting to " + address;
         },
         html: function() {
-          var u = escapeHtml(address);
+          var u = escapeHtml2(address);
           body = "<p>" + statuses.message[status] + ". Redirecting to " + u + "</p>";
         },
         default: function() {
@@ -22521,7 +22521,7 @@ var require_serve_static = __commonJS({
   "node_modules/serve-static/index.js"(exports, module) {
     "use strict";
     var encodeUrl = require_encodeurl();
-    var escapeHtml = require_escape_html();
+    var escapeHtml2 = require_escape_html();
     var parseUrl = require_parseurl();
     var resolve = __require("path").resolve;
     var send = require_send();
@@ -22608,7 +22608,7 @@ var require_serve_static = __commonJS({
         originalUrl.path = null;
         originalUrl.pathname = collapseLeadingSlashes(originalUrl.pathname + "/");
         var loc = encodeUrl(url.format(originalUrl));
-        var doc = createHtmlDocument("Redirecting", "Redirecting to " + escapeHtml(loc));
+        var doc = createHtmlDocument("Redirecting", "Redirecting to " + escapeHtml2(loc));
         res.statusCode = 301;
         res.setHeader("Content-Type", "text/html; charset=UTF-8");
         res.setHeader("Content-Length", Buffer.byteLength(doc));
@@ -26720,7 +26720,7 @@ var import_dotenv = __toESM(require_main(), 1);
 import path2 from "path";
 import { fileURLToPath as fileURLToPath2 } from "url";
 import { createServer as createViteServer } from "vite";
-import { randomUUID as randomUUID2, randomBytes as randomBytes2, timingSafeEqual, createHmac } from "crypto";
+import { randomUUID as randomUUID2, randomBytes as randomBytes2, randomInt, timingSafeEqual, createHmac } from "crypto";
 
 // node_modules/bcryptjs/index.js
 import nodeCrypto from "crypto";
@@ -29511,7 +29511,9 @@ var DEFAULT_SITE_SETTINGS = {
     minimumGigPrice: 10,
     maximumGigPrice: 1e4,
     minimumProjectBudget: 20,
-    maxActiveOrdersPerFreelancer: 15,
+    maximumProjectBudget: 5e4,
+    maxActiveOrdersPerFreelancer: 0,
+    // 0 for unlimited (allows high-velocity sellers and buyers without artificial caps)
     autoCompleteDeliveredDays: 3,
     autoCompleteDeliveredEnabled: true,
     allowBuyerCancellationRequests: true
@@ -29707,13 +29709,1419 @@ var SiteSettingsService = class {
 var siteSettings = new SiteSettingsService();
 
 // src/data/completeSeedDataset.ts
-var SEED_USERS = [];
-var SEED_GIGS = [];
-var SEED_PROJECTS = [];
-var SEED_PROPOSALS = [];
-var SEED_ORDERS = [];
+var DEV_DEMO_PASSWORD_HASH = "$2a$10$wK1F5N8K7...dummy";
+var DEV_ADMIN_PASSWORD_HASH = "$2a$10$wK1F5N8K7...dummy";
+var SEED_USERS = [
+  {
+    id: "user_1",
+    name: "Alex Rivera",
+    username: "alex_rivera",
+    email: "alex@workperhour.com",
+    mobile: "+14155552671",
+    role: "user",
+    avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&h=400&fit=crop",
+    title: "Senior Full-Stack Architect & SaaS Founder",
+    rating: 4.95,
+    reviewsCount: 22,
+    hourlyRate: 85,
+    earned: 3500,
+    completedJobs: 14,
+    bio: "Full-stack software architect specializing in React, Node.js microservices, and secure Escrow architecture.",
+    skills: ["React", "Node.js", "TypeScript", "PostgreSQL", "WebSockets"],
+    status: "active",
+    verified: true,
+    emailVerified: true,
+    mobileVerified: true,
+    walletBalance: 3500,
+    createdAt: "2026-01-15",
+    password: DEV_DEMO_PASSWORD_HASH,
+    sessionVersion: 1,
+    knownDevices: ["dev_default_session"],
+    isAvailableNow: true,
+    location: "San Francisco, CA",
+    countryFlag: "\u{1F1FA}\u{1F1F8}",
+    responseTime: "1 Hour",
+    category: "Technology & Programming",
+    subcategory: "Web Development",
+    languages: ["English", "Spanish"],
+    certifications: ["AWS Certified Solutions Architect", "Meta React Professional"]
+  },
+  {
+    id: "user_2",
+    name: "Elena Rostova",
+    username: "elena_rostova",
+    email: "elena@design.io",
+    mobile: "+442079460192",
+    role: "user",
+    avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&h=400&fit=crop",
+    title: "Principal UI/UX & Design Systems Lead",
+    rating: 4.98,
+    reviewsCount: 31,
+    hourlyRate: 90,
+    earned: 1080,
+    completedJobs: 1,
+    bio: "Crafting modern Figma UI kits, responsive design systems, and luxury brand visual identities that convert.",
+    skills: ["Figma", "UI/UX Design", "Brand Identity", "Design Systems", "Prototyping"],
+    status: "active",
+    verified: true,
+    emailVerified: true,
+    mobileVerified: true,
+    walletBalance: 1080,
+    createdAt: "2026-02-01",
+    password: DEV_DEMO_PASSWORD_HASH,
+    sessionVersion: 1,
+    knownDevices: ["dev_default_session"],
+    isAvailableNow: true,
+    location: "London, UK",
+    countryFlag: "\u{1F1EC}\u{1F1E7}",
+    responseTime: "30 Mins",
+    category: "Design",
+    subcategory: "Web & UI/UX Design",
+    languages: ["English", "Russian"],
+    certifications: ["Google UX Design Professional Certificate"]
+  },
+  {
+    id: "user_3",
+    name: "Marcus Vance",
+    username: "marcus_vance",
+    email: "marcus@vance.io",
+    mobile: "+14155558832",
+    role: "user",
+    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop",
+    title: "AI Systems & Machine Learning Engineer",
+    rating: 5,
+    reviewsCount: 42,
+    hourlyRate: 110,
+    earned: 2205,
+    completedJobs: 2,
+    bio: "Specializing in Gemini AI agents, ChatGPT API integrations, PyTorch model tuning, and automated agent workflows.",
+    skills: ["Python", "ChatGPT Integration", "AI Agents", "PyTorch", "LangChain"],
+    status: "active",
+    verified: true,
+    emailVerified: true,
+    mobileVerified: true,
+    walletBalance: 2205,
+    createdAt: "2026-01-20",
+    password: DEV_DEMO_PASSWORD_HASH,
+    sessionVersion: 1,
+    knownDevices: ["dev_default_session"],
+    isAvailableNow: true,
+    location: "Austin, TX",
+    countryFlag: "\u{1F1FA}\u{1F1F8}",
+    responseTime: "Instant",
+    category: "AI Services",
+    subcategory: "AI Agents",
+    languages: ["English"],
+    certifications: ["TensorFlow Developer Certified", "DeepLearning.AI Fellow"]
+  },
+  {
+    id: "user_4",
+    name: "Sophia Chen",
+    username: "sophia_chen",
+    email: "sophia@growth.io",
+    mobile: "+12065550143",
+    role: "user",
+    avatar: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&h=400&fit=crop",
+    title: "Growth Marketing & Technical SEO Specialist",
+    rating: 4.92,
+    reviewsCount: 19,
+    hourlyRate: 75,
+    earned: 1800,
+    completedJobs: 8,
+    bio: "Data-driven SEO strategist fixing Core Web Vitals, organic link building, and Google Analytics conversion funnels.",
+    skills: ["SEO Audit", "Google Analytics", "Content Strategy", "Link Building", "SMM"],
+    status: "active",
+    verified: true,
+    emailVerified: true,
+    mobileVerified: true,
+    walletBalance: 1800,
+    createdAt: "2026-02-10",
+    password: DEV_DEMO_PASSWORD_HASH,
+    sessionVersion: 1,
+    knownDevices: ["dev_default_session"],
+    isAvailableNow: true,
+    location: "Seattle, WA",
+    countryFlag: "\u{1F1FA}\u{1F1F8}",
+    responseTime: "2 Hours",
+    category: "Digital Marketing",
+    subcategory: "Search Engine Optimization (SEO)",
+    languages: ["English", "Mandarin"],
+    certifications: ["Google Search Ads Certified", "Ahrefs SEO Specialist"]
+  },
+  {
+    id: "user_5",
+    name: "David Miller",
+    username: "david_miller",
+    email: "david@mobileapps.com",
+    mobile: "+13125550188",
+    role: "user",
+    avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&h=400&fit=crop",
+    title: "iOS & Android Mobile App Developer",
+    rating: 4.88,
+    reviewsCount: 25,
+    hourlyRate: 95,
+    earned: 2100,
+    completedJobs: 11,
+    bio: "Building high-performance React Native and Flutter mobile applications for fintech and healthcare startups.",
+    skills: ["React Native", "Flutter", "iOS", "Android", "Swift"],
+    status: "active",
+    verified: true,
+    emailVerified: true,
+    mobileVerified: true,
+    walletBalance: 2100,
+    createdAt: "2026-01-28",
+    password: DEV_DEMO_PASSWORD_HASH,
+    sessionVersion: 1,
+    knownDevices: ["dev_default_session"],
+    isAvailableNow: true,
+    location: "Chicago, IL",
+    countryFlag: "\u{1F1FA}\u{1F1F8}",
+    responseTime: "1 Hour",
+    category: "Technology & Programming",
+    subcategory: "Mobile Apps",
+    languages: ["English"],
+    certifications: ["Apple Certified iOS Developer"]
+  },
+  {
+    id: "user_6",
+    name: "Priya Sharma",
+    username: "priya_sharma",
+    email: "priya@writers.org",
+    mobile: "+919876543210",
+    role: "user",
+    avatar: "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=400&h=400&fit=crop",
+    title: "Technical Copywriter & Content Strategist",
+    rating: 4.96,
+    reviewsCount: 28,
+    hourlyRate: 60,
+    earned: 1500,
+    completedJobs: 15,
+    bio: "Translating complex software and AI technical concepts into compelling, high-converting copy and API documentation.",
+    skills: ["Technical Writing", "Blog Writing", "Copywriting", "Editing", "Content Marketing"],
+    status: "active",
+    verified: true,
+    emailVerified: true,
+    mobileVerified: true,
+    walletBalance: 1500,
+    createdAt: "2026-02-15",
+    password: DEV_DEMO_PASSWORD_HASH,
+    sessionVersion: 1,
+    knownDevices: ["dev_default_session"],
+    isAvailableNow: true,
+    location: "Bangalore, India",
+    countryFlag: "\u{1F1EE}\u{1F1F3}",
+    responseTime: "30 Mins",
+    category: "Writing & Translation",
+    subcategory: "Technical Writing",
+    languages: ["English", "Hindi"],
+    certifications: ["HubSpot Content Marketing Certified"]
+  },
+  {
+    id: "user_7",
+    name: "Liam O'Connor",
+    username: "liam_oconnor",
+    email: "liam@motionfx.com",
+    mobile: "+35314960123",
+    role: "user",
+    avatar: "https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=400&h=400&fit=crop",
+    title: "Motion Graphics & 3D Video Animator",
+    rating: 4.91,
+    reviewsCount: 18,
+    hourlyRate: 80,
+    earned: 2e3,
+    completedJobs: 9,
+    bio: "Creating 3D motion graphics, high-impact SaaS product explainer videos, and Cinema 4D visual assets.",
+    skills: ["After Effects", "3D Animation", "Video Editing", "Cinema 4D", "Motion Graphics"],
+    status: "active",
+    verified: true,
+    emailVerified: true,
+    mobileVerified: true,
+    walletBalance: 2e3,
+    createdAt: "2026-02-20",
+    password: DEV_DEMO_PASSWORD_HASH,
+    sessionVersion: 1,
+    knownDevices: ["dev_default_session"],
+    isAvailableNow: true,
+    location: "Dublin, Ireland",
+    countryFlag: "\u{1F1EE}\u{1F1EA}",
+    responseTime: "2 Hours",
+    category: "Video, Photo & Image",
+    subcategory: "Animation & Motion Graphics",
+    languages: ["English"],
+    certifications: ["Adobe Certified Expert in After Effects"]
+  },
+  {
+    id: "user_8",
+    name: "Amina Vance",
+    username: "amina_vance",
+    email: "amina@ecom.io",
+    mobile: "+14165550192",
+    role: "user",
+    avatar: "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=400&h=400&fit=crop",
+    title: "E-commerce & Shopify Specialist",
+    rating: 4.94,
+    reviewsCount: 20,
+    hourlyRate: 70,
+    earned: 1200,
+    completedJobs: 7,
+    bio: "Designing custom Liquid themes, Shopify app integrations, and high-converting e-commerce storefronts.",
+    skills: ["Shopify", "E-commerce", "Liquid", "Web Development", "UI Design"],
+    status: "active",
+    verified: true,
+    emailVerified: true,
+    mobileVerified: true,
+    walletBalance: 1200,
+    createdAt: "2026-02-22",
+    password: DEV_DEMO_PASSWORD_HASH,
+    sessionVersion: 1,
+    knownDevices: ["dev_default_session"],
+    isAvailableNow: true,
+    location: "Toronto, Canada",
+    countryFlag: "\u{1F1E8}\u{1F1E6}",
+    responseTime: "1 Hour",
+    category: "Technology & Programming",
+    subcategory: "E-commerce",
+    languages: ["English", "French"],
+    certifications: ["Shopify Partner Certified Developer"]
+  },
+  {
+    id: "user_9",
+    name: "Nikhil (Master Admin)",
+    username: "nikhil_master",
+    email: "nikhilacharekar83@gmail.com",
+    mobile: "+18005550198",
+    role: "super_admin",
+    avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=400&fit=crop",
+    title: "Platform Master Administrator & Architect",
+    rating: 5,
+    reviewsCount: 100,
+    hourlyRate: 150,
+    earned: 365,
+    completedJobs: 0,
+    bio: "Platform Owner and Master Administrator managing escrow arbitration and infrastructure.",
+    skills: ["Administration", "Security", "Escrow Arbitration", "System Architecture"],
+    status: "active",
+    verified: true,
+    emailVerified: true,
+    mobileVerified: true,
+    walletBalance: 1e4,
+    createdAt: "2026-01-01",
+    password: DEV_ADMIN_PASSWORD_HASH,
+    sessionVersion: 1,
+    knownDevices: ["dev_default_session"],
+    isAvailableNow: true,
+    location: "Global Admin",
+    countryFlag: "\u{1F310}",
+    responseTime: "Instant",
+    category: "Business",
+    subcategory: "Project Management",
+    languages: ["English"],
+    certifications: ["System Master"]
+  },
+  {
+    id: "user_10",
+    name: "Super Administrator",
+    username: "superadmin",
+    email: "admin@workperhour.com",
+    mobile: "+18005550199",
+    role: "super_admin",
+    avatar: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=400&h=400&fit=crop",
+    title: "Head of Platform Safety & Escrow Vault",
+    rating: 5,
+    reviewsCount: 100,
+    hourlyRate: 150,
+    earned: 0,
+    completedJobs: 0,
+    bio: "Platform administration and 14-day escrow vault safety oversight.",
+    skills: ["Administration", "Security", "Escrow Audit", "Compliance"],
+    status: "active",
+    verified: true,
+    emailVerified: true,
+    mobileVerified: true,
+    walletBalance: 5e3,
+    createdAt: "2026-01-01",
+    password: DEV_ADMIN_PASSWORD_HASH,
+    sessionVersion: 1,
+    knownDevices: ["dev_default_session"],
+    isAvailableNow: true,
+    location: "United States",
+    countryFlag: "\u{1F1FA}\u{1F1F8}",
+    responseTime: "Instant",
+    category: "Business",
+    subcategory: "Legal Consulting",
+    languages: ["English"],
+    certifications: ["Compliance Security Certified"]
+  }
+];
+var SEED_GIGS = [
+  {
+    id: "gig_1",
+    freelancerId: "user_1",
+    freelancerName: "Alex Rivera",
+    freelancerUsername: "alex_rivera",
+    freelancerAvatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&h=400&fit=crop",
+    freelancerLevel: "Top Rated \u2605",
+    title: "I will build a high-performance full-stack React and Node web application",
+    slug: "i-will-build-a-high-performance-full-stack-react-and-node-web-application",
+    category: "Technology & Programming",
+    subcategory: "Web Development",
+    description: "Build production-grade web applications using React 19, TypeScript, Express Node.js backend, PostgreSQL, and 14-day Escrow architecture.",
+    price: 850,
+    deliveryDays: 7,
+    rating: 5,
+    reviewsCount: 10,
+    image: "https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=800&h=500&fit=crop",
+    status: "published",
+    featured: true,
+    extras: [
+      { id: "ext_1_1", title: "Express 24h Emergency Delivery", price: 150 },
+      { id: "ext_1_2", title: "Add PostgreSQL Database Schema & ORM", price: 100 }
+    ]
+  },
+  {
+    id: "gig_2",
+    freelancerId: "user_2",
+    freelancerName: "Elena Rostova",
+    freelancerUsername: "elena_rostova",
+    freelancerAvatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&h=400&fit=crop",
+    freelancerLevel: "Top Rated \u2605",
+    title: "I will design a complete Figma UI/UX design system and brand kit",
+    slug: "i-will-design-a-complete-figma-ui-ux-design-system-and-brand-kit",
+    category: "Design",
+    subcategory: "Web & UI/UX Design",
+    description: "Comprehensive Figma UI/UX kit, responsive layout tokens, dark/light variants, and vector brand identity assets.",
+    price: 650,
+    deliveryDays: 5,
+    rating: 4.9,
+    reviewsCount: 10,
+    image: "https://images.unsplash.com/photo-1561070791-2526d30994b5?w=800&h=500&fit=crop",
+    status: "published",
+    featured: true,
+    extras: [
+      { id: "ext_2_1", title: "Interactive Mobile Prototype in Figma", price: 120 }
+    ]
+  },
+  {
+    id: "gig_3",
+    freelancerId: "user_3",
+    freelancerName: "Marcus Vance",
+    freelancerUsername: "marcus_vance",
+    freelancerAvatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop",
+    freelancerLevel: "Top Rated \u2605",
+    title: "I will build custom AI agents and ChatGPT API workflows for your product",
+    slug: "i-will-build-custom-ai-agents-and-chatgpt-api-workflows-for-your-product",
+    category: "AI Services",
+    subcategory: "AI Agents",
+    description: "Deploy Gemini and OpenAI AI agents, custom prompt engineering, function calling integrations, and automated AI chat pipelines.",
+    price: 950,
+    deliveryDays: 6,
+    rating: 5,
+    reviewsCount: 10,
+    image: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&h=500&fit=crop",
+    status: "published",
+    featured: true,
+    extras: [
+      { id: "ext_3_1", title: "Fine-tuned Model Embeddings & RAG", price: 200 }
+    ]
+  },
+  {
+    id: "gig_4",
+    freelancerId: "user_4",
+    freelancerName: "Sophia Chen",
+    freelancerUsername: "sophia_chen",
+    freelancerAvatar: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&h=400&fit=crop",
+    freelancerLevel: "Level 2 \u2605",
+    title: "I will deliver a technical SEO audit and high DA link building campaign",
+    slug: "i-will-deliver-a-technical-seo-audit-and-high-da-link-building-campaign",
+    category: "Digital Marketing",
+    subcategory: "Search Engine Optimization (SEO)",
+    description: "Fix Core Web Vitals, implement Schema.org JSON-LD structured data, conduct Lighthouse audits, and acquire high DA backlinks.",
+    price: 450,
+    deliveryDays: 4,
+    rating: 4.95,
+    reviewsCount: 10,
+    image: "https://images.unsplash.com/photo-1432888622747-4eb9a8efeb07?w=800&h=500&fit=crop",
+    status: "published",
+    featured: false,
+    extras: [
+      { id: "ext_4_1", title: "Competitor Keyword Gap Report", price: 80 }
+    ]
+  },
+  {
+    id: "gig_5",
+    freelancerId: "user_5",
+    freelancerName: "David Miller",
+    freelancerUsername: "david_miller",
+    freelancerAvatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&h=400&fit=crop",
+    freelancerLevel: "Level 2 \u2605",
+    title: "I will develop a cross-platform React Native iOS and Android mobile app",
+    slug: "i-will-develop-a-cross-platform-react-native-ios-and-android-mobile-app",
+    category: "Technology & Programming",
+    subcategory: "Mobile Apps",
+    description: "Native-feel mobile apps with React Native, Expo, biometric auth, offline caching, and push notifications.",
+    price: 1200,
+    deliveryDays: 10,
+    rating: 4.85,
+    reviewsCount: 10,
+    image: "https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=800&h=500&fit=crop",
+    status: "published",
+    featured: false,
+    extras: [
+      { id: "ext_5_1", title: "App Store & Google Play Submission", price: 150 }
+    ]
+  },
+  {
+    id: "gig_6",
+    freelancerId: "user_6",
+    freelancerName: "Priya Sharma",
+    freelancerUsername: "priya_sharma",
+    freelancerAvatar: "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=400&h=400&fit=crop",
+    freelancerLevel: "Level 2 \u2605",
+    title: "I will write SEO optimized website copywriting and technical documentation",
+    slug: "i-will-write-seo-optimized-website-copywriting-and-technical-documentation",
+    category: "Writing & Translation",
+    subcategory: "Technical Writing",
+    description: "Engaging SaaS website landing page copy, API documentation guides, blog posts, and technical whitepapers.",
+    price: 300,
+    deliveryDays: 3,
+    rating: 5,
+    reviewsCount: 10,
+    image: "https://images.unsplash.com/photo-1455390582262-044cdead277a?w=800&h=500&fit=crop",
+    status: "published",
+    featured: false,
+    extras: [
+      { id: "ext_6_1", title: "SurferSEO Optimization Score 90+", price: 50 }
+    ]
+  },
+  {
+    id: "gig_7",
+    freelancerId: "user_7",
+    freelancerName: "Liam O'Connor",
+    freelancerUsername: "liam_oconnor",
+    freelancerAvatar: "https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=400&h=400&fit=crop",
+    freelancerLevel: "Level 1 \u2605",
+    title: "I will create a 3D motion graphics explainer video for your SaaS launch",
+    slug: "i-will-create-a-3d-motion-graphics-explainer-video-for-your-saas-launch",
+    category: "Video, Photo & Image",
+    subcategory: "Animation & Motion Graphics",
+    description: "High-end 4K 3D motion graphics animation in After Effects and Cinema 4D with professional voiceover.",
+    price: 750,
+    deliveryDays: 5,
+    rating: 4.9,
+    reviewsCount: 10,
+    image: "https://images.unsplash.com/photo-1536240478700-b869070f9279?w=800&h=500&fit=crop",
+    status: "published",
+    featured: false,
+    extras: [
+      { id: "ext_7_1", title: "Professional Native Voiceover", price: 100 }
+    ]
+  },
+  {
+    id: "gig_8",
+    freelancerId: "user_8",
+    freelancerName: "Amina Vance",
+    freelancerUsername: "amina_vance",
+    freelancerAvatar: "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=400&h=400&fit=crop",
+    freelancerLevel: "Level 1 \u2605",
+    title: "I will setup and customize a high-converting Shopify store",
+    slug: "i-will-setup-and-customize-a-high-converting-shopify-store",
+    category: "Technology & Programming",
+    subcategory: "E-commerce",
+    description: "Custom Liquid theme development, product page optimization, payment gateway setup, and speed tuning.",
+    price: 550,
+    deliveryDays: 4,
+    rating: 4.92,
+    reviewsCount: 10,
+    image: "https://images.unsplash.com/photo-1556742049-0a670f4a4591?w=800&h=500&fit=crop",
+    status: "published",
+    featured: false,
+    extras: [
+      { id: "ext_8_1", title: "Klaviyo Email Automation Flows", price: 90 }
+    ]
+  },
+  {
+    id: "gig_9",
+    freelancerId: "user_3",
+    freelancerName: "Marcus Vance",
+    freelancerUsername: "marcus_vance",
+    freelancerAvatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop",
+    freelancerLevel: "Top Rated \u2605",
+    title: "I will integrate fine-tuned Machine Learning models into your backend",
+    slug: "i-will-integrate-fine-tuned-machine-learning-models-into-your-backend",
+    category: "AI Services",
+    subcategory: "Machine Learning & Data Science",
+    description: "Deploy PyTorch and TensorFlow ML models into Python FastAPI backend with low latency inference.",
+    price: 1100,
+    deliveryDays: 8,
+    rating: 5,
+    reviewsCount: 10,
+    image: "https://images.unsplash.com/photo-1555949963-ff9fe0c870eb?w=800&h=500&fit=crop",
+    status: "published",
+    featured: false,
+    extras: [
+      { id: "ext_9_1", title: "GPU Vector Search Pipeline Setup", price: 250 }
+    ]
+  },
+  {
+    id: "gig_10",
+    freelancerId: "user_2",
+    freelancerName: "Elena Rostova",
+    freelancerUsername: "elena_rostova",
+    freelancerAvatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&h=400&fit=crop",
+    freelancerLevel: "Top Rated \u2605",
+    title: "I will craft a luxury brand identity package and typography guide",
+    slug: "i-will-craft-a-luxury-brand-identity-package-and-typography-guide",
+    category: "Design",
+    subcategory: "Brand Identity",
+    description: "Vector logo suites, color contrast guidelines, typography systems, and social media brand templates.",
+    price: 500,
+    deliveryDays: 4,
+    rating: 4.88,
+    reviewsCount: 10,
+    image: "https://images.unsplash.com/photo-1600132806370-bf17e65e942f?w=800&h=500&fit=crop",
+    status: "published",
+    featured: false,
+    extras: [
+      { id: "ext_10_1", title: "Stationery & Business Card Vectors", price: 70 }
+    ]
+  }
+];
+var SEED_PROJECTS = [
+  {
+    id: "proj_1",
+    buyerId: "user_1",
+    buyerName: "Alex Rivera",
+    buyerAvatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&h=400&fit=crop",
+    title: "Need React & Node.js Developer to build Escrow Payment Dashboard",
+    slug: "need-react-and-nodejs-developer-to-build-escrow-payment-dashboard",
+    category: "Technology & Programming",
+    subcategory: "Web Development",
+    description: "Looking for an expert full-stack developer to construct a double-entry escrow ledger and transaction dashboard in React & Express.",
+    budgetMin: 1e3,
+    budgetMax: 2500,
+    deadlineDays: 14,
+    proposalsCount: 5,
+    createdAt: "2026-03-01",
+    status: "completed",
+    featured: true,
+    skills: ["React", "Node.js", "TypeScript", "Escrow Architecture"],
+    experienceLevel: "expert",
+    location: "United States",
+    countryFlag: "\u{1F1FA}\u{1F1F8}",
+    isUrgent: false,
+    verifiedBuyer: true,
+    buyerSpent: "$5,800",
+    buyerRating: 5,
+    buyerReviewsCount: 12,
+    buyerProjectsPosted: 4
+  },
+  {
+    id: "proj_2",
+    buyerId: "user_4",
+    buyerName: "Sophia Chen",
+    buyerAvatar: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&h=400&fit=crop",
+    title: "Figma Design System for B2B Analytics Platform",
+    slug: "figma-design-system-for-b2b-analytics-platform",
+    category: "Design",
+    subcategory: "Web & UI/UX Design",
+    description: "Need a senior product designer to create responsive charts, data tables, dark mode components, and design tokens in Figma.",
+    budgetMin: 800,
+    budgetMax: 1500,
+    deadlineDays: 10,
+    proposalsCount: 4,
+    createdAt: "2026-03-05",
+    status: "completed",
+    featured: true,
+    skills: ["Figma", "UI/UX Design", "Design Systems", "Data Visualization"],
+    experienceLevel: "intermediate",
+    location: "United States",
+    countryFlag: "\u{1F1FA}\u{1F1F8}",
+    isUrgent: false,
+    verifiedBuyer: true,
+    buyerSpent: "$3,400",
+    buyerRating: 4.9,
+    buyerReviewsCount: 8,
+    buyerProjectsPosted: 3
+  },
+  {
+    id: "proj_3",
+    buyerId: "user_5",
+    buyerName: "David Miller",
+    buyerAvatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&h=400&fit=crop",
+    title: "AI Customer Support Chatbot Integration with Gemini API",
+    slug: "ai-customer-support-chatbot-integration-with-gemini-api",
+    category: "AI Services",
+    subcategory: "AI Agents",
+    description: "Build an automated customer support chatbot that reads documentation vector store and streams real-time responses via Gemini API.",
+    budgetMin: 1200,
+    budgetMax: 3e3,
+    deadlineDays: 12,
+    proposalsCount: 6,
+    createdAt: "2026-03-10",
+    status: "completed",
+    featured: true,
+    skills: ["Gemini API", "Python", "AI Chatbot", "Vector Store"],
+    experienceLevel: "expert",
+    location: "United States",
+    countryFlag: "\u{1F1FA}\u{1F1F8}",
+    isUrgent: true,
+    verifiedBuyer: true,
+    buyerSpent: "$4,200",
+    buyerRating: 4.95,
+    buyerReviewsCount: 9,
+    buyerProjectsPosted: 5
+  },
+  {
+    id: "proj_4",
+    buyerId: "user_6",
+    buyerName: "Priya Sharma",
+    buyerAvatar: "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=400&h=400&fit=crop",
+    title: "React Native Mobile Banking App for Fintech Startup",
+    slug: "react-native-mobile-banking-app-for-fintech-startup",
+    category: "Technology & Programming",
+    subcategory: "Mobile Apps",
+    description: "Developing cross-platform iOS and Android mobile banking interfaces, secure biometric login, and transaction history.",
+    budgetMin: 2e3,
+    budgetMax: 4e3,
+    deadlineDays: 20,
+    proposalsCount: 5,
+    createdAt: "2026-03-20",
+    status: "in_progress",
+    featured: false,
+    skills: ["React Native", "Fintech", "iOS", "Android", "Biometrics"],
+    experienceLevel: "expert",
+    location: "India",
+    countryFlag: "\u{1F1EE}\u{1F1F3}",
+    isUrgent: true,
+    verifiedBuyer: true,
+    buyerSpent: "$2,800",
+    buyerRating: 5,
+    buyerReviewsCount: 6,
+    buyerProjectsPosted: 2
+  },
+  {
+    id: "proj_5",
+    buyerId: "user_7",
+    buyerName: "Liam O'Connor",
+    buyerAvatar: "https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=400&h=400&fit=crop",
+    title: "SEO Keyword Audit and Core Web Vitals Optimization",
+    slug: "seo-keyword-audit-and-core-web-vitals-optimization",
+    category: "Digital Marketing",
+    subcategory: "Search Engine Optimization (SEO)",
+    description: "Optimize our Next.js application for Core Web Vitals speed performance and build high-authority SEO backlinks.",
+    budgetMin: 600,
+    budgetMax: 1200,
+    deadlineDays: 7,
+    proposalsCount: 4,
+    createdAt: "2026-03-25",
+    status: "in_progress",
+    featured: false,
+    skills: ["SEO", "Core Web Vitals", "Lighthouse", "Backlinks"],
+    experienceLevel: "intermediate",
+    location: "Ireland",
+    countryFlag: "\u{1F1EE}\u{1F1EA}",
+    isUrgent: false,
+    verifiedBuyer: true,
+    buyerSpent: "$1,900",
+    buyerRating: 4.85,
+    buyerReviewsCount: 4,
+    buyerProjectsPosted: 2
+  },
+  {
+    id: "proj_6",
+    buyerId: "user_2",
+    buyerName: "Elena Rostova",
+    buyerAvatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&h=400&fit=crop",
+    title: "Full Technical Documentation & API Reference Guides",
+    slug: "full-technical-documentation-and-api-reference-guides",
+    category: "Writing & Translation",
+    subcategory: "Technical Writing",
+    description: "Seeking a seasoned technical writer to draft comprehensive API documentation, endpoint request samples, and developer guides.",
+    budgetMin: 400,
+    budgetMax: 800,
+    deadlineDays: 5,
+    proposalsCount: 4,
+    createdAt: "2026-04-01",
+    status: "open",
+    featured: false,
+    skills: ["Technical Writing", "API Documentation", "Swagger", "Postman"],
+    experienceLevel: "intermediate",
+    location: "United Kingdom",
+    countryFlag: "\u{1F1EC}\u{1F1E7}",
+    isUrgent: false,
+    verifiedBuyer: true,
+    buyerSpent: "$2,100",
+    buyerRating: 4.95,
+    buyerReviewsCount: 5,
+    buyerProjectsPosted: 3
+  },
+  {
+    id: "proj_7",
+    buyerId: "user_3",
+    buyerName: "Marcus Vance",
+    buyerAvatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop",
+    title: "3D Animated Explainer Video for AI Product Launch",
+    slug: "3d-animated-explainer-video-for-ai-product-launch",
+    category: "Video, Photo & Image",
+    subcategory: "Animation & Motion Graphics",
+    description: "Need a 60-second 3D motion graphics promo video highlighting our AI agent workflow engine for our upcoming ProductHunt launch.",
+    budgetMin: 1e3,
+    budgetMax: 2e3,
+    deadlineDays: 10,
+    proposalsCount: 3,
+    createdAt: "2026-04-03",
+    status: "open",
+    featured: true,
+    skills: ["3D Animation", "After Effects", "Motion Graphics", "Product Promo"],
+    experienceLevel: "expert",
+    location: "United States",
+    countryFlag: "\u{1F1FA}\u{1F1F8}",
+    isUrgent: true,
+    verifiedBuyer: true,
+    buyerSpent: "$3,800",
+    buyerRating: 5,
+    buyerReviewsCount: 7,
+    buyerProjectsPosted: 4
+  },
+  {
+    id: "proj_8",
+    buyerId: "user_8",
+    buyerName: "Amina Vance",
+    buyerAvatar: "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=400&h=400&fit=crop",
+    title: "Headless Shopify Storefront Integration with Next.js",
+    slug: "headless-shopify-storefront-integration-with-nextjs",
+    category: "Technology & Programming",
+    subcategory: "E-commerce",
+    description: "Build a headless Shopify storefront using Next.js App Router, GraphQL Storefront API, Tailwind CSS, and instant cart checkout.",
+    budgetMin: 1500,
+    budgetMax: 3500,
+    deadlineDays: 14,
+    proposalsCount: 4,
+    createdAt: "2026-04-05",
+    status: "open",
+    featured: false,
+    skills: ["Shopify", "Next.js", "GraphQL", "Tailwind CSS", "TypeScript"],
+    experienceLevel: "expert",
+    location: "Canada",
+    countryFlag: "\u{1F1E8}\u{1F1E6}",
+    isUrgent: false,
+    verifiedBuyer: true,
+    buyerSpent: "$1,500",
+    buyerRating: 4.9,
+    buyerReviewsCount: 3,
+    buyerProjectsPosted: 2
+  },
+  {
+    id: "proj_9",
+    buyerId: "user_4",
+    buyerName: "Sophia Chen",
+    buyerAvatar: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&h=400&fit=crop",
+    title: "Custom LLM Prompt Engineering for Legal Document Analysis",
+    slug: "custom-llm-prompt-engineering-for-legal-document-analysis",
+    category: "AI Services",
+    subcategory: "Prompt Engineering",
+    description: "Design structured prompt pipelines and JSON schemas for analyzing complex legal contracts and agreement risks.",
+    budgetMin: 900,
+    budgetMax: 1800,
+    deadlineDays: 8,
+    proposalsCount: 3,
+    createdAt: "2026-04-07",
+    status: "open",
+    featured: false,
+    skills: ["Prompt Engineering", "LLM", "Python", "JSON Schema"],
+    experienceLevel: "expert",
+    location: "United States",
+    countryFlag: "\u{1F1FA}\u{1F1F8}",
+    isUrgent: false,
+    verifiedBuyer: true,
+    buyerSpent: "$3,400",
+    buyerRating: 4.9,
+    buyerReviewsCount: 8,
+    buyerProjectsPosted: 3
+  },
+  {
+    id: "proj_10",
+    buyerId: "user_5",
+    buyerName: "David Miller",
+    buyerAvatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&h=400&fit=crop",
+    title: "Brand Strategy and Visual Identity Redesign",
+    slug: "brand-strategy-and-visual-identity-redesign",
+    category: "Design",
+    subcategory: "Brand Identity",
+    description: "Seeking a design lead to revamp our visual identity, logo vectors, color contrast rules, and digital brand guidelines.",
+    budgetMin: 700,
+    budgetMax: 1400,
+    deadlineDays: 6,
+    proposalsCount: 3,
+    createdAt: "2026-04-09",
+    status: "open",
+    featured: false,
+    skills: ["Brand Identity", "Logo Design", "Figma", "Typography"],
+    experienceLevel: "intermediate",
+    location: "United States",
+    countryFlag: "\u{1F1FA}\u{1F1F8}",
+    isUrgent: false,
+    verifiedBuyer: true,
+    buyerSpent: "$4,200",
+    buyerRating: 4.95,
+    buyerReviewsCount: 9,
+    buyerProjectsPosted: 5
+  }
+];
+var SEED_ORDERS = [
+  {
+    id: "ord_101",
+    title: "Need React & Node.js Developer to build Escrow Payment Dashboard",
+    buyerId: "user_1",
+    sellerId: "user_3",
+    amount: 1500,
+    status: "completed",
+    createdAt: "2026-03-02",
+    dueDate: "2026-03-14",
+    requirements: "Develop responsive React TypeScript frontend, Express REST backend, and 14-day escrow vault architecture.",
+    deliverables: "Full GitHub repository access, PostgreSQL schema scripts, and deployed staging environment.",
+    deliverableFiles: [
+      { id: "del_101_1", name: "escrow_dashboard_v1.zip", url: "#", size: "14.2 MB", uploadedAt: "2026-03-12" }
+    ],
+    escrowProtectionStartDate: "2026-03-02",
+    escrowProtectionEndDate: "2026-03-16",
+    projectId: "proj_1",
+    sellerUsername: "marcus_vance",
+    buyerUsername: "alex_rivera",
+    serviceTitle: "Need React & Node.js Developer to build Escrow Payment Dashboard",
+    serviceThumbnail: "https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=800&h=500&fit=crop",
+    serviceUrl: "/project/need-react-and-nodejs-developer-to-build-escrow-payment-dashboard"
+  },
+  {
+    id: "ord_102",
+    title: "Figma Design System for B2B Analytics Platform",
+    buyerId: "user_4",
+    sellerId: "user_2",
+    amount: 1200,
+    status: "completed",
+    createdAt: "2026-03-06",
+    dueDate: "2026-03-16",
+    requirements: "Create comprehensive Figma design tokens, chart components, dark mode variants, and responsive UI kits.",
+    deliverables: "Master Figma file link and exported SVG vector asset bundle.",
+    deliverableFiles: [
+      { id: "del_102_1", name: "b2b_analytics_design_system.fig", url: "#", size: "28.5 MB", uploadedAt: "2026-03-15" }
+    ],
+    escrowProtectionStartDate: "2026-03-06",
+    escrowProtectionEndDate: "2026-03-20",
+    projectId: "proj_2",
+    sellerUsername: "elena_rostova",
+    buyerUsername: "sophia_chen",
+    serviceTitle: "Figma Design System for B2B Analytics Platform",
+    serviceThumbnail: "https://images.unsplash.com/photo-1561070791-2526d30994b5?w=800&h=500&fit=crop",
+    serviceUrl: "/project/figma-design-system-for-b2b-analytics-platform"
+  },
+  {
+    id: "ord_103",
+    title: "I will build custom AI agents and ChatGPT API workflows for your product",
+    buyerId: "user_5",
+    sellerId: "user_3",
+    amount: 950,
+    status: "completed",
+    createdAt: "2026-03-11",
+    dueDate: "2026-03-17",
+    requirements: "Configure Gemini API agent pipeline, custom JSON schema output, and vector search store.",
+    deliverables: "Python package source code, Docker container, and API integration guide.",
+    deliverableFiles: [
+      { id: "del_103_1", name: "ai_agent_pipeline_source.zip", url: "#", size: "8.1 MB", uploadedAt: "2026-03-16" }
+    ],
+    escrowProtectionStartDate: "2026-03-11",
+    escrowProtectionEndDate: "2026-03-25",
+    gigId: "gig_3",
+    gigSlug: "i-will-build-custom-ai-agents-and-chatgpt-api-workflows-for-your-product",
+    sellerUsername: "marcus_vance",
+    buyerUsername: "david_miller",
+    serviceTitle: "I will build custom AI agents and ChatGPT API workflows for your product",
+    serviceThumbnail: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&h=500&fit=crop",
+    serviceUrl: "/marcus_vance/i-will-build-custom-ai-agents-and-chatgpt-api-workflows-for-your-product"
+  },
+  {
+    id: "ord_104",
+    title: "React Native Mobile Banking App for Fintech Startup",
+    buyerId: "user_6",
+    sellerId: "user_5",
+    amount: 2500,
+    status: "in_progress",
+    createdAt: "2026-03-21",
+    dueDate: "2026-04-10",
+    requirements: "Build cross-platform iOS and Android mobile app with biometric auth and transaction history screens.",
+    escrowProtectionStartDate: "2026-03-21",
+    escrowProtectionEndDate: "2026-04-14",
+    projectId: "proj_4",
+    sellerUsername: "david_miller",
+    buyerUsername: "priya_sharma",
+    serviceTitle: "React Native Mobile Banking App for Fintech Startup",
+    serviceThumbnail: "https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=800&h=500&fit=crop",
+    serviceUrl: "/project/react-native-mobile-banking-app-for-fintech-startup"
+  },
+  {
+    id: "ord_105",
+    title: "I will deliver a technical SEO audit and high DA link building campaign",
+    buyerId: "user_7",
+    sellerId: "user_4",
+    amount: 450,
+    status: "in_progress",
+    createdAt: "2026-03-26",
+    dueDate: "2026-03-30",
+    requirements: "Complete Lighthouse Core Web Vitals audit, JSON-LD schema metadata, and 10 high-authority backlinks.",
+    escrowProtectionStartDate: "2026-03-26",
+    escrowProtectionEndDate: "2026-04-09",
+    gigId: "gig_4",
+    gigSlug: "i-will-deliver-a-technical-seo-audit-and-high-da-link-building-campaign",
+    sellerUsername: "sophia_chen",
+    buyerUsername: "liam_oconnor",
+    serviceTitle: "I will deliver a technical SEO audit and high DA link building campaign",
+    serviceThumbnail: "https://images.unsplash.com/photo-1432888622747-4eb9a8efeb07?w=800&h=500&fit=crop",
+    serviceUrl: "/sophia_chen/i-will-deliver-a-technical-seo-audit-and-high-da-link-building-campaign"
+  }
+];
+var SEED_MESSAGES = [
+  // ord_101
+  {
+    id: "msg_101_1",
+    orderId: "ord_101",
+    senderId: "system",
+    senderName: "WorkSphere Escrow Vault",
+    text: "\u{1F6E1}\uFE0F 14-Day Escrow Protection active: $1,500 USD deposited into secure escrow vault.",
+    timestamp: "10:00 AM",
+    type: "system"
+  },
+  {
+    id: "msg_101_2",
+    orderId: "ord_101",
+    senderId: "user_1",
+    senderName: "Alex Rivera",
+    text: "Hi Marcus! Excited to work together. I have attached the API specifications and database schema for the Escrow Dashboard.",
+    timestamp: "10:05 AM",
+    type: "message"
+  },
+  {
+    id: "msg_101_3",
+    orderId: "ord_101",
+    senderId: "user_3",
+    senderName: "Marcus Vance",
+    text: "Thanks Alex! Spec looks solid. Starting with the double-entry journal engine and WebSocket state synchronization today.",
+    timestamp: "10:30 AM",
+    type: "message"
+  },
+  {
+    id: "msg_101_4",
+    orderId: "ord_101",
+    senderId: "user_3",
+    senderName: "Marcus Vance",
+    text: "Milestone update: Core state synchronization complete. Deliverables submitted for review.",
+    timestamp: "02:15 PM",
+    type: "file",
+    fileInfo: { name: "escrow_dashboard_v1.zip", size: "14.2 MB", url: "#" }
+  },
+  {
+    id: "msg_101_5",
+    orderId: "ord_101",
+    senderId: "system",
+    senderName: "WorkSphere Escrow Vault",
+    text: "\u{1F389} Escrow funds ($1,500) released to Marcus Vance! Workstream completed with 5-star rating.",
+    timestamp: "03:00 PM",
+    type: "system"
+  },
+  // ord_102
+  {
+    id: "msg_102_1",
+    orderId: "ord_102",
+    senderId: "system",
+    senderName: "WorkSphere Escrow Vault",
+    text: "\u{1F6E1}\uFE0F 14-Day Escrow Protection active: $1,200 USD held safely in escrow.",
+    timestamp: "09:00 AM",
+    type: "system"
+  },
+  {
+    id: "msg_102_2",
+    orderId: "ord_102",
+    senderId: "user_4",
+    senderName: "Sophia Chen",
+    text: "Hi Elena! Excited for the design system. Here are our brand color contrast requirements.",
+    timestamp: "09:15 AM",
+    type: "message"
+  },
+  {
+    id: "msg_102_3",
+    orderId: "ord_102",
+    senderId: "user_2",
+    senderName: "Elena Rostova",
+    text: "Thanks Sophia! Here is the preliminary Figma design system preview with dark mode tokens.",
+    timestamp: "02:20 PM",
+    type: "file",
+    fileInfo: { name: "b2b_analytics_design_system.fig", size: "28.5 MB", url: "#" }
+  },
+  {
+    id: "msg_102_4",
+    orderId: "ord_102",
+    senderId: "user_4",
+    senderName: "Sophia Chen",
+    text: "Phenomenal design system! Approving deliverables and releasing escrow.",
+    timestamp: "04:30 PM",
+    type: "message"
+  },
+  {
+    id: "msg_102_5",
+    orderId: "ord_102",
+    senderId: "system",
+    senderName: "WorkSphere Escrow Vault",
+    text: "\u{1F389} Escrow funds ($1,200) released to Elena Rostova! Workstream completed.",
+    timestamp: "04:31 PM",
+    type: "system"
+  },
+  // ord_103
+  {
+    id: "msg_103_1",
+    orderId: "ord_103",
+    senderId: "system",
+    senderName: "WorkSphere Escrow Vault",
+    text: "\u{1F6E1}\uFE0F 14-Day Escrow Protection active: $950 USD funded.",
+    timestamp: "11:00 AM",
+    type: "system"
+  },
+  {
+    id: "msg_103_2",
+    orderId: "ord_103",
+    senderId: "user_5",
+    senderName: "David Miller",
+    text: "Hi Marcus! Here are the custom Gemini prompt specifications for our support agent.",
+    timestamp: "11:10 AM",
+    type: "message"
+  },
+  {
+    id: "msg_103_3",
+    orderId: "ord_103",
+    senderId: "user_3",
+    senderName: "Marcus Vance",
+    text: "API integration complete! Source code package attached.",
+    timestamp: "04:00 PM",
+    type: "file",
+    fileInfo: { name: "ai_agent_pipeline_source.zip", size: "8.1 MB", url: "#" }
+  },
+  {
+    id: "msg_103_4",
+    orderId: "ord_103",
+    senderId: "system",
+    senderName: "WorkSphere Escrow Vault",
+    text: "\u{1F389} Escrow funds ($950) released to Marcus Vance! Milestone complete.",
+    timestamp: "04:45 PM",
+    type: "system"
+  },
+  // ord_104 (Active)
+  {
+    id: "msg_104_1",
+    orderId: "ord_104",
+    senderId: "system",
+    senderName: "WorkSphere Escrow Vault",
+    text: "\u{1F6E1}\uFE0F 14-Day Escrow Protection active: $2,500 USD held safely in escrow.",
+    timestamp: "10:00 AM",
+    type: "system"
+  },
+  {
+    id: "msg_104_2",
+    orderId: "ord_104",
+    senderId: "user_6",
+    senderName: "Priya Sharma",
+    text: "Hi David! Welcome onboard. Looking forward to Sprint 1 React Native mobile banking screens.",
+    timestamp: "10:15 AM",
+    type: "message"
+  },
+  {
+    id: "msg_104_3",
+    orderId: "ord_104",
+    senderId: "user_5",
+    senderName: "David Miller",
+    text: "Thanks Priya! Biometric auth and bottom tab navigation implemented. Setting up Expo preview build now.",
+    timestamp: "01:30 PM",
+    type: "message"
+  },
+  // ord_105 (Active)
+  {
+    id: "msg_105_1",
+    orderId: "ord_105",
+    senderId: "system",
+    senderName: "WorkSphere Escrow Vault",
+    text: "\u{1F6E1}\uFE0F 14-Day Escrow Protection active: $450 USD held safely in escrow.",
+    timestamp: "02:00 PM",
+    type: "system"
+  },
+  {
+    id: "msg_105_2",
+    orderId: "ord_105",
+    senderId: "user_7",
+    senderName: "Liam O'Connor",
+    text: "Hi Sophia! Here is our domain URL for the technical SEO and Core Web Vitals audit.",
+    timestamp: "02:10 PM",
+    type: "message"
+  },
+  {
+    id: "msg_105_3",
+    orderId: "ord_105",
+    senderId: "user_4",
+    senderName: "Sophia Chen",
+    text: "Thanks Liam! Lighthouse scan finished. Working on Schema metadata and high DA backlinks now.",
+    timestamp: "03:45 PM",
+    type: "message"
+  }
+];
+var SEED_PROPOSALS = [
+  // proj_6 (Owner: user_2)
+  {
+    id: "prop_6_1",
+    projectId: "proj_6",
+    freelancerId: "user_6",
+    freelancerName: "Priya Sharma",
+    freelancerAvatar: "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=400&h=400&fit=crop",
+    freelancerTitle: "Technical Copywriter & Content Strategist",
+    coverLetter: "I specialize in drafting technical API documentation, OpenAPI specs, and developer onboarding guides.",
+    bidAmount: 600,
+    deliveryDays: 5,
+    createdAt: "2026-04-02",
+    status: "pending"
+  },
+  {
+    id: "prop_6_2",
+    projectId: "proj_6",
+    freelancerId: "user_4",
+    freelancerName: "Sophia Chen",
+    freelancerAvatar: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&h=400&fit=crop",
+    freelancerTitle: "Growth Marketing & Technical SEO Specialist",
+    coverLetter: "I will draft SEO-friendly API documentation with clear endpoint examples and JSON schemas.",
+    bidAmount: 550,
+    deliveryDays: 4,
+    createdAt: "2026-04-02",
+    status: "pending"
+  },
+  {
+    id: "prop_6_3",
+    projectId: "proj_6",
+    freelancerId: "user_1",
+    freelancerName: "Alex Rivera",
+    freelancerAvatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&h=400&fit=crop",
+    freelancerTitle: "Senior Full-Stack Architect & SaaS Founder",
+    coverLetter: "As an active software architect, I write precise technical documentation and code samples.",
+    bidAmount: 700,
+    deliveryDays: 3,
+    createdAt: "2026-04-03",
+    status: "pending"
+  },
+  {
+    id: "prop_6_4",
+    projectId: "proj_6",
+    freelancerId: "user_8",
+    freelancerName: "Amina Vance",
+    freelancerAvatar: "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=400&h=400&fit=crop",
+    freelancerTitle: "E-commerce & Shopify Specialist",
+    coverLetter: "I can deliver clean developer docs and markdown guides for your API.",
+    bidAmount: 500,
+    deliveryDays: 4,
+    createdAt: "2026-04-03",
+    status: "pending"
+  },
+  // proj_7 (Owner: user_3)
+  {
+    id: "prop_7_1",
+    projectId: "proj_7",
+    freelancerId: "user_7",
+    freelancerName: "Liam O'Connor",
+    freelancerAvatar: "https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=400&h=400&fit=crop",
+    freelancerTitle: "Motion Graphics & 3D Video Animator",
+    coverLetter: "3D animation and After Effects are my core mastery. I will produce a high-converting 60-second 4K promo video.",
+    bidAmount: 1500,
+    deliveryDays: 7,
+    createdAt: "2026-04-04",
+    status: "pending"
+  },
+  {
+    id: "prop_7_2",
+    projectId: "proj_7",
+    freelancerId: "user_2",
+    freelancerName: "Elena Rostova",
+    freelancerAvatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&h=400&fit=crop",
+    freelancerTitle: "Principal UI/UX & Design Systems Lead",
+    coverLetter: "I can direct the visual storyboard and motion animation tokens for your ProductHunt AI launch.",
+    bidAmount: 1800,
+    deliveryDays: 8,
+    createdAt: "2026-04-04",
+    status: "pending"
+  },
+  {
+    id: "prop_7_3",
+    projectId: "proj_7",
+    freelancerId: "user_5",
+    freelancerName: "David Miller",
+    freelancerAvatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&h=400&fit=crop",
+    freelancerTitle: "iOS & Android Mobile App Developer",
+    coverLetter: "I can handle video recording of the UI interface and produce the motion graphics.",
+    bidAmount: 1400,
+    deliveryDays: 6,
+    createdAt: "2026-04-05",
+    status: "pending"
+  },
+  // proj_8 (Owner: user_8)
+  {
+    id: "prop_8_1",
+    projectId: "proj_8",
+    freelancerId: "user_1",
+    freelancerName: "Alex Rivera",
+    freelancerAvatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&h=400&fit=crop",
+    freelancerTitle: "Senior Full-Stack Architect & SaaS Founder",
+    coverLetter: "Next.js App Router and Shopify GraphQL Storefront API are my daily stack. Fast, headless store delivery.",
+    bidAmount: 2800,
+    deliveryDays: 10,
+    createdAt: "2026-04-06",
+    status: "pending"
+  },
+  {
+    id: "prop_8_2",
+    projectId: "proj_8",
+    freelancerId: "user_5",
+    freelancerName: "David Miller",
+    freelancerAvatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&h=400&fit=crop",
+    freelancerTitle: "iOS & Android Mobile App Developer",
+    coverLetter: "I will build a headless web and mobile storefront using Next.js and React Native.",
+    bidAmount: 3e3,
+    deliveryDays: 12,
+    createdAt: "2026-04-06",
+    status: "pending"
+  },
+  {
+    id: "prop_8_3",
+    projectId: "proj_8",
+    freelancerId: "user_3",
+    freelancerName: "Marcus Vance",
+    freelancerAvatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop",
+    freelancerTitle: "AI Systems & Machine Learning Engineer",
+    coverLetter: "I can integrate AI recommendations into your headless Shopify Next.js store.",
+    bidAmount: 2500,
+    deliveryDays: 9,
+    createdAt: "2026-04-07",
+    status: "pending"
+  },
+  // proj_9 (Owner: user_4)
+  {
+    id: "prop_9_1",
+    projectId: "proj_9",
+    freelancerId: "user_3",
+    freelancerName: "Marcus Vance",
+    freelancerAvatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop",
+    freelancerTitle: "AI Systems & Machine Learning Engineer",
+    coverLetter: "LLM prompt engineering and legal document risk extraction are my core focus. High accuracy JSON outputs.",
+    bidAmount: 1200,
+    deliveryDays: 5,
+    createdAt: "2026-04-08",
+    status: "pending"
+  },
+  {
+    id: "prop_9_2",
+    projectId: "proj_9",
+    freelancerId: "user_1",
+    freelancerName: "Alex Rivera",
+    freelancerAvatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&h=400&fit=crop",
+    freelancerTitle: "Senior Full-Stack Architect & SaaS Founder",
+    coverLetter: "I will construct verified Gemini API prompt pipelines for contract risk scoring.",
+    bidAmount: 1500,
+    deliveryDays: 6,
+    createdAt: "2026-04-08",
+    status: "pending"
+  },
+  // proj_10 (Owner: user_5)
+  {
+    id: "prop_10_1",
+    projectId: "proj_10",
+    freelancerId: "user_2",
+    freelancerName: "Elena Rostova",
+    freelancerAvatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&h=400&fit=crop",
+    freelancerTitle: "Principal UI/UX & Design Systems Lead",
+    coverLetter: "I will design a luxury visual identity, vector logo suite, and brand guidelines in Figma.",
+    bidAmount: 1e3,
+    deliveryDays: 5,
+    createdAt: "2026-04-10",
+    status: "pending"
+  },
+  {
+    id: "prop_10_2",
+    projectId: "proj_10",
+    freelancerId: "user_7",
+    freelancerName: "Liam O'Connor",
+    freelancerAvatar: "https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=400&h=400&fit=crop",
+    freelancerTitle: "Motion Graphics & 3D Video Animator",
+    coverLetter: "I will build animated logo reveals and visual brand identity assets.",
+    bidAmount: 1200,
+    deliveryDays: 6,
+    createdAt: "2026-04-10",
+    status: "pending"
+  }
+];
+var sampleReviewers = [
+  { name: "Sarah Jenkins", avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&h=150&fit=crop" },
+  { name: "Robert Taylor", avatar: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150&h=150&fit=crop" },
+  { name: "Emily Watson", avatar: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&h=150&fit=crop" },
+  { name: "Michael Chang", avatar: "https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?w=150&h=150&fit=crop" },
+  { name: "Jessica Alba", avatar: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=150&h=150&fit=crop" },
+  { name: "Daniel Craig", avatar: "https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=150&h=150&fit=crop" },
+  { name: "Amanda Seyfried", avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&h=150&fit=crop" },
+  { name: "Kevin Hart", avatar: "https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=150&h=150&fit=crop" },
+  { name: "Rachel McAdams", avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&h=150&fit=crop" },
+  { name: "Brandon Stark", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop" }
+];
 var SEED_REVIEWS = [];
-var SEED_MESSAGES = [];
+SEED_GIGS.forEach((g) => {
+  for (let i = 0; i < 10; i++) {
+    const rev = sampleReviewers[i % sampleReviewers.length];
+    SEED_REVIEWS.push({
+      id: `rev_${g.id}_${i + 1}`,
+      gigId: g.id,
+      targetUserId: g.freelancerId,
+      reviewerName: rev.name,
+      reviewerAvatar: rev.avatar,
+      rating: i === 3 || i === 7 ? 4 : 5,
+      comment: `Outstanding quality on "${g.title}". Fast delivery, proactive communication, and zero bugs. Highly recommended!`,
+      createdAt: `2026-03-${String(10 + i % 15).padStart(2, "0")}`,
+      gigTitle: g.title
+    });
+  }
+});
+SEED_REVIEWS.push(
+  {
+    id: "rev_ord_101",
+    orderId: "ord_101",
+    targetUserId: "user_3",
+    reviewerName: "Alex Rivera",
+    reviewerAvatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&h=400&fit=crop",
+    rating: 5,
+    comment: "Marcus delivered a world-class React & Node.js architecture for our Escrow Payment Dashboard. Exceptionally clean code and seamless 14-day escrow integration.",
+    orderTitle: "Need React & Node.js Developer to build Escrow Payment Dashboard",
+    createdAt: "2026-03-15"
+  },
+  {
+    id: "rev_ord_102",
+    orderId: "ord_102",
+    targetUserId: "user_2",
+    reviewerName: "Sophia Chen",
+    reviewerAvatar: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&h=400&fit=crop",
+    rating: 5,
+    comment: "Elena created a phenomenal Figma design system for our B2B analytics suite. The dark/light components and vector tokens are perfection.",
+    orderTitle: "Figma Design System for B2B Analytics Platform",
+    createdAt: "2026-03-16"
+  },
+  {
+    id: "rev_ord_103",
+    orderId: "ord_103",
+    targetUserId: "user_3",
+    reviewerName: "David Miller",
+    reviewerAvatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&h=400&fit=crop",
+    rating: 5,
+    comment: "Flawless Gemini API AI agent integration! Responses are lightning fast and prompt engineering accuracy is top-tier.",
+    orderTitle: "I will build custom AI agents and ChatGPT API workflows for your product",
+    createdAt: "2026-03-17"
+  }
+);
 
 // server.ts
 import_dotenv.default.config();
@@ -29737,6 +31145,10 @@ var JWT_SECRET = (() => {
   }
   return "dev-only-insecure-jwt-secret-do-not-use-in-production";
 })();
+function escapeHtml(text) {
+  if (typeof text !== "string") return "";
+  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+}
 function areSimulatedDepositsAllowed() {
   if (IS_PRODUCTION) {
     return false;
@@ -29820,18 +31232,33 @@ function resolveAuthenticatedUserId(req) {
   if (authUser && typeof authUser === "string" && authUser.trim()) {
     return authUser.trim();
   }
+  return null;
 }
 var emailVerificationCodes = /* @__PURE__ */ new Map();
 var smsVerificationCodes = /* @__PURE__ */ new Map();
 var forgotPasswordCodes = /* @__PURE__ */ new Map();
 var withdrawalVerificationCodes = /* @__PURE__ */ new Map();
 function generate6DigitCode() {
-  return Math.floor(1e5 + Math.random() * 9e5).toString();
+  return randomInt(1e5, 1e6).toString();
+}
+var EXPOSE_MOCK_CODES = !IS_PRODUCTION;
+function mockCode(key, code) {
+  return EXPOSE_MOCK_CODES ? { [key]: code } : {};
+}
+var USER_DEVICE_VERIFICATION = process.env.USER_DEVICE_VERIFICATION ? process.env.USER_DEVICE_VERIFICATION === "true" : !IS_PRODUCTION;
+function deliverAdminCode(email, code) {
+  console.warn(`[AUTH ADMIN 2FA] Verification code for ${email}: ${code}`);
+}
+function isValidEmail(v) {
+  return v.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+}
+function isValidMobile(v) {
+  return /^\+?[0-9][0-9\s\-()]{6,18}$/.test(v);
 }
 app.post("/api/auth/signup", async (req, res) => {
   try {
     const { email, password, confirmPassword, mobile, name } = req.body || {};
-    if (!email || !password || !mobile) {
+    if (typeof email !== "string" || typeof password !== "string" || typeof mobile !== "string" || !email.trim() || !password || !mobile.trim()) {
       return res.status(400).json({ error: "Email, password, and mobile number are required." });
     }
     if (password !== confirmPassword) {
@@ -29840,17 +31267,29 @@ app.post("/api/auth/signup", async (req, res) => {
     if (password.length < 6) {
       return res.status(400).json({ error: "Password must be at least 6 characters long." });
     }
+    if (password.length > 72) {
+      return res.status(400).json({ error: "Password must be at most 72 characters long." });
+    }
     const normalizedEmail = email.trim().toLowerCase();
+    if (!isValidEmail(normalizedEmail)) {
+      return res.status(400).json({ error: "Please enter a valid email address." });
+    }
+    if (!isValidMobile(mobile.trim())) {
+      return res.status(400).json({ error: "Please enter a valid mobile number." });
+    }
     const existing = users.find((u) => u.email && u.email.toLowerCase() === normalizedEmail);
     if (existing) {
       return res.status(409).json({ error: "An account with this email already exists." });
     }
+    if (users.some((u) => u.mobile && u.mobile === mobile.trim())) {
+      return res.status(409).json({ error: "An account with this mobile number already exists." });
+    }
     const hashedPassword = bcryptjs_default.hashSync(password, 10);
-    const newUserId = "user_" + Date.now();
+    const newUserId = "user_" + Date.now() + "_" + randomBytes2(3).toString("hex");
     const isFirstUser = users.length === 0;
     const newUser = {
       id: newUserId,
-      name: name || email.split("@")[0],
+      name: typeof name === "string" && name.trim() ? name.trim().slice(0, 80) : normalizedEmail.split("@")[0],
       email: normalizedEmail,
       mobile: mobile.trim(),
       role: isFirstUser ? "super_admin" : "user",
@@ -29889,6 +31328,10 @@ app.post("/api/auth/signup", async (req, res) => {
       lastResendAt: Date.now(),
       attempts: 0
     });
+    if (!IS_PRODUCTION) {
+      console.log(`[AUTH SIGNUP] Email verification code for ${normalizedEmail}: ${emailCode}`);
+      console.log(`[AUTH SIGNUP] SMS verification code for ${mobile.trim()}: ${smsCode}`);
+    }
     userEmails.unshift({
       id: "email_" + Date.now(),
       userId: newUserId,
@@ -29904,16 +31347,17 @@ app.post("/api/auth/signup", async (req, res) => {
       success: true,
       token,
       user: safeUser(newUser),
-      mockEmailCode: emailCode,
-      mockSmsCode: smsCode
+      ...mockCode("mockEmailCode", emailCode),
+      ...mockCode("mockSmsCode", smsCode)
     });
   } catch (err) {
     res.status(500).json({ error: err.message || "Signup failed" });
   }
 });
 app.post("/api/auth/verify-email", (req, res) => {
-  const { email, code } = req.body || {};
-  if (!email || !code) return res.status(400).json({ error: "Email and code are required." });
+  const { email, code: rawCode } = req.body || {};
+  if (typeof email !== "string" || !email.trim() || rawCode === void 0 || rawCode === null || String(rawCode).trim() === "") return res.status(400).json({ error: "Email and code are required." });
+  const code = String(rawCode);
   const normalizedEmail = email.trim().toLowerCase();
   const record = emailVerificationCodes.get(normalizedEmail);
   if (!record) return res.status(400).json({ error: "No verification code found or code expired." });
@@ -29939,7 +31383,7 @@ app.post("/api/auth/verify-email", (req, res) => {
 });
 app.post("/api/auth/resend-email-code", (req, res) => {
   const { email } = req.body || {};
-  if (!email) return res.status(400).json({ error: "Email is required." });
+  if (typeof email !== "string" || !email.trim()) return res.status(400).json({ error: "Email is required." });
   const normalizedEmail = email.trim().toLowerCase();
   const existing = emailVerificationCodes.get(normalizedEmail);
   const now = Date.now();
@@ -29953,11 +31397,28 @@ app.post("/api/auth/resend-email-code", (req, res) => {
     lastResendAt: now,
     attempts: 0
   });
-  res.json({ success: true, message: "New verification code generated and sent.", mockEmailCode: newCode });
+  const user = users.find((u) => u.email && u.email.toLowerCase() === normalizedEmail);
+  userEmails.unshift({
+    id: "email_" + Date.now(),
+    userId: user?.id || "guest",
+    userEmail: normalizedEmail,
+    subject: "Your New WorkPerHour Verification Code",
+    snippet: `Your new verification code is ${newCode}`,
+    body: `Here is your requested verification code: ${newCode}. It is valid for 15 minutes.`,
+    date: (/* @__PURE__ */ new Date()).toLocaleDateString(),
+    read: false
+  });
+  if (!IS_PRODUCTION) {
+    console.log(`[AUTH RESEND] Email verification code for ${normalizedEmail}: ${newCode}`);
+  } else if (user && (user.role === "admin" || user.role === "super_admin")) {
+    deliverAdminCode(normalizedEmail, newCode);
+  }
+  res.json({ success: true, message: "New verification code generated and sent.", ...mockCode("mockEmailCode", newCode) });
 });
 app.post("/api/auth/verify-sms", (req, res) => {
-  const { mobile, code } = req.body || {};
-  if (!mobile || !code) return res.status(400).json({ error: "Mobile number and code are required." });
+  const { mobile, code: rawCode } = req.body || {};
+  if (typeof mobile !== "string" || !mobile.trim() || rawCode === void 0 || rawCode === null || String(rawCode).trim() === "") return res.status(400).json({ error: "Mobile number and code are required." });
+  const code = String(rawCode);
   const cleanMobile = mobile.trim();
   const record = smsVerificationCodes.get(cleanMobile);
   if (!record) return res.status(400).json({ error: "No SMS verification code found or expired." });
@@ -29983,7 +31444,7 @@ app.post("/api/auth/verify-sms", (req, res) => {
 });
 app.post("/api/auth/resend-sms-code", (req, res) => {
   const { mobile } = req.body || {};
-  if (!mobile) return res.status(400).json({ error: "Mobile number is required." });
+  if (typeof mobile !== "string" || !mobile.trim()) return res.status(400).json({ error: "Mobile number is required." });
   const cleanMobile = mobile.trim();
   const existing = smsVerificationCodes.get(cleanMobile);
   const now = Date.now();
@@ -29997,10 +31458,11 @@ app.post("/api/auth/resend-sms-code", (req, res) => {
     lastResendAt: now,
     attempts: 0
   });
-  res.json({ success: true, message: "New SMS OTP dispatched.", mockSmsCode: newCode });
+  if (!IS_PRODUCTION) console.log(`[AUTH RESEND] SMS verification code for ${cleanMobile}: ${newCode}`);
+  res.json({ success: true, message: "New SMS OTP dispatched.", ...mockCode("mockSmsCode", newCode) });
 });
 function sanitizeAndCreateMessage(sender, order, body, fileCheck) {
-  const text = typeof body.text === "string" ? body.text.trim() : "";
+  const text = typeof body.text === "string" ? escapeHtml(body.text.trim()) : "";
   const isSystemOrStaff = isStaffUser(sender);
   let type = body.type;
   if (!isSystemOrStaff && (type === "system" || type === "deliverable")) {
@@ -30040,25 +31502,29 @@ function sanitizeAndCreateMessage(sender, order, body, fileCheck) {
 var loginAttempts = /* @__PURE__ */ new Map();
 async function handleLogin(req, res) {
   const clientIp = (req.ip || req.socket.remoteAddress || "unknown-client").toString();
+  const { email, password, userId, code, verificationCode, emailCode } = req.body || {};
+  const lookupEmail = typeof email === "string" && email.trim() ? email.trim().toLowerCase() : null;
+  const lookupId = typeof userId === "string" && userId.trim() ? userId.trim() : null;
   const now = Date.now();
-  const attemptRecord = loginAttempts.get(clientIp);
   const cooldownMs = process.env.NODE_ENV === "test" ? 2e3 : 6e4;
-  if (attemptRecord) {
+  const attemptKeys = [clientIp, ...lookupEmail || lookupId ? ["acct:" + (lookupEmail || lookupId)] : []];
+  for (const key of attemptKeys) {
+    const attemptRecord = loginAttempts.get(key);
+    if (!attemptRecord) continue;
     if (now < attemptRecord.resetAt && attemptRecord.count >= 5) {
       return res.status(429).json({ error: "Too many failed login attempts. Please try again later." });
     }
     if (now >= attemptRecord.resetAt) {
-      loginAttempts.delete(clientIp);
+      loginAttempts.delete(key);
     }
   }
   function recordFailedLogin() {
-    const record = loginAttempts.get(clientIp) || { count: 0, resetAt: Date.now() + cooldownMs };
-    record.count++;
-    loginAttempts.set(clientIp, record);
+    for (const key of attemptKeys) {
+      const record = loginAttempts.get(key) || { count: 0, resetAt: Date.now() + cooldownMs };
+      record.count++;
+      loginAttempts.set(key, record);
+    }
   }
-  const { email, password, userId, code, verificationCode, emailCode } = req.body || {};
-  const lookupEmail = typeof email === "string" && email.trim() ? email.trim().toLowerCase() : null;
-  const lookupId = typeof userId === "string" && userId.trim() ? userId.trim() : null;
   if (!lookupEmail && !lookupId) {
     return res.status(401).json({ error: "Email is required for login." });
   }
@@ -30072,12 +31538,10 @@ async function handleLogin(req, res) {
     recordFailedLogin();
     return res.status(401).json({ error: "Invalid email or password." });
   }
-  if (user.password) {
-    const passwordMatch = bcryptjs_default.compareSync(password, user.password) || user.role === "super_admin" && (password === "adminpassword123" || password === "password123") || password === "password123";
-    if (!passwordMatch) {
-      recordFailedLogin();
-      return res.status(401).json({ error: "Invalid email or password." });
-    }
+  const passwordMatch = typeof user.password === "string" && user.password.length > 0 && bcryptjs_default.compareSync(password, user.password);
+  if (!passwordMatch) {
+    recordFailedLogin();
+    return res.status(401).json({ error: "Invalid email or password." });
   }
   if (user.status !== "active") {
     return res.status(403).json({ error: `Account is ${user.status}.` });
@@ -30089,8 +31553,10 @@ async function handleLogin(req, res) {
   }
   const isAdminRole = user.role === "admin" || user.role === "super_admin";
   const providedCode = (code || verificationCode || emailCode)?.toString().trim();
-  const isKnownDevice = user.knownDevices.includes(deviceId) || deviceId === "dev_default_session" || deviceId === "unknown" || Boolean(req.body?.skipDeviceVerification);
-  const requiresVerification = !isKnownDevice && !providedCode;
+  const isPlaceholderDevice = deviceId === "dev_default_session" || deviceId === "unknown";
+  const trustedDevice = user.knownDevices.includes(deviceId) && !(isAdminRole && isPlaceholderDevice);
+  const devBypass = !IS_PRODUCTION && !isAdminRole && (isPlaceholderDevice || Boolean(req.body?.skipDeviceVerification));
+  const requiresVerification = isAdminRole ? !trustedDevice : USER_DEVICE_VERIFICATION && !trustedDevice && !devBypass;
   if (requiresVerification) {
     const userEmailKey = (user.email || lookupEmail || user.id).toLowerCase();
     if (!providedCode) {
@@ -30101,6 +31567,7 @@ async function handleLogin(req, res) {
         lastResendAt: Date.now(),
         attempts: 0
       });
+      if (IS_PRODUCTION && isAdminRole) deliverAdminCode(user.email, newCode);
       userEmails.unshift({
         id: "email_" + Date.now(),
         userId: user.id,
@@ -30115,22 +31582,32 @@ async function handleLogin(req, res) {
         requiresVerification: true,
         requireCode: true,
         message: isAdminRole ? "Admin login requires an email verification code. Code sent to your registered admin email." : "New device detected. Please provide the email verification code sent to your email.",
-        mockEmailCode: newCode,
+        ...mockCode("mockEmailCode", newCode),
         deviceId
       });
     }
     const record = emailVerificationCodes.get(userEmailKey);
-    if (!record || Date.now() > record.expiresAt || record.code !== providedCode) {
-      if (record) record.attempts++;
+    if (!record || Date.now() > record.expiresAt) {
+      recordFailedLogin();
+      return res.status(400).json({ error: "Invalid or expired email verification code." });
+    }
+    if (record.attempts >= 5) {
+      emailVerificationCodes.delete(userEmailKey);
+      return res.status(429).json({ error: "Too many failed attempts. Please log in again to receive a new code." });
+    }
+    if (record.code !== providedCode) {
+      record.attempts++;
+      recordFailedLogin();
       return res.status(400).json({ error: "Invalid or expired email verification code." });
     }
     emailVerificationCodes.delete(userEmailKey);
     if (!user.knownDevices.includes(deviceId)) {
       user.knownDevices.push(deviceId);
+      if (user.knownDevices.length > 10) user.knownDevices.shift();
     }
   }
   user.sessionVersion = (user.sessionVersion || 0) + 1;
-  loginAttempts.delete(clientIp);
+  for (const key of attemptKeys) loginAttempts.delete(key);
   const token = signToken({ id: user.id, role: user.role, email: user.email, sessionVersion: user.sessionVersion });
   return res.json({
     success: true,
@@ -30163,13 +31640,32 @@ app.post("/api/auth/demo-session", (req, res) => {
   const token = signToken({ id: user.id, role: user.role, email: user.email, sessionVersion: user.sessionVersion });
   return res.json({ success: true, token, user: safeUser(user) });
 });
+function checkRecoveryCode(query, code) {
+  const record = forgotPasswordCodes.get(query);
+  if (!record || Date.now() > record.expiresAt) return "invalid";
+  if (record.attempts >= 5) {
+    forgotPasswordCodes.delete(query);
+    return "locked";
+  }
+  if (typeof code !== "string" && typeof code !== "number") return "invalid";
+  if (record.code !== String(code).trim()) {
+    record.attempts++;
+    return "invalid";
+  }
+  return "ok";
+}
 app.post("/api/auth/forgot-password/request", (req, res) => {
   const { emailOrMobile } = req.body || {};
-  if (!emailOrMobile) return res.status(400).json({ error: "Email or mobile is required." });
+  if (typeof emailOrMobile !== "string" || !emailOrMobile.trim()) return res.status(400).json({ error: "Email or mobile is required." });
   const query = emailOrMobile.trim().toLowerCase();
+  const genericResponse = { success: true, message: "If an account exists, a recovery code has been sent." };
   const user = users.find((u) => u.email && u.email.toLowerCase() === query || u.mobile === query);
   if (!user) {
-    return res.json({ success: true, message: "If account exists, recovery code sent." });
+    return res.json(genericResponse);
+  }
+  const existing = forgotPasswordCodes.get(query);
+  if (existing && Date.now() - existing.lastResendAt < 3e4) {
+    return res.json(genericResponse);
   }
   const code = generate6DigitCode();
   forgotPasswordCodes.set(query, {
@@ -30178,21 +31674,27 @@ app.post("/api/auth/forgot-password/request", (req, res) => {
     lastResendAt: Date.now(),
     attempts: 0
   });
-  res.json({ success: true, message: "Password recovery code dispatched.", mockRecoveryCode: code });
+  if (!IS_PRODUCTION) {
+    console.log(`[AUTH FORGOT] Recovery code for ${query}: ${code}`);
+  } else if (user.role === "admin" || user.role === "super_admin") {
+    deliverAdminCode(user.email, code);
+  }
+  res.json({ ...genericResponse, ...mockCode("mockRecoveryCode", code) });
 });
 app.post("/api/auth/forgot-password/verify", (req, res) => {
   const { emailOrMobile, code } = req.body || {};
-  if (!emailOrMobile || !code) return res.status(400).json({ error: "Identifier and code are required." });
+  if (typeof emailOrMobile !== "string" || !emailOrMobile.trim() || !code) return res.status(400).json({ error: "Identifier and code are required." });
   const query = emailOrMobile.trim().toLowerCase();
-  const record = forgotPasswordCodes.get(query);
-  if (!record || Date.now() > record.expiresAt || record.code !== code.trim()) {
+  const check = checkRecoveryCode(query, code);
+  if (check === "locked") return res.status(429).json({ error: "Too many failed attempts. Please request a new recovery code." });
+  if (check !== "ok") {
     return res.status(400).json({ error: "Invalid or expired recovery code." });
   }
   res.json({ success: true, message: "Code verified successfully." });
 });
 app.post("/api/auth/forgot-password/reset", (req, res) => {
   const { emailOrMobile, code, newPassword, confirmPassword, confirmNewPassword } = req.body || {};
-  if (!emailOrMobile || !code || !newPassword) {
+  if (typeof emailOrMobile !== "string" || !emailOrMobile.trim() || !code || typeof newPassword !== "string" || !newPassword) {
     return res.status(400).json({ error: "All fields are required." });
   }
   const confirmToUse = confirmPassword || confirmNewPassword;
@@ -30202,9 +31704,13 @@ app.post("/api/auth/forgot-password/reset", (req, res) => {
   if (newPassword.length < 6) {
     return res.status(400).json({ error: "New password must be at least 6 characters long." });
   }
+  if (newPassword.length > 72) {
+    return res.status(400).json({ error: "New password must be at most 72 characters long." });
+  }
   const query = emailOrMobile.trim().toLowerCase();
-  const record = forgotPasswordCodes.get(query);
-  if (!record || Date.now() > record.expiresAt || record.code !== code.trim()) {
+  const check = checkRecoveryCode(query, code);
+  if (check === "locked") return res.status(429).json({ error: "Too many failed attempts. Please request a new recovery code." });
+  if (check !== "ok") {
     return res.status(400).json({ error: "Invalid or expired recovery code." });
   }
   const user = users.find((u) => u.email && u.email.toLowerCase() === query || u.mobile === query);
@@ -30234,7 +31740,7 @@ app.post("/api/auth/withdrawal/request-code", requireAuth, (req, res) => {
     date: (/* @__PURE__ */ new Date()).toLocaleDateString(),
     read: false
   });
-  res.json({ success: true, message: "Withdrawal verification code sent to your registered email.", mockWithdrawalCode: code });
+  res.json({ success: true, message: "Withdrawal verification code sent to your registered email.", ...mockCode("mockWithdrawalCode", code) });
 });
 app.post("/api/auth/withdrawal/verify-and-execute", requireAuth, (req, res) => {
   const caller = req.authenticatedUser;
@@ -30365,8 +31871,34 @@ function rateLimit(max, windowMs) {
     next();
   };
 }
+var wsConnectionBuckets = /* @__PURE__ */ new Map();
+function checkWsIpRateLimit(ip) {
+  const max = 5;
+  const windowMs = 3e4;
+  const now = Date.now();
+  const record = wsConnectionBuckets.get(ip) || { count: 0, resetAt: now + windowMs };
+  if (now > record.resetAt) {
+    record.count = 0;
+    record.resetAt = now + windowMs;
+  }
+  record.count++;
+  wsConnectionBuckets.set(ip, record);
+  return record.count <= max;
+}
 var server = createServer(app);
-var wss = new import_websocket_server.default({ server });
+var wss = new import_websocket_server.default({ noServer: true });
+server.on("upgrade", (request, socket, head) => {
+  const ip = request.socket.remoteAddress || "unknown";
+  if (!checkWsIpRateLimit(ip)) {
+    console.warn(`[Security] WebSocket connection attempt from ${ip} rejected: rate limit exceeded.`);
+    socket.write("HTTP/1.1 429 Too Many Requests\r\n\r\n");
+    socket.destroy();
+    return;
+  }
+  wss.handleUpgrade(request, socket, head, (ws) => {
+    wss.emit("connection", ws, request);
+  });
+});
 wss.on("error", (err) => {
   console.error("WSS Server error:", err);
 });
@@ -30434,7 +31966,7 @@ If you have any questions or security concerns, please contact support immediate
     text: chatText,
     timestamp: timeShort
   };
-  messages.push(newChatMsg);
+  recordMessage(newChatMsg);
   function notifyUser(message, targetUserId) {
     const payload = JSON.stringify({ type: "MESSAGE_RECEIVED", message });
     for (const client of clients) {
@@ -30454,6 +31986,9 @@ If you have any questions or security concerns, please contact support immediate
 }
 var randomPasswordHash = () => bcryptjs_default.hashSync(randomBytes2(24).toString("hex"), 10);
 var bootstrapAdminPasswordNotice = null;
+if (IS_PRODUCTION && process.env.ADMIN_INITIAL_PASSWORD && process.env.ADMIN_INITIAL_PASSWORD.length < 12) {
+  console.warn("[SECURITY] ADMIN_INITIAL_PASSWORD is shorter than 12 characters and was ignored. A random one-time password will be generated instead.");
+}
 function seedPasswordHashFor(role) {
   if (!IS_PRODUCTION) {
     return bcryptjs_default.hashSync(role === "super_admin" ? "adminpassword123" : "password123", 10);
@@ -30461,7 +31996,7 @@ function seedPasswordHashFor(role) {
   if (role === "super_admin") {
     const configured = process.env.ADMIN_INITIAL_PASSWORD;
     if (configured && configured.length >= 12) return bcryptjs_default.hashSync(configured, 10);
-    const generated = randomBytes2(18).toString("base64url");
+    const generated = bootstrapAdminPasswordNotice ?? randomBytes2(18).toString("base64url");
     bootstrapAdminPasswordNotice = generated;
     return bcryptjs_default.hashSync(generated, 10);
   }
@@ -30668,18 +32203,63 @@ function handleCorruption(filePath, error) {
     process.exit(1);
   }
 }
+var MAX_AUDIT_LOGS = 1e3;
+var orderIndex = /* @__PURE__ */ new Map();
+var messageIndex = /* @__PURE__ */ new Map();
+var orderStateLocks = /* @__PURE__ */ new Set();
+function acquireOrderLock(orderId) {
+  if (orderStateLocks.has(orderId)) {
+    throw new Error("Action rejected: This order is currently being processed by another operation. Please retry in a moment.");
+  }
+  orderStateLocks.add(orderId);
+}
+function releaseOrderLock(orderId) {
+  orderStateLocks.delete(orderId);
+}
+function registerOrder(o) {
+  if (!o.id) return;
+  orderIndex.set(o.id, o);
+}
+function registerMessage(m) {
+  if (!m.orderId) return;
+  const list = messageIndex.get(m.orderId) || [];
+  list.push(m);
+  messageIndex.set(m.orderId, list);
+}
+function recordOrder(o) {
+  orders.unshift(o);
+  registerOrder(o);
+}
+function recordMessage(m) {
+  messages.push(m);
+  registerMessage(m);
+}
+function registerAuditLog(log) {
+  auditLogs.unshift(log);
+  if (auditLogs.length > MAX_AUDIT_LOGS) {
+    auditLogs = auditLogs.slice(0, MAX_AUDIT_LOGS);
+  }
+}
 function loadInitialOrdersAndMessages() {
   ensureDataDirectory();
+  orderIndex.clear();
+  messageIndex.clear();
   if (fs2.existsSync(ORDERS_FILE)) {
     try {
       const data = fs2.readFileSync(ORDERS_FILE, "utf-8");
       const parsed = JSON.parse(data);
       if (Array.isArray(parsed) && parsed.length > 0) {
         orders = parsed;
+        orders.forEach(registerOrder);
+      } else {
+        orders = [...SEED_ORDERS];
+        orders.forEach(registerOrder);
       }
     } catch (e) {
       handleCorruption(ORDERS_FILE, e);
     }
+  } else {
+    orders.forEach(registerOrder);
   }
   if (fs2.existsSync(MESSAGES_FILE)) {
     try {
@@ -30706,16 +32286,14 @@ function loadInitialOrdersAndMessages() {
   let messagesMigrated = false;
   for (const msg of messages) {
     if (!msg.timestamp || !/\d{4}-\d{2}-\d{2}/.test(msg.timestamp)) {
-      const order = orders.find((o) => o.id === msg.orderId);
+      const order = orderIndex.get(msg.orderId);
       let baseDate = order?.createdAt;
       if (!baseDate || !/\d{4}-\d{2}-\d{2}/.test(baseDate)) {
         baseDate = (/* @__PURE__ */ new Date()).toISOString();
       }
       const datePart = baseDate.split("T")[0];
       const timeMatch = msg.timestamp ? msg.timestamp.match(/(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)?/i) : null;
-      let hours = 0;
-      let minutes = 0;
-      let seconds = 0;
+      let hours = 0, minutes = 0, seconds = 0;
       if (timeMatch) {
         hours = parseInt(timeMatch[1], 10);
         minutes = parseInt(timeMatch[2], 10);
@@ -30728,12 +32306,12 @@ function loadInitialOrdersAndMessages() {
       if (!isNaN(d.getTime())) {
         d.setUTCHours(hours, minutes, seconds, 0);
         msg.timestamp = d.toISOString();
-        messagesMigrated = true;
       } else {
         msg.timestamp = (/* @__PURE__ */ new Date()).toISOString();
-        messagesMigrated = true;
       }
+      messagesMigrated = true;
     }
+    registerMessage(msg);
   }
   if (messagesMigrated) {
     saveMessagesToDisk();
@@ -30762,7 +32340,7 @@ function enrichOrderWithServiceInfo(o, isAdmin = false) {
   const serviceUrl = o.serviceUrl || (gig && gigSlug ? `/${sellerUsername}/${gigSlug}` : project ? `/project/${project.slug}` : void 0);
   const serviceTitle = gig?.title || project?.title || o.serviceTitle || o.title;
   const serviceThumbnail = o.serviceThumbnail || gig?.image || "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800&h=500&fit=crop";
-  const orderMessages = messages.filter((m) => m.orderId === o.id);
+  const orderMessages = messageIndex.get(o.id) || [];
   const lastMsg = orderMessages.length > 0 ? [...orderMessages].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0] : void 0;
   const reviewWindowDays = getReviewWindowDays();
   const reviewWindowEnabled = isAutoAcceptEnabled();
@@ -30867,7 +32445,13 @@ var handleGetSiteSettings = (req, res) => {
     smallOrderFee: cfg.smallOrderFee,
     smallOrderFeeAmount: cfg.smallOrderFee,
     // alias used by the admin UI
-    smallOrderFeeThreshold: cfg.smallOrderThreshold
+    smallOrderFeeThreshold: cfg.smallOrderThreshold,
+    minimumGigPrice: DEFAULT_SITE_SETTINGS.marketplace.minimumGigPrice,
+    maximumGigPrice: DEFAULT_SITE_SETTINGS.marketplace.maximumGigPrice,
+    minimumProjectBudget: DEFAULT_SITE_SETTINGS.marketplace.minimumProjectBudget,
+    maximumProjectBudget: DEFAULT_SITE_SETTINGS.marketplace.maximumProjectBudget,
+    gigModerationRequired: DEFAULT_SITE_SETTINGS.marketplace.gigModerationRequired,
+    projectModerationRequired: DEFAULT_SITE_SETTINGS.marketplace.projectModerationRequired
   };
   res.json({ success: true, settings: view, ...view });
 };
@@ -30902,8 +32486,8 @@ var handlePostSiteSettings = (req, res) => {
     }
     if (body.minOrderAmount !== void 0) {
       const num = Number(body.minOrderAmount);
-      if (isNaN(num) || num < 1) {
-        return res.status(400).json({ error: "Minimum order amount must be at least $1" });
+      if (isNaN(num) || num < 0) {
+        return res.status(400).json({ error: "Minimum order amount must be zero or more" });
       }
       body.minOrderAmount = num;
     }
@@ -30916,8 +32500,8 @@ var handlePostSiteSettings = (req, res) => {
     }
     if (body.minPayoutThreshold !== void 0) {
       const num = Number(body.minPayoutThreshold);
-      if (isNaN(num) || num < 1) {
-        return res.status(400).json({ error: "Minimum payout threshold must be at least $1" });
+      if (isNaN(num) || num < 0) {
+        return res.status(400).json({ error: "Minimum payout threshold must be zero or more" });
       }
       body.minPayoutThreshold = num;
     }
@@ -30942,6 +32526,29 @@ var handlePostSiteSettings = (req, res) => {
       DEFAULT_SITE_SETTINGS.marketplace.autoCompleteDeliveredEnabled = body.autoCompleteDeliveredEnabled;
       siteSettings.updateSection("marketplace", { autoCompleteDeliveredEnabled: body.autoCompleteDeliveredEnabled }, body.updatedBy || "Super Admin");
     }
+    if (body.minimumGigPrice !== void 0 || body.minGigPrice !== void 0) {
+      const num = Number(body.minimumGigPrice ?? body.minGigPrice);
+      if (!isNaN(num) && num >= 0) DEFAULT_SITE_SETTINGS.marketplace.minimumGigPrice = num;
+    }
+    if (body.maximumGigPrice !== void 0 || body.maxGigPrice !== void 0) {
+      const num = Number(body.maximumGigPrice ?? body.maxGigPrice);
+      if (!isNaN(num) && num >= 0) DEFAULT_SITE_SETTINGS.marketplace.maximumGigPrice = num;
+    }
+    if (body.minimumProjectBudget !== void 0 || body.minProjectBudget !== void 0) {
+      const num = Number(body.minimumProjectBudget ?? body.minProjectBudget);
+      if (!isNaN(num) && num >= 0) DEFAULT_SITE_SETTINGS.marketplace.minimumProjectBudget = num;
+    }
+    if (body.maximumProjectBudget !== void 0 || body.maxProjectBudget !== void 0) {
+      const num = Number(body.maximumProjectBudget ?? body.maxProjectBudget);
+      if (!isNaN(num) && num >= 0) DEFAULT_SITE_SETTINGS.marketplace.maximumProjectBudget = num;
+    }
+    if (body.gigModerationRequired !== void 0) {
+      DEFAULT_SITE_SETTINGS.marketplace.gigModerationRequired = Boolean(body.gigModerationRequired);
+    }
+    if (body.projectModerationRequired !== void 0) {
+      DEFAULT_SITE_SETTINGS.marketplace.projectModerationRequired = Boolean(body.projectModerationRequired);
+    }
+    siteSettings.updateSection("marketplace", DEFAULT_SITE_SETTINGS.marketplace, body.updatedBy || "Super Admin");
     siteFeeSettings = {
       ...siteFeeSettings,
       ...body,
@@ -30950,9 +32557,9 @@ var handlePostSiteSettings = (req, res) => {
     };
     if (typeof siteFeeSettings.freelancerCommissionRate === "number") {
       DEFAULT_SITE_SETTINGS.commission.commissionPercent = siteFeeSettings.freelancerCommissionRate;
-      DEFAULT_SITE_SETTINGS.commission.escrowProtectionDays = siteFeeSettings.escrowHoldDays || DEFAULT_SITE_SETTINGS.commission.escrowProtectionDays;
-      DEFAULT_SITE_SETTINGS.commission.minimumOrderAmount = siteFeeSettings.minOrderAmount || DEFAULT_SITE_SETTINGS.commission.minimumOrderAmount;
-      DEFAULT_SITE_SETTINGS.wallets.minimumWithdrawalAmount = siteFeeSettings.minPayoutThreshold || DEFAULT_SITE_SETTINGS.wallets.minimumWithdrawalAmount;
+      DEFAULT_SITE_SETTINGS.commission.escrowProtectionDays = siteFeeSettings.escrowHoldDays !== void 0 ? siteFeeSettings.escrowHoldDays : DEFAULT_SITE_SETTINGS.commission.escrowProtectionDays;
+      DEFAULT_SITE_SETTINGS.commission.minimumOrderAmount = siteFeeSettings.minOrderAmount !== void 0 ? siteFeeSettings.minOrderAmount : DEFAULT_SITE_SETTINGS.commission.minimumOrderAmount;
+      DEFAULT_SITE_SETTINGS.wallets.minimumWithdrawalAmount = siteFeeSettings.minPayoutThreshold !== void 0 ? siteFeeSettings.minPayoutThreshold : DEFAULT_SITE_SETTINGS.wallets.minimumWithdrawalAmount;
       DEFAULT_SITE_SETTINGS.commission.buyerProcessingFeePercent = siteFeeSettings.buyerProcessingFeeRate;
       DEFAULT_SITE_SETTINGS.commission.smallOrderFeeAmount = siteFeeSettings.smallOrderFee;
       DEFAULT_SITE_SETTINGS.commission.smallOrderFeeThreshold = siteFeeSettings.smallOrderFeeThreshold;
@@ -30961,11 +32568,11 @@ var handlePostSiteSettings = (req, res) => {
         buyerFeePercent: siteFeeSettings.buyerProcessingFeeRate,
         smallOrderFee: siteFeeSettings.smallOrderFee,
         smallOrderThreshold: siteFeeSettings.smallOrderFeeThreshold,
-        minimumOrderAmount: siteFeeSettings.minOrderAmount || 5,
-        minimumWithdrawalAmount: siteFeeSettings.minPayoutThreshold || 5
+        minimumOrderAmount: siteFeeSettings.minOrderAmount !== void 0 ? siteFeeSettings.minOrderAmount : 5,
+        minimumWithdrawalAmount: siteFeeSettings.minPayoutThreshold !== void 0 ? siteFeeSettings.minPayoutThreshold : 0
       });
     }
-    auditLogs.unshift({
+    registerAuditLog({
       id: "log_" + Date.now(),
       actor: body.updatedBy || "Super Admin",
       role: "super_admin",
@@ -30985,6 +32592,117 @@ app.post("/api/admin/settings", requireAdmin, handlePostSiteSettings);
 app.patch("/api/admin/settings", requireAdmin, handlePostSiteSettings);
 app.post("/api/admin/site-settings", requireAdmin, handlePostSiteSettings);
 app.patch("/api/admin/site-settings", requireAdmin, handlePostSiteSettings);
+app.get("/api/admin/memberships", requireAdmin, (req, res) => {
+  try {
+    const currentSettings = siteSettings.getSettings();
+    res.json({
+      success: true,
+      memberships: currentSettings.memberships,
+      marketplace: currentSettings.marketplace
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+app.post("/api/admin/memberships", requireAdmin, (req, res) => {
+  try {
+    const { memberships, marketplace } = req.body || {};
+    const actor = req.authenticatedUser?.name || "Super Admin";
+    if (memberships) {
+      if (typeof memberships.membershipsEnabled === "boolean") {
+        DEFAULT_SITE_SETTINGS.memberships.membershipsEnabled = memberships.membershipsEnabled;
+      }
+      if (Array.isArray(memberships.freelancerPlans)) {
+        DEFAULT_SITE_SETTINGS.memberships.freelancerPlans = memberships.freelancerPlans;
+      }
+      if (Array.isArray(memberships.buyerPlans)) {
+        DEFAULT_SITE_SETTINGS.memberships.buyerPlans = memberships.buyerPlans;
+      }
+      siteSettings.updateSection("memberships", DEFAULT_SITE_SETTINGS.memberships, actor);
+    }
+    if (marketplace) {
+      if (marketplace.minimumGigPrice !== void 0) DEFAULT_SITE_SETTINGS.marketplace.minimumGigPrice = Number(marketplace.minimumGigPrice);
+      if (marketplace.maximumGigPrice !== void 0) DEFAULT_SITE_SETTINGS.marketplace.maximumGigPrice = Number(marketplace.maximumGigPrice);
+      if (marketplace.minimumProjectBudget !== void 0) DEFAULT_SITE_SETTINGS.marketplace.minimumProjectBudget = Number(marketplace.minimumProjectBudget);
+      if (marketplace.maxActiveOrdersPerFreelancer !== void 0) DEFAULT_SITE_SETTINGS.marketplace.maxActiveOrdersPerFreelancer = Number(marketplace.maxActiveOrdersPerFreelancer);
+      if (marketplace.gigModerationRequired !== void 0) DEFAULT_SITE_SETTINGS.marketplace.gigModerationRequired = Boolean(marketplace.gigModerationRequired);
+      siteSettings.updateSection("marketplace", DEFAULT_SITE_SETTINGS.marketplace, actor);
+    }
+    registerAuditLog({
+      id: "log_" + Date.now(),
+      actor,
+      role: "super_admin",
+      action: "MEMBERSHIPS_QUOTAS_UPDATED",
+      target: "Platform Membership & Gig Quotas",
+      details: "Updated membership plan limits and marketplace gig/project constraints",
+      timestamp: (/* @__PURE__ */ new Date()).toLocaleString()
+    });
+    const activeSettings = siteSettings.getSettings();
+    res.json({
+      success: true,
+      memberships: activeSettings.memberships,
+      marketplace: activeSettings.marketplace
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+app.get("/api/user/quota-status", requireAuth, (req, res) => {
+  try {
+    const authUserId = req.authenticatedUserId;
+    const user = users.find((u) => u.id === authUserId);
+    if (!user) return res.status(404).json({ error: "User not found" });
+    const activeSettings = siteSettings.getSettings();
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1e3).toISOString().split("T")[0];
+    const bidsUsed = proposals.filter((p) => p.freelancerId === user.id && p.createdAt && p.createdAt.substring(0, 10) >= thirtyDaysAgo).length;
+    const jobPostsUsed = projects.filter((p) => p.buyerId === user.id && p.createdAt && p.createdAt.substring(0, 10) >= thirtyDaysAgo).length;
+    const freelancerPlanId = user.membershipTier || "plan_free";
+    const freelancerPlan = activeSettings.memberships.freelancerPlans.find((p) => p.id === freelancerPlanId) || activeSettings.memberships.freelancerPlans[0];
+    const buyerPlanId = user.buyerMembershipTier || "buyer_free";
+    const buyerPlan = activeSettings.memberships.buyerPlans.find((p) => p.id === buyerPlanId) || activeSettings.memberships.buyerPlans[0];
+    res.json({
+      success: true,
+      membershipsEnabled: activeSettings.memberships.membershipsEnabled,
+      freelancer: {
+        planId: freelancerPlanId,
+        planName: freelancerPlan?.name || "Standard Freelancer",
+        bidsUsed,
+        bidsLimit: freelancerPlan?.bidsPerMonth ?? 15,
+        bidsRemaining: Math.max(0, (freelancerPlan?.bidsPerMonth ?? 15) - bidsUsed)
+      },
+      buyer: {
+        planId: buyerPlanId,
+        planName: buyerPlan?.name || "Standard Client",
+        jobPostsUsed,
+        jobPostsLimit: buyerPlan?.jobPostsPerMonth ?? 10,
+        jobPostsRemaining: Math.max(0, (buyerPlan?.jobPostsPerMonth ?? 10) - jobPostsUsed)
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+app.post("/api/user/membership", requireAuth, (req, res) => {
+  try {
+    const authUserId = req.authenticatedUserId;
+    const user = users.find((u) => u.id === authUserId);
+    if (!user) return res.status(404).json({ error: "User not found" });
+    const { freelancerPlanId, buyerPlanId } = req.body || {};
+    if (freelancerPlanId) {
+      user.membershipTier = freelancerPlanId;
+    }
+    if (buyerPlanId) {
+      user.buyerMembershipTier = buyerPlanId;
+    }
+    res.json({
+      success: true,
+      message: "Membership updated successfully",
+      user
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 function resolveGigOrderPrice(gigId, extraIds) {
   const gig = gigs.find((g) => g.id === gigId);
   if (!gig) throw Object.assign(new Error("Gig not found."), { status: 404 });
@@ -31030,7 +32748,7 @@ function ensureWallet(userId) {
   financeLedger.ensureWallet({ userId: u.id, name: u.name, email: u.email, role: gigs.some((g) => g.freelancerId === u.id) ? "freelancer" : "buyer" });
 }
 function pushSystemMessage(orderId, text) {
-  messages.push({
+  recordMessage({
     id: "msg_" + randomUUID2().slice(0, 12),
     orderId,
     senderId: "system",
@@ -31256,7 +32974,7 @@ app.get("/api/orders", (req, res) => {
   res.json(userOrders.map((o) => enrichOrderWithServiceInfo(o, isAdmin)));
 });
 app.get("/api/orders/:id", (req, res) => {
-  const order = orders.find((o) => o.id === req.params.id);
+  const order = orderIndex.get(req.params.id);
   if (!order) return res.status(404).json({ error: "Order not found" });
   const authUserId = resolveAuthenticatedUserId(req);
   const caller = authUserId ? users.find((u) => u.id === authUserId) : null;
@@ -31267,7 +32985,7 @@ app.get("/api/orders/:id", (req, res) => {
   const enriched = enrichOrderWithServiceInfo(order, isAdmin);
   const buyer = users.find((u) => u.id === order.buyerId);
   const seller = users.find((u) => u.id === order.sellerId);
-  const orderMessages = messages.filter((m) => m.orderId === order.id);
+  const orderMessages = messageIndex.get(order.id) || [];
   const dispute = disputes.find((d) => d.orderId === order.id);
   res.json({
     ...enriched,
@@ -31278,7 +32996,7 @@ app.get("/api/orders/:id", (req, res) => {
   });
 });
 app.patch("/api/orders/:id/extend-time", requireAdmin, (req, res) => {
-  const order = orders.find((o) => o.id === req.params.id);
+  const order = orderIndex.get(req.params.id);
   if (!order) return res.status(404).json({ error: "Order not found" });
   const { days, newDueDate, reason } = req.body;
   const oldDate = order.dueDate;
@@ -31299,8 +33017,8 @@ app.patch("/api/orders/:id/extend-time", requireAdmin, (req, res) => {
     text: `\u23F1\uFE0F Deadline extended from ${oldDate} to ${order.dueDate}. ${reason ? "Reason: " + reason : "Admin approved time extension."}`,
     timestamp: (/* @__PURE__ */ new Date()).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
   };
-  messages.push(sysMsg);
-  auditLogs.unshift({
+  recordMessage(sysMsg);
+  registerAuditLog({
     id: "log_" + Date.now(),
     actor: "Admin Chief",
     role: "super_admin",
@@ -31312,175 +33030,223 @@ app.patch("/api/orders/:id/extend-time", requireAdmin, (req, res) => {
   res.json({ success: true, order: enrichOrderWithServiceInfo(order), message: sysMsg });
 });
 app.post("/api/orders/:id/admin-notes", requireAdmin, (req, res) => {
-  const order = orders.find((o) => o.id === req.params.id);
+  const order = orderIndex.get(req.params.id);
   if (!order) return res.status(404).json({ error: "Order not found" });
   order.adminNotes = req.body.notes || "";
   res.json({ success: true, adminNotes: order.adminNotes });
 });
 app.post("/api/orders/:id/deliverable", requireAuth, (req, res) => {
-  const order = orders.find((o) => o.id === req.params.id);
-  if (!order) return res.status(404).json({ error: "Order not found" });
-  const authUserId = req.authenticatedUserId;
-  const caller = users.find((u) => u.id === authUserId);
-  const isAdmin = caller?.role === "admin" || caller?.role === "super_admin";
-  if (!isAdmin && order.sellerId !== authUserId) {
-    return res.status(403).json({ error: "Forbidden: Only the seller or an administrator can submit deliverables." });
-  }
-  const allowedStatuses = ["funded_in_escrow", "in_progress", "revision"];
-  if (!allowedStatuses.includes(order.status)) {
-    return res.status(409).json({ error: `Cannot submit a deliverable for an order in "${order.status}" status.` });
-  }
-  if (!order.deliverableFiles) order.deliverableFiles = [];
-  if (!order.deliveryHistory) order.deliveryHistory = [];
-  const rawFiles = Array.isArray(req.body.files) && req.body.files.length > 0 ? req.body.files : req.body.name ? [{ name: req.body.name, size: req.body.size, url: req.body.url }] : [];
-  if (rawFiles.length === 0) {
-    return res.status(400).json({ error: "At least one uploaded deliverable file is required." });
-  }
-  const validation = validateStoredWorkstreamFiles(rawFiles, caller);
-  if (!validation.ok) {
-    return res.status(400).json({ error: validation.error });
-  }
-  const uploadedFiles = validation.files.map((f, idx) => ({
-    id: "deliv_" + Date.now() + "_" + idx,
-    name: f.name,
-    size: f.size,
-    url: f.url,
-    uploadedAt: (/* @__PURE__ */ new Date()).toLocaleString([], { dateStyle: "short", timeStyle: "short" }),
-    type: "deliverable"
-  }));
-  order.deliverableFiles.push(...uploadedFiles);
-  order.status = "delivered";
-  order.deliveryNotes = req.body.notes || "";
-  const version = order.deliveryHistory.length + 1;
-  order.deliveryHistory.push({
-    version,
-    notes: req.body.notes || "",
-    files: uploadedFiles,
-    deliveredAt: (/* @__PURE__ */ new Date()).toISOString()
-  });
-  if (order.revisions && order.revisions.length > 0) {
-    for (const rev of order.revisions) {
-      if (rev.status === "requested") {
-        rev.status = "resolved";
+  const orderId = req.params.id;
+  acquireOrderLock(orderId);
+  try {
+    const order = orderIndex.get(orderId);
+    if (!order) return res.status(404).json({ error: "Order not found" });
+    const authUserId = req.authenticatedUserId;
+    const caller = users.find((u) => u.id === authUserId);
+    const isAdmin = caller?.role === "admin" || caller?.role === "super_admin";
+    if (!isAdmin && order.sellerId !== authUserId) {
+      return res.status(403).json({ error: "Forbidden: Only the seller or an administrator can submit deliverables." });
+    }
+    const allowedStatuses = ["funded_in_escrow", "in_progress", "revision", "draft_review", "delivered", "work_in_progress"];
+    if (!allowedStatuses.includes(order.status)) {
+      return res.status(409).json({ error: `Cannot submit a deliverable for an order in "${order.status}" status.` });
+    }
+    if (!order.deliverableFiles) order.deliverableFiles = [];
+    if (!order.deliveryHistory) order.deliveryHistory = [];
+    const rawFiles = Array.isArray(req.body.files) && req.body.files.length > 0 ? req.body.files : req.body.name ? [{ name: req.body.name, size: req.body.size, url: req.body.url }] : [];
+    const rawNotes = typeof req.body.notes === "string" ? req.body.notes : typeof req.body.message === "string" ? req.body.message : "";
+    const rawReference = typeof req.body.reference === "string" ? req.body.reference : typeof req.body.referenceUrl === "string" ? req.body.referenceUrl : !req.body.name && typeof req.body.url === "string" ? req.body.url : "";
+    const trimmedNotes = rawNotes.trim();
+    const trimmedReference = rawReference.trim();
+    if (rawFiles.length === 0 && !trimmedNotes && !trimmedReference) {
+      return res.status(400).json({ error: "Add a file, a URL/reference, or a written completion message to submit a delivery." });
+    }
+    let validatedFiles = [];
+    if (rawFiles.length > 0) {
+      const validation = validateStoredWorkstreamFiles(rawFiles, caller);
+      if (!validation.ok) {
+        return res.status(400).json({ error: validation.error });
+      }
+      validatedFiles = validation.files;
+    }
+    const isDraft = Boolean(req.body.isDraft);
+    const uploadedFiles = validatedFiles.map((f, idx) => ({
+      id: "deliv_" + Date.now() + "_" + idx,
+      name: f.name,
+      size: f.size,
+      url: f.url,
+      uploadedAt: (/* @__PURE__ */ new Date()).toLocaleString([], { dateStyle: "short", timeStyle: "short" }),
+      type: isDraft ? "draft" : "deliverable"
+    }));
+    order.deliverableFiles.push(...uploadedFiles);
+    order.status = isDraft ? "draft_review" : "delivered";
+    const sanitizedNotes = trimmedNotes ? escapeHtml(trimmedNotes) : "";
+    const storedReference = trimmedReference.slice(0, 2e3);
+    order.deliveryNotes = sanitizedNotes;
+    order.deliveryReference = storedReference;
+    const version = order.deliveryHistory.length + 1;
+    order.deliveryHistory.push({
+      version,
+      notes: sanitizedNotes,
+      reference: storedReference || void 0,
+      files: uploadedFiles,
+      deliveredAt: (/* @__PURE__ */ new Date()).toISOString()
+    });
+    if (order.revisions && order.revisions.length > 0) {
+      for (const rev of order.revisions) {
+        if (rev.status === "requested") {
+          rev.status = "resolved";
+        }
       }
     }
+    const summaryParts = [];
+    if (uploadedFiles.length > 0) summaryParts.push(uploadedFiles.map((f) => `"${f.name}" (${f.size})`).join(", "));
+    if (storedReference) summaryParts.push(`Reference: ${storedReference}`);
+    const fileSummary = summaryParts.length > 0 ? summaryParts.join(" | ") : "written completion update";
+    const sysMsg = {
+      id: "msg_" + Date.now(),
+      orderId: order.id,
+      senderId: "system",
+      senderName: "WorkSphere Deliveries",
+      text: `\u{1F4E6} Deliverable (v${version}) submitted: ${fileSummary}${sanitizedNotes ? ` \u2014 "${sanitizedNotes}"` : ""}. Buyer review window initiated.`,
+      timestamp: (/* @__PURE__ */ new Date()).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      type: "system",
+      metadata: {
+        action: "deliverable_submitted",
+        version,
+        notes: sanitizedNotes,
+        reference: storedReference || void 0
+      }
+    };
+    recordMessage(sysMsg);
+    saveMessagesToDisk();
+    saveOrdersToDisk();
+    broadcastMessage(sysMsg, order.id);
+    res.json({ success: true, files: uploadedFiles, file: uploadedFiles[0], order: enrichOrderWithServiceInfo(order) });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  } finally {
+    releaseOrderLock(orderId);
   }
-  const fileSummary = uploadedFiles.map((f) => `"${f.name}" (${f.size})`).join(", ");
-  const sysMsg = {
-    id: "msg_" + Date.now(),
-    orderId: order.id,
-    senderId: "system",
-    senderName: "WorkSphere Deliveries",
-    text: `\u{1F4E6} Deliverable (v${version}) submitted: ${fileSummary}${req.body.notes ? ` \u2014 "${req.body.notes}"` : ""}. Buyer review window initiated.`,
-    timestamp: (/* @__PURE__ */ new Date()).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-    type: "system",
-    metadata: {
-      action: "deliverable_submitted",
-      version,
-      notes: req.body.notes
-    }
-  };
-  messages.push(sysMsg);
-  saveMessagesToDisk();
-  saveOrdersToDisk();
-  broadcastMessage(sysMsg, order.id);
-  res.json({ success: true, files: uploadedFiles, file: uploadedFiles[0], order: enrichOrderWithServiceInfo(order) });
 });
 app.post("/api/orders/:id/revision", requireAuth, (req, res) => {
-  const order = orders.find((o) => o.id === req.params.id);
-  if (!order) return res.status(404).json({ error: "Order not found" });
-  const authUserId = req.authenticatedUserId;
-  const caller = users.find((u) => u.id === authUserId);
-  const isAdmin = caller?.role === "admin" || caller?.role === "super_admin";
-  if (!isAdmin && order.buyerId !== authUserId) {
-    return res.status(403).json({ error: "Forbidden: Only the order buyer or an administrator can request revisions." });
-  }
-  if (order.status !== "delivered") {
-    return res.status(409).json({ error: `Cannot request revisions for an order in "${order.status}" status (order must be delivered first).` });
-  }
-  const reason = (req.body.reason || "").trim();
-  if (!reason) {
-    return res.status(400).json({ error: "A revision reason is required." });
-  }
-  if (!order.revisions) order.revisions = [];
-  const revisionEntry = {
-    id: "rev_" + Date.now(),
-    requestedAt: (/* @__PURE__ */ new Date()).toISOString(),
-    reason,
-    status: "requested",
-    deliveryVersion: order.deliveryHistory?.length || 1
-  };
-  order.revisions.push(revisionEntry);
-  order.status = "revision";
-  const sysMsg = {
-    id: "msg_" + Date.now(),
-    orderId: order.id,
-    senderId: "system",
-    senderName: "WorkSphere Revision Desk",
-    text: `\u{1F504} Revision requested on delivery v${revisionEntry.deliveryVersion}: "${reason}"`,
-    timestamp: (/* @__PURE__ */ new Date()).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-    type: "system",
-    metadata: {
-      action: "revision_requested",
-      reason,
-      revisionId: revisionEntry.id,
-      deliveryVersion: revisionEntry.deliveryVersion
+  const orderId = req.params.id;
+  acquireOrderLock(orderId);
+  try {
+    const order = orderIndex.get(orderId);
+    if (!order) return res.status(404).json({ error: "Order not found" });
+    const authUserId = req.authenticatedUserId;
+    const caller = users.find((u) => u.id === authUserId);
+    const isAdmin = caller?.role === "admin" || caller?.role === "super_admin";
+    if (!isAdmin && order.buyerId !== authUserId) {
+      return res.status(403).json({ error: "Forbidden: Only the order buyer or an administrator can request revisions." });
     }
-  };
-  messages.push(sysMsg);
-  saveMessagesToDisk();
-  saveOrdersToDisk();
-  broadcastMessage(sysMsg, order.id);
-  res.json({ success: true, revision: revisionEntry, order: enrichOrderWithServiceInfo(order) });
+    const allowedRevisionStatuses = ["delivered", "in_progress", "funded_in_escrow", "revision", "draft_review", "work_in_progress"];
+    if (!allowedRevisionStatuses.includes(order.status)) {
+      return res.status(409).json({ error: `Cannot request revisions for an order in "${order.status}" status.` });
+    }
+    const hasDelivery = Array.isArray(order.deliverableFiles) && order.deliverableFiles.length > 0 || Array.isArray(order.deliveryHistory) && order.deliveryHistory.length > 0 || ["delivered", "revision", "draft_review", "work_in_progress"].includes(order.status);
+    if (!hasDelivery) {
+      return res.status(409).json({ error: "Cannot request revisions before work or a draft has been delivered by the freelancer." });
+    }
+    const rawReason = (req.body.reason || "").trim();
+    if (!rawReason) {
+      return res.status(400).json({ error: "A revision reason is required." });
+    }
+    const reason = escapeHtml(rawReason);
+    if (!order.revisions) order.revisions = [];
+    const revisionEntry = {
+      id: "rev_" + Date.now(),
+      requestedAt: (/* @__PURE__ */ new Date()).toISOString(),
+      reason,
+      status: "requested",
+      deliveryVersion: order.deliveryHistory?.length || 1
+    };
+    order.revisions.push(revisionEntry);
+    order.status = "revision";
+    const sysMsg = {
+      id: "msg_" + Date.now(),
+      orderId: order.id,
+      senderId: "system",
+      senderName: "WorkSphere Revision Desk",
+      text: `\u{1F504} Revision requested on delivery v${revisionEntry.deliveryVersion}: "${reason}"`,
+      timestamp: (/* @__PURE__ */ new Date()).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      type: "system",
+      metadata: {
+        action: "revision_requested",
+        reason,
+        revisionId: revisionEntry.id,
+        deliveryVersion: revisionEntry.deliveryVersion
+      }
+    };
+    recordMessage(sysMsg);
+    saveMessagesToDisk();
+    saveOrdersToDisk();
+    broadcastMessage(sysMsg, order.id);
+    res.json({ success: true, revision: revisionEntry, order: enrichOrderWithServiceInfo(order) });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  } finally {
+    releaseOrderLock(orderId);
+  }
 });
 app.post("/api/orders/:id/dispute", requireAuth, (req, res) => {
-  const order = orders.find((o) => o.id === req.params.id);
-  if (!order) return res.status(404).json({ error: "Order not found" });
-  const authUserId = req.authenticatedUserId;
-  if (order.buyerId !== authUserId && order.sellerId !== authUserId) {
-    return res.status(403).json({ error: "Forbidden: Only order participants can open a dispute." });
-  }
-  const reason = (req.body.reason || "").trim();
-  if (!reason) {
-    return res.status(400).json({ error: "A dispute reason is required." });
-  }
-  const existingDispute = disputes.find((d) => d.orderId === order.id && (d.status === "open" || d.status === "under_investigation"));
-  if (existingDispute) {
-    return res.status(400).json({ error: "An active dispute already exists for this order." });
-  }
-  const newDispute = {
-    id: "disp_" + Date.now(),
-    orderId: order.id,
-    raisedBy: authUserId === order.buyerId ? "buyer" : "seller",
-    reason,
-    evidence: req.body.evidence || "",
-    status: "open",
-    createdAt: (/* @__PURE__ */ new Date()).toISOString()
-  };
-  disputes.push(newDispute);
-  order.status = "disputed";
-  const sysMsg = {
-    id: "msg_" + Date.now(),
-    orderId: order.id,
-    senderId: "system",
-    senderName: "WorkSphere Dispute Resolution Desk",
-    text: `\u{1F6A8} Dispute opened by ${newDispute.raisedBy}: "${reason}". Order placed under review.`,
-    timestamp: (/* @__PURE__ */ new Date()).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-    type: "system",
-    metadata: {
-      action: "dispute_opened",
-      disputeId: newDispute.id,
-      raisedBy: newDispute.raisedBy
+  const orderId = req.params.id;
+  acquireOrderLock(orderId);
+  try {
+    const order = orderIndex.get(orderId);
+    if (!order) return res.status(404).json({ error: "Order not found" });
+    const authUserId = req.authenticatedUserId;
+    if (order.buyerId !== authUserId && order.sellerId !== authUserId) {
+      return res.status(403).json({ error: "Forbidden: Only order participants can open a dispute." });
     }
-  };
-  messages.push(sysMsg);
-  saveMessagesToDisk();
-  saveOrdersToDisk();
-  broadcastMessage(sysMsg, order.id);
-  res.json({ success: true, dispute: newDispute, order: enrichOrderWithServiceInfo(order) });
+    const rawReason = (req.body.reason || "").trim();
+    if (!rawReason) {
+      return res.status(400).json({ error: "A dispute reason is required." });
+    }
+    const reason = escapeHtml(rawReason);
+    const existingDispute = disputes.find((d) => d.orderId === order.id && (d.status === "open" || d.status === "under_investigation"));
+    if (existingDispute) {
+      return res.status(400).json({ error: "An active dispute already exists for this order." });
+    }
+    const newDispute = {
+      id: "disp_" + Date.now(),
+      orderId: order.id,
+      raisedBy: authUserId === order.buyerId ? "buyer" : "seller",
+      reason,
+      evidence: escapeHtml(req.body.evidence || ""),
+      status: "open",
+      createdAt: (/* @__PURE__ */ new Date()).toISOString()
+    };
+    disputes.push(newDispute);
+    order.status = "disputed";
+    const sysMsg = {
+      id: "msg_" + Date.now(),
+      orderId: order.id,
+      senderId: "system",
+      senderName: "WorkSphere Dispute Resolution Desk",
+      text: `\u{1F6A8} Dispute opened by ${newDispute.raisedBy}: "${reason}". Order placed under review.`,
+      timestamp: (/* @__PURE__ */ new Date()).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      type: "system",
+      metadata: {
+        action: "dispute_opened",
+        disputeId: newDispute.id,
+        raisedBy: newDispute.raisedBy
+      }
+    };
+    recordMessage(sysMsg);
+    saveMessagesToDisk();
+    saveOrdersToDisk();
+    broadcastMessage(sysMsg, order.id);
+    res.json({ success: true, dispute: newDispute, order: enrichOrderWithServiceInfo(order) });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  } finally {
+    releaseOrderLock(orderId);
+  }
 });
 app.patch("/api/orders/:id/mute", requireRole(["admin", "super_admin", "support"]), (req, res) => {
-  const order = orders.find((o) => o.id === req.params.id);
+  const order = orderIndex.get(req.params.id);
   if (!order) return res.status(404).json({ error: "Order not found" });
   order.isMuted = !order.isMuted;
   const sysMsg = {
@@ -31491,11 +33257,11 @@ app.patch("/api/orders/:id/mute", requireRole(["admin", "super_admin", "support"
     text: order.isMuted ? `\u{1F512} Chat paused by Administrator during case review. Neither party may send messages.` : `\u{1F513} Chat unlocked by Administrator. Standard messaging resumed.`,
     timestamp: (/* @__PURE__ */ new Date()).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
   };
-  messages.push(sysMsg);
+  recordMessage(sysMsg);
   res.json({ success: true, isMuted: order.isMuted });
 });
 app.patch("/api/orders/:id/pause-timer", requireRole(["admin", "super_admin", "support"]), (req, res) => {
-  const order = orders.find((o) => o.id === req.params.id);
+  const order = orderIndex.get(req.params.id);
   if (!order) return res.status(404).json({ error: "Order not found" });
   order.isTimerPaused = !order.isTimerPaused;
   const sysMsg = {
@@ -31506,8 +33272,8 @@ app.patch("/api/orders/:id/pause-timer", requireRole(["admin", "super_admin", "s
     text: order.isTimerPaused ? `\u23F8\uFE0F Delivery countdown paused by Administrator pending dispute/clarification.` : `\u25B6\uFE0F Delivery countdown resumed by Administrator. Normal timer active.`,
     timestamp: (/* @__PURE__ */ new Date()).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
   };
-  messages.push(sysMsg);
-  auditLogs.unshift({
+  recordMessage(sysMsg);
+  registerAuditLog({
     id: "log_" + Date.now(),
     actor: "Admin Chief",
     role: "super_admin",
@@ -31531,7 +33297,7 @@ app.post("/api/users/:id/flag", requireAdmin, (req, res) => {
   if (!user) return res.status(404).json({ error: "User not found" });
   user.isFlagged = !user.isFlagged;
   user.flagReason = user.isFlagged ? req.body.reason || "Flagged for TOS investigation." : void 0;
-  auditLogs.unshift({
+  registerAuditLog({
     id: "log_" + Date.now(),
     actor: adminActor(req),
     role: "admin",
@@ -31543,8 +33309,10 @@ app.post("/api/users/:id/flag", requireAdmin, (req, res) => {
   res.json({ success: true, isFlagged: user.isFlagged, flagReason: user.flagReason, user });
 });
 app.post("/api/orders/:id/force-complete", requireAdmin, (req, res) => {
+  const orderId = req.params.id;
+  acquireOrderLock(orderId);
   try {
-    const order = orders.find((o) => o.id === req.params.id);
+    const order = orderIndex.get(req.params.id);
     if (!order) return res.status(404).json({ error: "Order not found" });
     if (order.status === "completed") {
       return res.status(400).json({ error: "Order is already completed; funds were already released." });
@@ -31559,11 +33327,15 @@ app.post("/api/orders/:id/force-complete", requireAdmin, (req, res) => {
     res.json({ success: true, order: enrichOrderWithServiceInfo(order), result });
   } catch (err) {
     res.status(400).json({ error: err.message });
+  } finally {
+    releaseOrderLock(orderId);
   }
 });
 app.post("/api/orders/:id/force-cancel", requireAdmin, (req, res) => {
+  const orderId = req.params.id;
+  acquireOrderLock(orderId);
   try {
-    const order = orders.find((o) => o.id === req.params.id);
+    const order = orderIndex.get(req.params.id);
     if (!order) return res.status(404).json({ error: "Order not found" });
     if (order.status === "completed") {
       return res.status(400).json({ error: "Cannot force-cancel an already completed order." });
@@ -31589,10 +33361,12 @@ app.post("/api/orders/:id/force-cancel", requireAdmin, (req, res) => {
     res.json({ success: true, order: enrichOrderWithServiceInfo(order), result });
   } catch (err) {
     res.status(400).json({ error: err.message });
+  } finally {
+    releaseOrderLock(orderId);
   }
 });
 app.post("/api/orders/:id/message", requireAuth, rateLimit(10, 6e4), (req, res) => {
-  const order = orders.find((o) => o.id === req.params.id);
+  const order = orderIndex.get(req.params.id);
   if (!order) return res.status(404).json({ error: "Order not found" });
   const userId = req.authenticatedUserId;
   const user = users.find((u) => u.id === userId);
@@ -31608,7 +33382,7 @@ app.post("/api/orders/:id/message", requireAuth, rateLimit(10, 6e4), (req, res) 
     if (existing) return res.json({ success: true, message: existing, deduplicated: true });
   }
   const newMsg = sanitizeAndCreateMessage(user, order, req.body, fileCheck);
-  messages.push(newMsg);
+  recordMessage(newMsg);
   saveMessagesToDisk();
   broadcastMessage(newMsg, order.id);
   res.json({ success: true, message: newMsg });
@@ -31619,7 +33393,7 @@ app.get("/api/disputes", requireAuth, (req, res) => {
   const isAdmin = caller?.role === "admin" || caller?.role === "super_admin" || caller?.role === "support";
   const userDisputes = disputes.filter((d) => {
     if (isAdmin) return true;
-    const order = orders.find((o) => o.id === d.orderId);
+    const order = orderIndex.get(d.orderId);
     return order && (order.buyerId === authUserId || order.sellerId === authUserId);
   });
   res.json(userDisputes);
@@ -31631,7 +33405,7 @@ app.get("/api/refunds", requireAuth, (req, res) => {
   const userRefunds = refunds.filter((r) => {
     if (isAdmin) return true;
     if (r.buyerId === authUserId) return true;
-    const order = orders.find((o) => o.id === r.orderId);
+    const order = orderIndex.get(r.orderId);
     return order && (order.buyerId === authUserId || order.sellerId === authUserId);
   });
   res.json(userRefunds);
@@ -31748,7 +33522,7 @@ function handlePayoutRequest(req, res) {
     };
     payouts.unshift(record);
     syncUserBalances();
-    auditLogs.unshift({
+    registerAuditLog({
       id: "log_" + Date.now(),
       actor: user.name,
       role: user.role,
@@ -31811,7 +33585,7 @@ app.post("/api/payments/deposit", requireAuth, rateLimit(10, 6e4), (req, res) =>
     syncUserBalances();
     const newBalance = financeLedger.getWalletBalance(targetUserId) ?? caller.walletBalance;
     const transaction = financeLedger.getTransactions().find((t) => t.journalId === result.journal.id);
-    auditLogs.unshift({
+    registerAuditLog({
       id: "log_" + Date.now(),
       actor: caller.name,
       role: caller.role,
@@ -31827,11 +33601,14 @@ app.post("/api/payments/deposit", requireAuth, rateLimit(10, 6e4), (req, res) =>
 });
 app.post("/api/payments/withdraw", requireAuth, rateLimit(10, 6e4), handlePayoutRequest);
 app.post("/api/payments/escrow/release", requireAuth, (req, res) => {
+  const { orderId } = req.body;
+  if (!orderId) return res.status(400).json({ error: "Order ID is required" });
+  acquireOrderLock(orderId);
   try {
     const userId = req.authenticatedUserId;
     const caller = users.find((u) => u.id === userId);
-    const { orderId } = req.body;
-    const order = orders.find((o) => o.id === orderId);
+    const { orderId: orderId2 } = req.body;
+    const order = orderIndex.get(orderId2);
     if (!order) return res.status(404).json({ error: "Order not found" });
     const isAdmin = caller?.role === "admin" || caller?.role === "super_admin";
     const isBuyer = userId === order.buyerId;
@@ -31848,8 +33625,16 @@ app.post("/api/payments/escrow/release", requireAuth, (req, res) => {
     if (activeDispute || order.status === "disputed") {
       return res.status(400).json({ error: "Cannot release escrow: Order is under active dispute. Resolve the dispute first." });
     }
-    if (order.status !== "delivered") {
-      return res.status(400).json({ error: "Cannot release escrow before deliverables have been submitted by the seller." });
+    const hasDelivery = Array.isArray(order.deliverableFiles) && order.deliverableFiles.length > 0 || Array.isArray(order.deliveryHistory) && order.deliveryHistory.length > 0 || order.status === "delivered";
+    if (!isAdmin && !hasDelivery) {
+      return res.status(400).json({ error: "Cannot release escrow before work has been delivered by the freelancer." });
+    }
+    if (order.status === "revision" && Array.isArray(order.revisions)) {
+      for (const rev of order.revisions) {
+        if (rev.status === "requested") {
+          rev.status = "resolved";
+        }
+      }
     }
     const esc = financeLedger.getEscrow(order.id);
     if (!esc || esc.remaining <= 0 || esc.status === "released" || esc.status === "refunded") {
@@ -31862,7 +33647,7 @@ app.post("/api/payments/escrow/release", requireAuth, (req, res) => {
     const actorName = isAdmin ? adminActor(req) : buyer?.name || "Authorized Buyer";
     const requestKey = req.body?.requestKey || req.body?.idempotencyKey;
     const result = releaseOrderFunds(order, actorName, "Buyer approved work", requestKey);
-    auditLogs.unshift({
+    registerAuditLog({
       id: "log_" + Date.now(),
       actor: actorName,
       role: caller?.role || "buyer",
@@ -31884,21 +33669,26 @@ app.post("/api/payments/escrow/release", requireAuth, (req, res) => {
         amount: order.amount
       }
     };
-    messages.push(releaseMsg);
+    recordMessage(releaseMsg);
     saveMessagesToDisk();
     saveOrdersToDisk();
     broadcastMessage(releaseMsg, order.id);
     res.json({ success: true, order: enrichOrderWithServiceInfo(order), freelancerNet: result.freelancerNet, platformFee: result.platformFee });
   } catch (err) {
     res.status(400).json({ error: err.message });
+  } finally {
+    releaseOrderLock(orderId);
   }
 });
 app.post("/api/payments/escrow/refund", requireAuth, (req, res) => {
+  const { orderId } = req.body;
+  if (!orderId) return res.status(400).json({ error: "Order ID is required" });
+  acquireOrderLock(orderId);
   try {
     const userId = req.authenticatedUserId;
     const caller = users.find((u) => u.id === userId);
-    const { orderId, reason } = req.body;
-    const order = orders.find((o) => o.id === orderId);
+    const { orderId: orderId2, reason } = req.body;
+    const order = orderIndex.get(orderId2);
     if (!order) return res.status(404).json({ error: "Order not found" });
     const activeDispute = disputes.find((d) => d.orderId === order.id && (d.status === "open" || d.status === "under_investigation"));
     if (activeDispute || order.status === "disputed") {
@@ -31913,18 +33703,21 @@ app.post("/api/payments/escrow/refund", requireAuth, (req, res) => {
     const isAdmin = caller?.role === "admin" || caller?.role === "super_admin";
     const isSeller = userId === order.sellerId;
     const isBuyer = userId === order.buyerId;
+    const isOverdueBy76Hours = order.dueDate ? Date.now() > new Date(order.dueDate).getTime() + 76 * 60 * 60 * 1e3 : false;
     if (!isAdmin && !isSeller) {
-      if (isBuyer) {
-        return res.status(403).json({ error: "Forbidden: Buyer cannot unilaterally refund/cancel this order." });
+      if (isBuyer && isOverdueBy76Hours) {
+      } else if (isBuyer) {
+        return res.status(403).json({ error: "Forbidden: Buyer cannot cancel this order until 76 hours have passed past the agreed due date." });
+      } else {
+        return res.status(403).json({ error: "Forbidden: Not authorized to refund this escrow." });
       }
-      return res.status(403).json({ error: "Forbidden: Not authorized to refund this escrow." });
     }
     const buyer = users.find((u) => u.id === order.buyerId);
     if (buyer) ensureWallet(buyer.id);
     const actorName = isAdmin ? adminActor(req) : caller?.name || (isSeller ? "Seller" : "Buyer");
     const requestKey = req.body?.requestKey || req.body?.idempotencyKey;
     const result = refundOrderFunds(order, void 0, actorName, reason || (isSeller ? "Seller cancelled order" : "Escrow cancellation"), requestKey);
-    auditLogs.unshift({
+    registerAuditLog({
       id: "log_" + Date.now(),
       actor: actorName,
       role: caller?.role || (isSeller ? "seller" : "buyer"),
@@ -31936,6 +33729,8 @@ app.post("/api/payments/escrow/refund", requireAuth, (req, res) => {
     res.json({ success: true, order, refunded: result.refunded });
   } catch (err) {
     res.status(400).json({ error: err.message });
+  } finally {
+    releaseOrderLock(orderId);
   }
 });
 app.post("/api/payments/escrow/deposit", requireAuth, rateLimit(20, 6e4), (req, res) => {
@@ -31943,7 +33738,7 @@ app.post("/api/payments/escrow/deposit", requireAuth, rateLimit(20, 6e4), (req, 
     const authUserId = req.authenticatedUserId;
     const caller = users.find((u) => u.id === authUserId);
     const orderId = String(req.body?.orderId || "");
-    const order = orders.find((o) => o.id === orderId);
+    const order = orderIndex.get(orderId);
     if (!order) return res.status(404).json({ error: "Order not found" });
     const isAdmin = caller?.role === "admin" || caller?.role === "super_admin";
     const isBuyer = authUserId === order.buyerId;
@@ -32310,7 +34105,7 @@ app.get("/api/admin/finance/escrow", (req, res) => {
 });
 app.post("/api/admin/finance/escrow/:orderId/release", requireAdmin, (req, res) => {
   try {
-    const order = orders.find((o) => o.id === req.params.orderId);
+    const order = orderIndex.get(req.params.orderId);
     if (!order) return res.status(404).json({ error: "Order not found" });
     if (order.status === "completed") {
       return res.status(400).json({ error: "Order escrow has already been released and completed." });
@@ -32334,7 +34129,7 @@ app.post("/api/admin/finance/escrow/:orderId/release", requireAdmin, (req, res) 
 });
 app.post("/api/admin/finance/escrow/:orderId/refund", requireAdmin, (req, res) => {
   try {
-    const order = orders.find((o) => o.id === req.params.orderId);
+    const order = orderIndex.get(req.params.orderId);
     if (!order) return res.status(404).json({ error: "Order not found" });
     if (order.status === "completed") {
       return res.status(400).json({ error: "Cannot refund order: Escrow funds have already been released to seller." });
@@ -32373,7 +34168,7 @@ app.get("/api/admin/finance/payouts", (req, res) => {
   }
 });
 function payoutAudit(req, action, p, details) {
-  auditLogs.unshift({
+  registerAuditLog({
     id: "FAUD-" + randomUUID2().slice(0, 12),
     actor: adminActor(req),
     role: "super_admin",
@@ -32590,7 +34385,7 @@ app.post("/api/admin/categories", (req, res) => {
     subcategories: []
   };
   categories.push(newCat);
-  auditLogs.unshift({
+  registerAuditLog({
     id: "log_" + Date.now(),
     actor: "Admin Chief",
     role: "super_admin",
@@ -32614,7 +34409,7 @@ app.post("/api/admin/categories/bulk-delete", (req, res) => {
       }
     });
   }
-  auditLogs.unshift({
+  registerAuditLog({
     id: "log_" + Date.now(),
     actor: "Admin Chief",
     role: "super_admin",
@@ -32631,7 +34426,7 @@ app.patch("/api/admin/categories/:id", (req, res) => {
   if (req.body.name) cat.name = req.body.name;
   if (req.body.slug) cat.slug = req.body.slug;
   if (typeof req.body.enabled === "boolean") cat.enabled = req.body.enabled;
-  auditLogs.unshift({
+  registerAuditLog({
     id: "log_" + Date.now(),
     actor: "Admin Chief",
     role: "super_admin",
@@ -32646,7 +34441,7 @@ app.patch("/api/admin/categories/:id/toggle", (req, res) => {
   const cat = categories.find((c) => c.id === req.params.id);
   if (!cat) return res.status(404).json({ error: "Category not found" });
   cat.enabled = !cat.enabled;
-  auditLogs.unshift({
+  registerAuditLog({
     id: "log_" + Date.now(),
     actor: "Admin Chief",
     role: "super_admin",
@@ -32662,7 +34457,7 @@ app.delete("/api/admin/categories/:id", (req, res) => {
   if (index === -1) return res.status(404).json({ error: "Category not found" });
   const deleted = categories[index];
   categories.splice(index, 1);
-  auditLogs.unshift({
+  registerAuditLog({
     id: "log_" + Date.now(),
     actor: "Admin Chief",
     role: "super_admin",
@@ -32686,7 +34481,7 @@ app.post("/api/admin/categories/:id/subcategories", (req, res) => {
     enabled: true
   };
   cat.subcategories.push(newSub);
-  auditLogs.unshift({
+  registerAuditLog({
     id: "log_" + Date.now(),
     actor: "Admin Chief",
     role: "super_admin",
@@ -32705,7 +34500,7 @@ app.patch("/api/admin/categories/:id/subcategories/:subId", (req, res) => {
   if (req.body.name) sub.name = req.body.name;
   if (req.body.slug) sub.slug = req.body.slug;
   if (typeof req.body.enabled === "boolean") sub.enabled = req.body.enabled;
-  auditLogs.unshift({
+  registerAuditLog({
     id: "log_" + Date.now(),
     actor: "Admin Chief",
     role: "super_admin",
@@ -32722,7 +34517,7 @@ app.patch("/api/admin/categories/:id/subcategories/:subId/toggle", (req, res) =>
   const sub = cat.subcategories.find((s) => s.id === req.params.subId);
   if (!sub) return res.status(404).json({ error: "Subcategory not found" });
   sub.enabled = !sub.enabled;
-  auditLogs.unshift({
+  registerAuditLog({
     id: "log_" + Date.now(),
     actor: "Admin Chief",
     role: "super_admin",
@@ -32740,7 +34535,7 @@ app.delete("/api/admin/categories/:id/subcategories/:subId", (req, res) => {
   if (subIndex === -1) return res.status(404).json({ error: "Subcategory not found" });
   const deletedSub = cat.subcategories[subIndex];
   cat.subcategories.splice(subIndex, 1);
-  auditLogs.unshift({
+  registerAuditLog({
     id: "log_" + Date.now(),
     actor: "Admin Chief",
     role: "super_admin",
@@ -32771,16 +34566,18 @@ app.post("/api/reviews", requireAuth, (req, res) => {
   if (!comment || typeof comment !== "string" || !comment.trim()) {
     return res.status(400).json({ error: "Review comment cannot be empty" });
   }
-  const order = orders.find((o) => o.id === orderId);
+  const order = orderIndex.get(orderId);
   if (!order) return res.status(404).json({ error: "Workstream order not found" });
   if (!canAccessOrderWorkstream(caller, order)) {
     return res.status(403).json({ error: "Forbidden: Only order participants can submit reviews." });
   }
-  if (order.status !== "completed") {
-    return res.status(409).json({ error: `Reviews can only be submitted for completed Workstreams (current status: ${order.status}).` });
+  const allowedReviewStatuses = ["completed", "cancelled"];
+  if (!allowedReviewStatuses.includes(order.status)) {
+    return res.status(409).json({ error: `Reviews can only be submitted for completed or cancelled Workstreams (current status: ${order.status}).` });
   }
-  if (reviews.some((r) => r.orderId === order.id && r.reviewerId === caller.id) || order.review && order.review.reviewerId === caller.id) {
-    return res.status(409).json({ error: "A review has already been submitted for this Workstream." });
+  const existingReview = reviews.find((r) => r.orderId === order.id && r.reviewerId === caller.id) || (order.review && order.review.reviewerId === caller.id ? order.review : null);
+  if (existingReview) {
+    return res.status(409).json({ error: "A review has already been submitted for this order. Use PUT /api/reviews/:id to edit your review." });
   }
   const resolvedTargetUserId = targetUserId || (caller.id === order.buyerId ? order.sellerId : order.buyerId);
   const newReview = {
@@ -32791,10 +34588,11 @@ app.post("/api/reviews", requireAuth, (req, res) => {
     reviewerAvatar: caller.avatar,
     targetUserId: resolvedTargetUserId,
     rating: numRating,
-    comment: comment.trim(),
+    comment: escapeHtml(comment.trim()),
     orderTitle: orderTitle || order.title || "Workstream Milestone Deliverable",
     gigId: req.body.gigId || order.gigId,
     projectId: req.body.projectId || order.projectId,
+    isCancelledOrder: order.status === "cancelled",
     createdAt: (/* @__PURE__ */ new Date()).toISOString().split("T")[0]
   };
   reviews.unshift(newReview);
@@ -32812,19 +34610,110 @@ app.post("/api/reviews", requireAuth, (req, res) => {
     orderId: order.id,
     senderId: "system",
     senderName: "WorkSphere Reviews",
-    text: `\u2B50 Review submitted by ${caller.name} (${newReview.rating}/5 stars): "${newReview.comment}"`,
+    text: `\u2B50 ${order.status === "cancelled" ? "Post-cancellation review" : "Review"} submitted by ${caller.name} (${newReview.rating}/5 stars): "${newReview.comment}"`,
     timestamp: (/* @__PURE__ */ new Date()).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
     type: "system",
     metadata: {
       action: "review_submitted",
       rating: newReview.rating,
-      comment: newReview.comment
+      comment: newReview.comment,
+      isCancelledOrder: order.status === "cancelled"
     }
   };
-  messages.push(sysMsg);
+  recordMessage(sysMsg);
   saveMessagesToDisk();
   broadcastMessage(sysMsg, order.id);
   res.status(201).json({ success: true, review: newReview, order: enrichOrderWithServiceInfo(order) });
+});
+app.put("/api/reviews/:id", requireAuth, (req, res) => {
+  const authUserId = req.authenticatedUserId;
+  const caller = users.find((u) => u.id === authUserId);
+  if (!caller) return res.status(401).json({ error: "Authentication required" });
+  const review = reviews.find((r) => r.id === req.params.id);
+  if (!review) return res.status(404).json({ error: "Review not found" });
+  const isAdmin = caller.role === "admin" || caller.role === "super_admin";
+  if (!isAdmin && review.reviewerId !== caller.id) {
+    return res.status(403).json({ error: "Forbidden: You can only edit your own review." });
+  }
+  const { rating, comment } = req.body;
+  if (rating !== void 0) {
+    const numRating = Number(rating);
+    if (isNaN(numRating) || numRating < 1 || numRating > 5) {
+      return res.status(400).json({ error: "Rating must be an integer between 1 and 5 stars." });
+    }
+    review.rating = numRating;
+  }
+  if (comment && typeof comment === "string" && comment.trim()) {
+    review.comment = escapeHtml(comment.trim());
+  }
+  review.updatedAt = (/* @__PURE__ */ new Date()).toISOString();
+  saveReviewsToDisk();
+  if (review.targetUserId) {
+    const userReviews = reviews.filter((r) => r.targetUserId === review.targetUserId);
+    const targetUser = users.find((u) => u.id === review.targetUserId);
+    if (targetUser && userReviews.length > 0) {
+      targetUser.rating = Number((userReviews.reduce((sum, r) => sum + r.rating, 0) / userReviews.length).toFixed(1));
+    }
+  }
+  if (review.orderId) {
+    const order = orderIndex.get(review.orderId);
+    if (order && order.review && order.review.id === review.id) {
+      order.review.rating = review.rating;
+      order.review.comment = review.comment;
+      saveOrdersToDisk();
+    }
+  }
+  res.json({ success: true, review });
+});
+app.post("/api/reviews/:id/reply", requireAuth, (req, res) => {
+  const authUserId = req.authenticatedUserId;
+  const caller = users.find((u) => u.id === authUserId);
+  if (!caller) return res.status(401).json({ error: "Authentication required" });
+  const review = reviews.find((r) => r.id === req.params.id);
+  if (!review) return res.status(404).json({ error: "Review not found" });
+  const isAdmin = caller.role === "admin" || caller.role === "super_admin";
+  if (!isAdmin && review.targetUserId !== caller.id) {
+    return res.status(403).json({ error: "Forbidden: Only the reviewed seller or an admin can reply to this review." });
+  }
+  if (review.reply) {
+    return res.status(409).json({ error: "A public response has already been submitted for this review." });
+  }
+  const { text } = req.body;
+  if (!text || typeof text !== "string" || !text.trim()) {
+    return res.status(400).json({ error: "Reply text cannot be empty." });
+  }
+  const replyObj = {
+    text: escapeHtml(text.trim()),
+    createdAt: (/* @__PURE__ */ new Date()).toISOString(),
+    sellerId: caller.id,
+    sellerName: caller.name,
+    sellerAvatar: caller.avatar
+  };
+  review.reply = replyObj;
+  saveReviewsToDisk();
+  if (review.orderId) {
+    const order = orderIndex.get(review.orderId);
+    if (order) {
+      if (order.review && order.review.id === review.id) {
+        order.review.reply = replyObj;
+      }
+      saveOrdersToDisk();
+      const sysMsg = {
+        id: "msg_" + Date.now(),
+        orderId: order.id,
+        senderId: "system",
+        senderName: "WorkSphere Reviews",
+        text: `\u{1F4AC} Public response posted by seller ${caller.name}: "${replyObj.text}"`,
+        timestamp: (/* @__PURE__ */ new Date()).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        type: "system",
+        metadata: { action: "review_reply_submitted", reply: replyObj }
+      };
+      recordMessage(sysMsg);
+      saveMessagesToDisk();
+      broadcastMessage(sysMsg, order.id);
+    }
+  }
+  res.json({ success: true, review });
 });
 app.get("/api/support-tickets", requireAuth, (req, res) => {
   const authUserId = req.authenticatedUserId;
@@ -32868,7 +34757,7 @@ app.post("/api/support-tickets", requireAuth, (req, res) => {
     ]
   };
   supportTickets.unshift(newTicket);
-  auditLogs.unshift({
+  registerAuditLog({
     id: "log_" + Date.now(),
     actor: userName,
     role: caller.role,
@@ -32894,6 +34783,7 @@ var WORKSTREAM_ALLOWED_EXTENSIONS = /* @__PURE__ */ new Set([
   ".jpeg",
   ".gif",
   ".webp",
+  ".svg",
   ".txt",
   ".md",
   ".csv",
@@ -32915,9 +34805,33 @@ var WORKSTREAM_ALLOWED_EXTENSIONS = /* @__PURE__ */ new Set([
   ".fig",
   ".psd",
   ".ai",
-  ".sketch"
+  ".sketch",
+  ".html",
+  ".htm",
+  ".js",
+  ".jsx",
+  ".ts",
+  ".tsx",
+  ".css",
+  ".scss",
+  ".py",
+  ".java",
+  ".cpp",
+  ".c",
+  ".cs",
+  ".php",
+  ".rb",
+  ".go",
+  ".rs",
+  ".sql",
+  ".sh",
+  ".xml",
+  ".vue",
+  ".svelte",
+  ".yaml",
+  ".yml"
 ]);
-var WORKSTREAM_INLINE_EXTENSIONS = /* @__PURE__ */ new Set([".png", ".jpg", ".jpeg", ".gif", ".webp", ".pdf"]);
+var WORKSTREAM_INLINE_EXTENSIONS = /* @__PURE__ */ new Set([".png", ".jpg", ".jpeg", ".gif", ".webp", ".pdf", ".svg", ".html", ".txt"]);
 var workstreamUploadIndex = {};
 try {
   if (fs2.existsSync(WORKSTREAM_UPLOAD_INDEX_FILE)) {
@@ -32971,6 +34885,9 @@ function validateMessageFileInfo(fileInfo, sender) {
 function validateStoredWorkstreamFiles(raw, submitter) {
   const out = [];
   for (const f of raw) {
+    if (f?.url === "#" || !f?.url || String(f.url).trim() === "#") {
+      return { ok: false, error: 'Placeholder file URL "#" is not permitted as a file deliverable.' };
+    }
     const filename = workstreamFilenameFromUrl(f?.url);
     if (!filename) {
       out.push({
@@ -32998,14 +34915,33 @@ function cleanupAbandonedWorkstreamUploads() {
   const now = Date.now();
   let changed = false;
   for (const [filename, rec] of Object.entries(workstreamUploadIndex)) {
-    if (now - new Date(rec.createdAt).getTime() < WORKSTREAM_ABANDONED_UPLOAD_TTL_MS) continue;
-    if (workstreamFileReferencedBy(filename).length > 0) continue;
+    const isOld = now - new Date(rec.createdAt).getTime() > WORKSTREAM_ABANDONED_UPLOAD_TTL_MS;
+    if (!isOld) continue;
+    const isReferenced = workstreamFileReferencedBy(filename).length > 0;
+    if (isReferenced) continue;
     try {
       fs2.unlinkSync(path2.join(WORKSTREAM_UPLOADS_DIR, filename));
     } catch {
     }
     delete workstreamUploadIndex[filename];
     changed = true;
+  }
+  try {
+    const filesOnDisk = fs2.readdirSync(WORKSTREAM_UPLOADS_DIR);
+    for (const file of filesOnDisk) {
+      if (!workstreamUploadIndex[file]) {
+        const filePath = path2.join(WORKSTREAM_UPLOADS_DIR, file);
+        const stats = fs2.statSync(filePath);
+        if (now - stats.mtimeMs > 36e5) {
+          try {
+            fs2.unlinkSync(filePath);
+          } catch {
+          }
+        }
+      }
+    }
+  } catch (e) {
+    console.error("Error during deep Workstream cleanup:", e);
   }
   if (changed) saveWorkstreamUploadIndex();
 }
@@ -33061,10 +34997,10 @@ function processAutoAcceptOrders(customNow) {
           reviewWindowDays: days
         }
       };
-      messages.push(sysMsg);
+      recordMessage(sysMsg);
       saveMessagesToDisk();
       broadcastMessage(sysMsg, order.id);
-      auditLogs.unshift({
+      registerAuditLog({
         id: "log_" + now + "_" + Math.random().toString(36).slice(2, 6),
         actor: "System Auto-Accept",
         role: "super_admin",
@@ -33112,8 +35048,8 @@ app.post("/api/workstream/upload", requireAuth, rateLimit(5, 6e4), import_expres
     }
     const safeBase = path2.basename(decodedName).replace(/[^a-zA-Z0-9._-]/g, "_") || "file";
     const ext = path2.extname(safeBase).toLowerCase();
-    if (!WORKSTREAM_ALLOWED_EXTENSIONS.has(ext)) {
-      return res.status(415).json({ error: `File type "${ext || "unknown"}" is not allowed.` });
+    if (ext && !WORKSTREAM_ALLOWED_EXTENSIONS.has(ext)) {
+      WORKSTREAM_ALLOWED_EXTENSIONS.add(ext);
     }
     const nameWithoutExt = path2.basename(safeBase, path2.extname(safeBase));
     const storedFilename = `${Date.now()}_${randomUUID2().slice(0, 8)}_${nameWithoutExt}${ext}`;
@@ -33162,12 +35098,12 @@ app.get("/api/workstream/files/:filename", requireAuth, (req, res) => {
   res.sendFile(filePath);
 });
 app.get("/api/messages/:orderId", requireAuth, (req, res) => {
-  const order = orders.find((o) => o.id === req.params.orderId);
+  const order = orderIndex.get(req.params.orderId);
   if (!order) return res.status(404).json({ error: "Order not found" });
   if (!canAccessOrderWorkstream(req.authenticatedUser, order)) {
     return res.status(403).json({ error: "Forbidden: You are not a participant of this Workstream." });
   }
-  const filtered = messages.filter((m) => m.orderId === req.params.orderId);
+  const filtered = messageIndex.get(req.params.orderId) || [];
   res.json(filtered);
 });
 app.post("/api/messages", requireAuth, (req, res) => {
@@ -33176,7 +35112,7 @@ app.post("/api/messages", requireAuth, (req, res) => {
   if (!caller) return res.status(401).json({ error: "User not found" });
   const orderId = req.body.orderId;
   if (!orderId) return res.status(400).json({ error: "Order ID is required" });
-  let order = orders.find((o) => o.id === orderId);
+  let order = orderIndex.get(orderId);
   if (!order) return res.status(404).json({ error: "Order not found" });
   if (!canAccessOrderWorkstream(caller, order)) {
     return res.status(403).json({ error: "Forbidden: You are not a participant of this Workstream." });
@@ -33189,7 +35125,7 @@ app.post("/api/messages", requireAuth, (req, res) => {
     if (existing) return res.json({ success: true, message: existing, deduplicated: true });
   }
   const newMsg = sanitizeAndCreateMessage(caller, order, req.body, fileCheck);
-  messages.push(newMsg);
+  recordMessage(newMsg);
   saveMessagesToDisk();
   broadcastMessage(newMsg, order.id);
   res.json(newMsg);
@@ -33198,6 +35134,17 @@ app.post("/api/gigs", requireAuth, (req, res) => {
   const authUserId = req.authenticatedUserId;
   const caller = req.authenticatedUser || users.find((u) => u.id === authUserId);
   if (!caller || caller.status !== "active") return res.status(403).json({ error: "Account is not active" });
+  const activeSettings = siteSettings.getSettings();
+  const gigPrice = Number(req.body.price);
+  const minGigPrice = activeSettings.marketplace.minimumGigPrice ?? 10;
+  const maxGigPrice = activeSettings.marketplace.maximumGigPrice ?? 1e4;
+  if (gigPrice < minGigPrice) {
+    return res.status(400).json({ error: `Gig price ($${gigPrice}) cannot be lower than the platform minimum of $${minGigPrice}.` });
+  }
+  if (gigPrice > maxGigPrice) {
+    return res.status(400).json({ error: `Gig price ($${gigPrice}) cannot exceed the platform maximum of $${maxGigPrice}.` });
+  }
+  const initialStatus = activeSettings.marketplace.gigModerationRequired ? "pending" : "published";
   const newGig = {
     id: "gig_" + Date.now(),
     freelancerId: caller.id,
@@ -33205,17 +35152,17 @@ app.post("/api/gigs", requireAuth, (req, res) => {
     freelancerUsername: caller.username || caller.name.toLowerCase().replace(/\s+/g, "_"),
     freelancerAvatar: caller.avatar,
     freelancerLevel: "Level 1 \u2605",
-    title: req.body.title,
+    title: escapeHtml(req.body.title || "Untitled Gig"),
     slug: req.body.title ? req.body.title.toLowerCase().trim().replace(/[^\w\s-]/g, "").replace(/[\s_-]+/g, "-").replace(/^-+|-+$/g, "") : "custom-gig",
     category: req.body.category || "Development & IT",
     subcategory: req.body.subcategory || "General",
-    description: req.body.description,
-    price: Number(req.body.price),
+    description: escapeHtml(req.body.description || ""),
+    price: gigPrice,
     deliveryDays: Number(req.body.deliveryDays),
     rating: 5,
     reviewsCount: 1,
     image: req.body.image || "https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=800&h=500&fit=crop",
-    status: "published",
+    status: initialStatus,
     featured: false,
     extras: req.body.extras || []
   };
@@ -33226,15 +35173,35 @@ app.post("/api/projects", requireAuth, (req, res) => {
   const authUserId = req.authenticatedUserId;
   const caller = req.authenticatedUser || users.find((u) => u.id === authUserId);
   if (!caller || caller.status !== "active") return res.status(403).json({ error: "Account is not active" });
+  const activeSettings = siteSettings.getSettings();
+  if (activeSettings.memberships.membershipsEnabled) {
+    const planId = caller.buyerMembershipTier || "buyer_free";
+    const plan = activeSettings.memberships.buyerPlans.find((p) => p.id === planId) || activeSettings.memberships.buyerPlans[0];
+    const quotaLimit = plan?.jobPostsPerMonth ?? 10;
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1e3).toISOString().split("T")[0];
+    const recentProjects = projects.filter((p) => p.buyerId === caller.id && p.createdAt && p.createdAt.substring(0, 10) >= thirtyDaysAgo);
+    if (recentProjects.length >= quotaLimit) {
+      return res.status(403).json({
+        error: `Monthly job post quota reached (${recentProjects.length}/${quotaLimit} posts used). Upgrade your plan to Enterprise Client to post more jobs.`
+      });
+    }
+  }
+  const minBudget = activeSettings.marketplace.minimumProjectBudget ?? 20;
+  const budgetMin = Number(req.body.budgetMin);
+  if (minBudget > 0 && budgetMin < minBudget) {
+    return res.status(400).json({
+      error: `Project budget ($${budgetMin}) is below the platform minimum requirement of $${minBudget}.`
+    });
+  }
   const newProj = {
     id: "proj_" + Date.now(),
     buyerId: caller.id,
     buyerName: caller.name,
     buyerAvatar: caller.avatar,
-    title: req.body.title,
+    title: escapeHtml(req.body.title || "Untitled Project"),
     category: req.body.category || "Development & IT",
     subcategory: req.body.subcategory || "General",
-    description: req.body.description,
+    description: escapeHtml(req.body.description || ""),
     budgetMin: Number(req.body.budgetMin),
     budgetMax: Number(req.body.budgetMax),
     deadlineDays: 14,
@@ -33263,7 +35230,7 @@ app.patch("/api/admin/projects/:id", (req, res) => {
   if (req.body.featured !== void 0) p.featured = Boolean(req.body.featured);
   if (req.body.moderationStatus !== void 0) p.moderationStatus = req.body.moderationStatus;
   if (req.body.moderationNotes !== void 0) p.moderationNotes = req.body.moderationNotes;
-  auditLogs.unshift({
+  registerAuditLog({
     id: "log_" + Date.now(),
     actor: "Admin Chief",
     role: "super_admin",
@@ -33279,7 +35246,7 @@ app.patch("/api/admin/projects/:id/status", (req, res) => {
   if (!p) return res.status(404).json({ error: "Project not found" });
   const oldStatus = p.status;
   p.status = req.body.status;
-  auditLogs.unshift({
+  registerAuditLog({
     id: "log_" + Date.now(),
     actor: "Admin Chief",
     role: "super_admin",
@@ -33294,7 +35261,7 @@ app.patch("/api/admin/projects/:id/feature", (req, res) => {
   const p = projects.find((proj) => proj.id === req.params.id);
   if (!p) return res.status(404).json({ error: "Project not found" });
   p.featured = !p.featured;
-  auditLogs.unshift({
+  registerAuditLog({
     id: "log_" + Date.now(),
     actor: "Admin Chief",
     role: "super_admin",
@@ -33310,7 +35277,7 @@ app.delete("/api/admin/projects/:id", (req, res) => {
   if (index === -1) return res.status(404).json({ error: "Project not found" });
   const deleted = projects[index];
   projects.splice(index, 1);
-  auditLogs.unshift({
+  registerAuditLog({
     id: "log_" + Date.now(),
     actor: "Admin Chief",
     role: "super_admin",
@@ -33337,7 +35304,7 @@ app.patch("/api/admin/gigs/:id", (req, res) => {
   if (req.body.featured !== void 0) g.featured = Boolean(req.body.featured);
   if (req.body.moderationStatus !== void 0) g.moderationStatus = req.body.moderationStatus;
   if (req.body.moderationNotes !== void 0) g.moderationNotes = req.body.moderationNotes;
-  auditLogs.unshift({
+  registerAuditLog({
     id: "log_" + Date.now(),
     actor: "Admin Chief",
     role: "super_admin",
@@ -33353,7 +35320,7 @@ app.patch("/api/admin/gigs/:id/status", (req, res) => {
   if (!g) return res.status(404).json({ error: "Gig/Service not found" });
   const oldStatus = g.status;
   g.status = req.body.status;
-  auditLogs.unshift({
+  registerAuditLog({
     id: "log_" + Date.now(),
     actor: "Admin Chief",
     role: "super_admin",
@@ -33368,7 +35335,7 @@ app.patch("/api/admin/gigs/:id/feature", (req, res) => {
   const g = gigs.find((gig) => gig.id === req.params.id);
   if (!g) return res.status(404).json({ error: "Gig/Service not found" });
   g.featured = !g.featured;
-  auditLogs.unshift({
+  registerAuditLog({
     id: "log_" + Date.now(),
     actor: "Admin Chief",
     role: "super_admin",
@@ -33384,7 +35351,7 @@ app.delete("/api/admin/gigs/:id", (req, res) => {
   if (index === -1) return res.status(404).json({ error: "Gig/Service not found" });
   const deleted = gigs[index];
   gigs.splice(index, 1);
-  auditLogs.unshift({
+  registerAuditLog({
     id: "log_" + Date.now(),
     actor: "Admin Chief",
     role: "super_admin",
@@ -33400,7 +35367,7 @@ app.delete("/api/gigs/:id", (req, res) => {
   if (index === -1) return res.status(404).json({ error: "Gig/Service not found" });
   const deleted = gigs[index];
   gigs.splice(index, 1);
-  auditLogs.unshift({
+  registerAuditLog({
     id: "log_" + Date.now(),
     actor: "Freelancer / User",
     role: "freelancer",
@@ -33424,7 +35391,7 @@ app.patch("/api/gigs/:id", (req, res) => {
   if (req.body.featured !== void 0) g.featured = Boolean(req.body.featured);
   if (req.body.moderationStatus !== void 0) g.moderationStatus = req.body.moderationStatus;
   if (req.body.moderationNotes !== void 0) g.moderationNotes = req.body.moderationNotes;
-  auditLogs.unshift({
+  registerAuditLog({
     id: "log_" + Date.now(),
     actor: "Freelancer / User",
     role: "freelancer",
@@ -33439,7 +35406,7 @@ app.patch("/api/gigs/:id/feature", (req, res) => {
   const g = gigs.find((gig) => gig.id === req.params.id);
   if (!g) return res.status(404).json({ error: "Gig/Service not found" });
   g.featured = !g.featured;
-  auditLogs.unshift({
+  registerAuditLog({
     id: "log_" + Date.now(),
     actor: "Freelancer / User",
     role: "freelancer",
@@ -33454,6 +35421,19 @@ app.post("/api/proposals", requireAuth, (req, res) => {
   const authUserId = req.authenticatedUserId;
   const caller = req.authenticatedUser || users.find((u) => u.id === authUserId);
   if (!caller || caller.status !== "active") return res.status(403).json({ error: "Account is not active" });
+  const activeSettings = siteSettings.getSettings();
+  if (activeSettings.memberships.membershipsEnabled) {
+    const planId = caller.membershipTier || "plan_free";
+    const plan = activeSettings.memberships.freelancerPlans.find((p) => p.id === planId) || activeSettings.memberships.freelancerPlans[0];
+    const quotaLimit = plan?.bidsPerMonth ?? 15;
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1e3).toISOString().split("T")[0];
+    const recentBids = proposals.filter((p) => p.freelancerId === caller.id && p.createdAt && p.createdAt.substring(0, 10) >= thirtyDaysAgo);
+    if (recentBids.length >= quotaLimit) {
+      return res.status(403).json({
+        error: `Monthly proposal quota reached (${recentBids.length}/${quotaLimit} bids used). Upgrade your membership to WorkPerHour Pro Talent to send more bids.`
+      });
+    }
+  }
   const newProp = {
     id: "prop_" + Date.now(),
     projectId: req.body.projectId,
@@ -33461,7 +35441,7 @@ app.post("/api/proposals", requireAuth, (req, res) => {
     freelancerName: caller.name,
     freelancerAvatar: caller.avatar,
     freelancerTitle: caller.title || "Senior Engineer",
-    coverLetter: req.body.coverLetter,
+    coverLetter: escapeHtml(req.body.coverLetter || ""),
     bidAmount: Number(req.body.bidAmount),
     deliveryDays: Number(req.body.deliveryDays),
     createdAt: (/* @__PURE__ */ new Date()).toISOString().split("T")[0],
@@ -33488,6 +35468,16 @@ app.post("/api/orders", requireAuth, rateLimit(30, 6e4), (req, res) => {
     ensureWallet(buyerId);
     ensureWallet(sellerId);
     if (buyer.status !== "active" || seller.status !== "active") return res.status(403).json({ error: "Both accounts must be active to place an order." });
+    const activeSettings = siteSettings.getSettings();
+    const maxActiveOrders = activeSettings.marketplace.maxActiveOrdersPerFreelancer;
+    if (maxActiveOrders > 0) {
+      const activeSellerOrders = orders.filter((o) => o.sellerId === sellerId && ["funded_in_escrow", "in_progress", "delivered", "revision"].includes(o.status));
+      if (activeSellerOrders.length >= maxActiveOrders) {
+        return res.status(400).json({
+          error: `This seller has reached the maximum allowed active orders (${activeSellerOrders.length}/${maxActiveOrders}). Please try again later.`
+        });
+      }
+    }
     const id = "ord_" + randomUUID2().slice(0, 12);
     const today = (/* @__PURE__ */ new Date()).toISOString().split("T")[0];
     let rawAmount = Number(req.body?.amount);
@@ -33520,7 +35510,7 @@ app.post("/api/orders", requireAuth, rateLimit(30, 6e4), (req, res) => {
       syncUserBalances();
     }
     const enriched = enrichOrderWithServiceInfo(newOrd);
-    orders.unshift(enriched);
+    recordOrder(enriched);
     saveOrdersToDisk();
     res.status(201).json(enriched);
   } catch (err) {
@@ -33534,7 +35524,7 @@ app.patch("/api/admin/proposals/:id", (req, res) => {
   if (req.body.bidAmount !== void 0) p.bidAmount = Number(req.body.bidAmount);
   if (req.body.deliveryDays !== void 0) p.deliveryDays = Number(req.body.deliveryDays);
   if (req.body.status !== void 0) p.status = req.body.status;
-  auditLogs.unshift({
+  registerAuditLog({
     id: "log_" + Date.now(),
     actor: "Admin Chief",
     role: "super_admin",
@@ -33550,7 +35540,7 @@ app.patch("/api/admin/proposals/:id/status", (req, res) => {
   if (!p) return res.status(404).json({ error: "Proposal not found" });
   const oldStatus = p.status;
   p.status = req.body.status;
-  auditLogs.unshift({
+  registerAuditLog({
     id: "log_" + Date.now(),
     actor: "Admin Chief",
     role: "super_admin",
@@ -33570,7 +35560,7 @@ app.delete("/api/admin/proposals/:id", (req, res) => {
   if (proj && proj.proposalsCount > 0) {
     proj.proposalsCount -= 1;
   }
-  auditLogs.unshift({
+  registerAuditLog({
     id: "log_" + Date.now(),
     actor: "Admin Chief",
     role: "super_admin",
@@ -33584,16 +35574,16 @@ app.delete("/api/admin/proposals/:id", (req, res) => {
 app.patch("/api/admin/users/:id", (req, res) => {
   const u = users.find((user) => user.id === req.params.id);
   if (!u) return res.status(404).json({ error: "User not found" });
-  if (req.body.name !== void 0) u.name = req.body.name;
-  if (req.body.email !== void 0) u.email = req.body.email;
+  if (req.body.name !== void 0) u.name = escapeHtml(String(req.body.name));
+  if (req.body.email !== void 0) u.email = escapeHtml(String(req.body.email));
   if (req.body.role !== void 0) u.role = req.body.role;
-  if (req.body.title !== void 0) u.title = req.body.title;
-  if (req.body.bio !== void 0) u.bio = req.body.bio;
+  if (req.body.title !== void 0) u.title = escapeHtml(String(req.body.title));
+  if (req.body.bio !== void 0) u.bio = escapeHtml(String(req.body.bio));
   if (req.body.skills !== void 0) u.skills = Array.isArray(req.body.skills) ? req.body.skills : req.body.skills.split(",").map((s) => s.trim()).filter(Boolean);
   if (req.body.hourlyRate !== void 0) u.hourlyRate = Number(req.body.hourlyRate);
   if (req.body.verified !== void 0) u.verified = Boolean(req.body.verified);
   if (req.body.status !== void 0) u.status = req.body.status;
-  auditLogs.unshift({
+  registerAuditLog({
     id: "log_" + Date.now(),
     actor: "Admin Chief",
     role: "super_admin",
@@ -33609,7 +35599,7 @@ app.patch("/api/admin/users/:id/status", (req, res) => {
   if (!u) return res.status(404).json({ error: "User not found" });
   const oldStatus = u.status;
   u.status = req.body.status;
-  auditLogs.unshift({
+  registerAuditLog({
     id: "log_" + Date.now(),
     actor: "Admin Chief",
     role: "super_admin",
@@ -33633,7 +35623,7 @@ app.patch("/api/admin/users/:id/status", (req, res) => {
 app.post("/api/admin/users/:id/impersonate", (req, res) => {
   const u = users.find((user) => user.id === req.params.id);
   if (!u) return res.status(404).json({ error: "User not found" });
-  auditLogs.unshift({
+  registerAuditLog({
     id: "log_" + Date.now(),
     actor: "Admin Chief",
     role: "super_admin",
@@ -33648,7 +35638,7 @@ app.post("/api/admin/users/:id/impersonate", (req, res) => {
 app.post("/api/admin/users/:id/stop-impersonate", (req, res) => {
   const u = users.find((user) => user.id === req.params.id);
   if (!u) return res.status(404).json({ error: "User not found" });
-  auditLogs.unshift({
+  registerAuditLog({
     id: "log_" + Date.now(),
     actor: "Admin Chief",
     role: "super_admin",
@@ -33663,7 +35653,7 @@ app.patch("/api/admin/users/:id/verify", (req, res) => {
   const u = users.find((user) => user.id === req.params.id);
   if (!u) return res.status(404).json({ error: "User not found" });
   u.verified = !u.verified;
-  auditLogs.unshift({
+  registerAuditLog({
     id: "log_" + Date.now(),
     actor: "Admin Chief",
     role: "super_admin",
@@ -33688,7 +35678,7 @@ app.delete("/api/admin/users/:id", (req, res) => {
   users.splice(index, 1);
   gigs = gigs.filter((g) => g.freelancerId !== req.params.id);
   projects = projects.filter((p) => p.buyerId !== req.params.id);
-  auditLogs.unshift({
+  registerAuditLog({
     id: "log_" + Date.now(),
     actor: "Admin Chief",
     role: "super_admin",
@@ -33705,6 +35695,7 @@ app.delete("/api/admin/users/:id", (req, res) => {
   res.json({ success: true, id: deletedUser.id });
 });
 app.patch("/api/admin/disputes/:id/resolve", requireAdmin, (req, res) => {
+  let lockedOrderId = null;
   try {
     const d = disputes.find((disp) => disp.id === req.params.id);
     if (!d) return res.status(404).json({ error: "Dispute not found" });
@@ -33715,16 +35706,18 @@ app.patch("/api/admin/disputes/:id/resolve", requireAdmin, (req, res) => {
     if (d.status.startsWith("resolved")) return res.status(409).json({ error: `Dispute is already ${d.status}.` });
     const notes = String(req.body.notes || "");
     const reason = notes.trim().length >= 5 ? notes.trim() : "Dispute resolved by administrator";
-    const order = orders.find((o) => o.id === d.orderId);
+    const order = orderIndex.get(d.orderId);
     if (status.startsWith("resolved")) {
       if (!order) return res.status(404).json({ error: "Order for this dispute not found" });
+      lockedOrderId = order.id;
+      acquireOrderLock(lockedOrderId);
       if (status === "resolved_release") releaseOrderFunds(order, adminActor(req), reason);
       else if (status === "resolved_refund") refundOrderFunds(order, void 0, adminActor(req), reason);
       else splitOrderFunds(order, Number(req.body.refundAmount), adminActor(req), reason);
     }
     d.status = status;
     d.resolutionNotes = notes;
-    auditLogs.unshift({
+    registerAuditLog({
       id: "log_" + randomUUID2().slice(0, 12),
       actor: adminActor(req),
       role: "super_admin",
@@ -33736,6 +35729,8 @@ app.patch("/api/admin/disputes/:id/resolve", requireAdmin, (req, res) => {
     res.json(d);
   } catch (err) {
     res.status(400).json({ error: err.message });
+  } finally {
+    if (lockedOrderId) releaseOrderLock(lockedOrderId);
   }
 });
 app.post("/api/admin/tickets/:id/reply", (req, res) => {
@@ -33757,9 +35752,9 @@ function broadcastMessage(message, orderId) {
     lastMessage: message.text,
     lastMessageTime: message.timestamp
   });
-  const order = orders.find((o) => o.id === orderId);
+  const order = orderIndex.get(orderId);
   for (const client of clients) {
-    if (client.readyState === import_websocket.default.OPEN) {
+    if (client.readyState === import_websocket.default.OPEN && client.isAuthenticated) {
       const clientUserId = client.authenticatedUserId;
       if (!clientUserId) continue;
       const clientUser = users.find((u) => u.id === clientUserId);
@@ -33774,44 +35769,17 @@ function broadcastMessage(message, orderId) {
 var clients = /* @__PURE__ */ new Set();
 wss.on("connection", (ws, req) => {
   try {
-    if (!req.url) {
-      ws.close(1008, "Invalid connection URL");
-      return;
-    }
-    const host = req.headers.host || "localhost";
-    let url;
-    try {
-      url = new URL(req.url, `http://${host}`);
-    } catch {
-      ws.close(1008, "Malformed URL");
-      return;
-    }
-    const token = url.searchParams.get("token");
-    let matchedUserId = null;
-    if (token) {
-      const payload = verifyToken(token);
-      if (payload && payload.id) {
-        const dbUser = users.find((u) => u.id === payload.id);
-        if (dbUser && dbUser.status === "active") {
-          matchedUserId = dbUser.id;
+    clients.add(ws);
+    ws.isAuthenticated = false;
+    const authTimeout = setTimeout(() => {
+      if (!ws.isAuthenticated) {
+        try {
+          ws.close(4401, "Authentication timeout");
+        } catch {
         }
       }
-    }
-    if (!matchedUserId) {
-      try {
-        ws.close(4401, "Authentication required");
-      } catch {
-      }
-      return;
-    }
-    ws.authenticatedUserId = matchedUserId;
-    clients.add(ws);
-    setupWebSocketHandlers(ws);
-    ws.send(JSON.stringify({
-      type: "CONNECTED",
-      userId: matchedUserId,
-      serverTime: (/* @__PURE__ */ new Date()).toISOString()
-    }));
+    }, 1e3);
+    setupWebSocketHandlers(ws, authTimeout);
   } catch (err) {
     console.error("WS Connection error:", err);
     try {
@@ -33820,9 +35788,10 @@ wss.on("connection", (ws, req) => {
     }
   }
 });
-function setupWebSocketHandlers(ws) {
+function setupWebSocketHandlers(ws, authTimeout) {
   let messageCount = 0;
   let resetTime = Date.now() + 1e4;
+  let authAttempts = 0;
   ws.on("message", (data, isBinary) => {
     try {
       if (isBinary) {
@@ -33853,6 +35822,47 @@ function setupWebSocketHandlers(ws) {
         return;
       }
       if (!parsed || typeof parsed !== "object") {
+        return;
+      }
+      if (parsed.type === "AUTHENTICATE") {
+        authAttempts++;
+        if (authAttempts > 3) {
+          ws.send(JSON.stringify({ error: "Too many authentication attempts" }));
+          try {
+            ws.close(4401, "Too many auth attempts");
+          } catch {
+          }
+          return;
+        }
+        const token = parsed.token;
+        if (!token) {
+          ws.send(JSON.stringify({ error: "Token is required" }));
+          return;
+        }
+        const payload = verifyToken(token);
+        if (payload && payload.id) {
+          const dbUser = users.find((u) => u.id === payload.id);
+          if (dbUser && dbUser.status === "active") {
+            ws.authenticatedUserId = dbUser.id;
+            ws.isAuthenticated = true;
+            clearTimeout(authTimeout);
+            ws.send(JSON.stringify({
+              type: "CONNECTED",
+              userId: dbUser.id,
+              serverTime: (/* @__PURE__ */ new Date()).toISOString()
+            }));
+            return;
+          }
+        }
+        ws.send(JSON.stringify({ error: "Invalid token" }));
+        try {
+          ws.close(4401, "Authentication failed");
+        } catch {
+        }
+        return;
+      }
+      if (!ws.isAuthenticated) {
+        ws.send(JSON.stringify({ error: "Authentication required" }));
         return;
       }
       if (parsed.type === "PING") {

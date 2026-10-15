@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Settings, DollarSign, Percent, ShieldCheck, Save, CheckCircle2, 
-  HelpCircle, AlertCircle, RefreshCw, Layers, Sliders, Shield, Lock, Globe
+  HelpCircle, AlertCircle, RefreshCw, Layers, Sliders, Shield, Lock, Globe,
+  Briefcase, ShoppingBag, Zap, Award, Sparkles, FileText
 } from 'lucide-react';
 import { UserAccount } from '../types';
 
@@ -24,32 +25,78 @@ export const SiteFeeSettingsModule: React.FC<SiteFeeSettingsModuleProps> = ({
   initialEscrowHoldDays = 14,
   onSettingsSaved
 }) => {
+  // Shared Platform Commission & Order Floor
   const [takeRate, setTakeRate] = useState<number>(initialTakeRate);
   const [clientServiceFee, setClientServiceFee] = useState<number>(initialClientServiceFee);
   const [smallOrderFeeAmount, setSmallOrderFeeAmount] = useState<number>(initialSmallOrderFeeAmount);
   const [smallOrderFeeThreshold, setSmallOrderFeeThreshold] = useState<number>(initialSmallOrderFeeThreshold);
-  const [escrowHoldDays, setEscrowHoldDays] = useState<number>(initialEscrowHoldDays);
-  const [autoCompleteDays, setAutoCompleteDays] = useState<number>(3);
-  const [autoCompleteEnabled, setAutoCompleteEnabled] = useState<boolean>(true);
   const [minOrder, setMinOrder] = useState<number>(10);
   const [minPayout, setMinPayout] = useState<number>(50);
 
+  // Gigs Marketplace Specific Settings
+  const [minGigPrice, setMinGigPrice] = useState<number>(10);
+  const [maxGigPrice, setMaxGigPrice] = useState<number>(10000);
   const [featuredGigFee, setFeaturedGigFee] = useState<number>(10);
+  const [gigModerationRequired, setGigModerationRequired] = useState<boolean>(false);
+
+  // Projects / Job Board Specific Settings
+  const [minProjectBudget, setMinProjectBudget] = useState<number>(20);
+  const [maxProjectBudget, setMaxProjectBudget] = useState<number>(50000);
   const [urgentProjectFee, setUrgentProjectFee] = useState<number>(25);
+  const [projectModerationRequired, setProjectModerationRequired] = useState<boolean>(false);
+
+  // Escrow & Governance Rules
+  const [escrowHoldDays, setEscrowHoldDays] = useState<number>(initialEscrowHoldDays);
+  const [autoCompleteDays, setAutoCompleteDays] = useState<number>(3);
+  const [autoCompleteEnabled, setAutoCompleteEnabled] = useState<boolean>(true);
   const [instantPayoutSurcharge, setInstantPayoutSurcharge] = useState<number>(1.5);
 
+  // Operations & Brand Settings
   const [brandName, setBrandName] = useState('WorkPerHour');
   const [supportEmail, setSupportEmail] = useState('support@workperhour.com');
   const [currency, setCurrency] = useState('USD ($) - United States Dollar');
-  const [moderationMode, setModerationMode] = useState<'open' | 'pre'>('open');
   const [maintenanceMode, setMaintenanceMode] = useState<boolean>(false);
 
   // Live Simulator State
   const [simOrderAmount, setSimOrderAmount] = useState<number>(500);
 
+  const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+
+  // Load existing settings on mount
+  useEffect(() => {
+    setIsLoading(true);
+    fetch('/api/admin/settings')
+      .then(res => res.json())
+      .then(data => {
+        if (data) {
+          if (data.freelancerCommissionRate !== undefined) setTakeRate(data.freelancerCommissionRate);
+          if (data.buyerProcessingFeeRate !== undefined) setClientServiceFee(data.buyerProcessingFeeRate);
+          if (data.smallOrderFee !== undefined) setSmallOrderFeeAmount(data.smallOrderFee);
+          if (data.smallOrderFeeThreshold !== undefined) setSmallOrderFeeThreshold(data.smallOrderFeeThreshold);
+          if (data.escrowHoldDays !== undefined) setEscrowHoldDays(data.escrowHoldDays);
+          if (data.autoCompleteDeliveredDays !== undefined) setAutoCompleteDays(data.autoCompleteDeliveredDays);
+          if (data.autoCompleteDeliveredEnabled !== undefined) setAutoCompleteEnabled(data.autoCompleteDeliveredEnabled);
+          if (data.minOrderAmount !== undefined) setMinOrder(data.minOrderAmount);
+          if (data.minPayoutThreshold !== undefined) setMinPayout(data.minPayoutThreshold);
+          if (data.featuredGigFee !== undefined) setFeaturedGigFee(data.featuredGigFee);
+          if (data.urgentProjectFee !== undefined) setUrgentProjectFee(data.urgentProjectFee);
+          if (data.minimumGigPrice !== undefined) setMinGigPrice(data.minimumGigPrice);
+          if (data.maximumGigPrice !== undefined) setMaxGigPrice(data.maximumGigPrice);
+          if (data.minimumProjectBudget !== undefined) setMinProjectBudget(data.minimumProjectBudget);
+          if (data.maximumProjectBudget !== undefined) setMaxProjectBudget(data.maximumProjectBudget);
+          if (data.gigModerationRequired !== undefined) setGigModerationRequired(Boolean(data.gigModerationRequired));
+          if (data.projectModerationRequired !== undefined) setProjectModerationRequired(Boolean(data.projectModerationRequired));
+          if (data.brandName) setBrandName(data.brandName);
+          if (data.supportEmail) setSupportEmail(data.supportEmail);
+          if (data.maintenanceMode !== undefined) setMaintenanceMode(Boolean(data.maintenanceMode));
+        }
+      })
+      .catch(err => console.error('Failed to fetch admin settings:', err))
+      .finally(() => setIsLoading(false));
+  }, []);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,15 +120,22 @@ export const SiteFeeSettingsModule: React.FC<SiteFeeSettingsModuleProps> = ({
           autoCompleteDeliveredDays: autoCompleteDays,
           autoCompleteDeliveredEnabled: autoCompleteEnabled,
           autoCompleteEnabled,
-          minimumOrder: minOrder,
+          minOrderAmount: minOrder,
+          minimumOrderAmount: minOrder,
+          minPayoutThreshold: minPayout,
           minimumWithdrawal: minPayout,
-          featureGigFee: featuredGigFee,
+          featuredGigFee,
           urgentProjectFee,
-          instantPayoutSurcharge,
+          // Dedicated Gig & Project Settings
+          minimumGigPrice: minGigPrice,
+          maximumGigPrice: maxGigPrice,
+          minimumProjectBudget: minProjectBudget,
+          maximumProjectBudget: maxProjectBudget,
+          gigModerationRequired,
+          projectModerationRequired,
           brandName,
           supportEmail,
           currency,
-          moderationMode,
           maintenanceMode
         })
       });
@@ -91,20 +145,15 @@ export const SiteFeeSettingsModule: React.FC<SiteFeeSettingsModuleProps> = ({
         try {
           const errorData = await response.json();
           errorMessage = errorData.error || errorMessage;
-        } catch (jsonErr) {
-          // Fallback if response is not JSON
-        }
+        } catch (jsonErr) {}
         throw new Error(errorMessage);
       }
 
-      // If we got here, the PATCH was successful.
-      // Now update the parent state if needed.
       if (onSettingsSaved) {
         try {
           await Promise.resolve(onSettingsSaved({ takeRate, clientServiceFee, escrowHoldDays }));
         } catch (cbErr) {
           console.warn('Settings saved successfully but background data refresh encountered an issue:', cbErr);
-          // We don't throw here because the settings themselves ARE saved.
         }
       }
 
@@ -127,14 +176,20 @@ export const SiteFeeSettingsModule: React.FC<SiteFeeSettingsModuleProps> = ({
     setSmallOrderFeeThreshold(200);
     setEscrowHoldDays(14);
     setAutoCompleteDays(3);
+    setAutoCompleteEnabled(true);
     setMinOrder(10);
     setMinPayout(50);
+    setMinGigPrice(10);
+    setMaxGigPrice(10000);
     setFeaturedGigFee(10);
+    setGigModerationRequired(false);
+    setMinProjectBudget(20);
+    setMaxProjectBudget(50000);
     setUrgentProjectFee(25);
+    setProjectModerationRequired(false);
     setInstantPayoutSurcharge(1.5);
     setBrandName('WorkPerHour');
     setSupportEmail('support@workperhour.com');
-    setModerationMode('open');
     setMaintenanceMode(false);
     alert('Settings reset to default values.');
   };
@@ -156,8 +211,8 @@ export const SiteFeeSettingsModule: React.FC<SiteFeeSettingsModuleProps> = ({
       <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <span className="text-xs font-semibold text-emerald-600 uppercase tracking-wider block mb-1">Super Administrator Suite</span>
-          <h2 className="text-xl font-bold text-slate-900">20. Site & Fee Settings</h2>
-          <p className="text-xs text-slate-500 mt-0.5">Configure marketplace monetization rates, mandatory double-entry escrow hold duration, buyer checkout fees, currency, and operational governance policies.</p>
+          <h2 className="text-xl font-bold text-slate-900">Site & Fee Settings</h2>
+          <p className="text-xs text-slate-500 mt-0.5">Configure distinct controls for Gigs & Catalog Services, Projects & Job Board Postings, platform commissions, escrow hold duration, and operational rules.</p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <button 
@@ -192,38 +247,196 @@ export const SiteFeeSettingsModule: React.FC<SiteFeeSettingsModuleProps> = ({
           <span className="text-[10px] text-slate-500 block">Checkout Surcharge</span>
         </div>
         <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-1">
+          <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block">Min Gig Price</span>
+          <div className="text-xl font-bold text-slate-900 font-mono">${minGigPrice}</div>
+          <span className="text-[10px] text-slate-500 block">Catalog Floor</span>
+        </div>
+        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-1">
+          <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block">Min Project</span>
+          <div className="text-xl font-bold text-indigo-600 font-mono">${minProjectBudget}</div>
+          <span className="text-[10px] text-slate-500 block">Job Board Floor</span>
+        </div>
+        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-1">
           <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block">Escrow Hold</span>
           <div className="text-xl font-bold text-purple-600 font-mono">{escrowHoldDays} Days</div>
           <span className="text-[10px] text-slate-500 block">Vault Protection</span>
         </div>
         <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-1">
-          <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block">Auto-Complete</span>
-          <div className="text-xl font-bold text-indigo-600 font-mono">{autoCompleteDays} Days</div>
-          <span className="text-[10px] text-slate-500 block">Review Window</span>
-        </div>
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-1">
-          <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block">Min Order</span>
-          <div className="text-xl font-bold text-slate-900 font-mono">${minOrder}</div>
-          <span className="text-[10px] text-slate-500 block">Floor Threshold</span>
-        </div>
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-1">
           <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block">Min Payout</span>
           <div className="text-xl font-bold text-amber-600 font-mono">${minPayout}</div>
-          <span className="text-[10px] text-slate-500 block">Withdrawal Limit</span>
+          <span className="text-[10px] text-slate-500 block">Withdrawal Floor</span>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
         
-        {/* LEFT & CENTER (2 Cols): Sections 1, 2, 3 */}
+        {/* LEFT & CENTER (2 Cols): Sections */}
         <div className="lg:col-span-2 space-y-6">
           
-          {/* SECTION 1: Platform Take Rates & Commissions */}
+          {/* SECTION 1: GIG MARKETPLACE SETTINGS & FEES */}
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs space-y-6">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                <ShoppingBag className="w-4 h-4 text-emerald-600" />
+                <span>1. Gig Marketplace Settings & Pricing Controls</span>
+              </h3>
+              <span className="text-[10px] bg-emerald-50 text-emerald-700 font-bold px-2.5 py-1 rounded-full border border-emerald-200">
+                Catalog & Gigs
+              </span>
+            </div>
+
+            <div className="space-y-4 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-slate-700 font-bold mb-1">Min Gig Price ($)</label>
+                  <input 
+                    type="number" 
+                    value={minGigPrice} 
+                    onChange={(e) => setMinGigPrice(parseFloat(e.target.value) || 0)}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-mono font-bold text-slate-800"
+                  />
+                  <span className="text-[10px] text-slate-400 mt-1 block">Minimum package price sellers can list.</span>
+                </div>
+
+                <div>
+                  <label className="block text-slate-700 font-bold mb-1">Max Gig Price ($)</label>
+                  <input 
+                    type="number" 
+                    value={maxGigPrice} 
+                    onChange={(e) => setMaxGigPrice(parseFloat(e.target.value) || 0)}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-mono font-bold text-slate-800"
+                  />
+                  <span className="text-[10px] text-slate-400 mt-1 block">Upper limit for custom gig offers & packages.</span>
+                </div>
+
+                <div>
+                  <label className="block text-slate-700 font-bold mb-1">Featured Gig Promotion Fee ($)</label>
+                  <input 
+                    type="number" 
+                    value={featuredGigFee} 
+                    onChange={(e) => setFeaturedGigFee(parseFloat(e.target.value) || 0)}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-mono font-bold text-slate-800"
+                  />
+                  <span className="text-[10px] text-slate-400 mt-1 block">Fee charged to feature a gig on landing pages.</span>
+                </div>
+              </div>
+
+              {/* Gig Moderation Controls */}
+              <div className="pt-3 border-t border-slate-100">
+                <label className="block text-slate-700 font-bold mb-1.5">Gig Catalog Publishing & Approval Policy</label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setGigModerationRequired(false)}
+                    className={`p-3 rounded-xl border text-left cursor-pointer transition ${!gigModerationRequired ? 'bg-emerald-50 border-emerald-300 text-emerald-950 font-bold' : 'bg-slate-50 border-slate-200 text-slate-700'}`}
+                  >
+                    <div className="text-xs font-bold flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>Auto-Publish Gigs</span>
+                    </div>
+                    <div className="text-[10px] opacity-70 font-normal mt-0.5">Gigs are published immediately upon seller submit.</div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setGigModerationRequired(true)}
+                    className={`p-3 rounded-xl border text-left cursor-pointer transition ${gigModerationRequired ? 'bg-amber-50 border-amber-300 text-amber-950 font-bold' : 'bg-slate-50 border-slate-200 text-slate-700'}`}
+                  >
+                    <div className="text-xs font-bold flex items-center gap-1.5">
+                      <Shield className="w-3.5 h-3.5 text-amber-600" />
+                      <span>Require Admin Pre-Approval</span>
+                    </div>
+                    <div className="text-[10px] opacity-70 font-normal mt-0.5">Admin review required before gig goes live.</div>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* SECTION 2: PROJECT JOB BOARD SETTINGS & FEES */}
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs space-y-6">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                <Briefcase className="w-4 h-4 text-indigo-600" />
+                <span>2. Project / Job Board Settings & Budget Controls</span>
+              </h3>
+              <span className="text-[10px] bg-indigo-50 text-indigo-700 font-bold px-2.5 py-1 rounded-full border border-indigo-200">
+                Projects & Proposals
+              </span>
+            </div>
+
+            <div className="space-y-4 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-slate-700 font-bold mb-1">Min Project Budget ($)</label>
+                  <input 
+                    type="number" 
+                    value={minProjectBudget} 
+                    onChange={(e) => setMinProjectBudget(parseFloat(e.target.value) || 0)}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-mono font-bold text-slate-800"
+                  />
+                  <span className="text-[10px] text-slate-400 mt-1 block">Minimum budget allowed when client posts a job.</span>
+                </div>
+
+                <div>
+                  <label className="block text-slate-700 font-bold mb-1">Max Project Budget ($)</label>
+                  <input 
+                    type="number" 
+                    value={maxProjectBudget} 
+                    onChange={(e) => setMaxProjectBudget(parseFloat(e.target.value) || 0)}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-mono font-bold text-slate-800"
+                  />
+                  <span className="text-[10px] text-slate-400 mt-1 block">Upper budget cap for project postings.</span>
+                </div>
+
+                <div>
+                  <label className="block text-slate-700 font-bold mb-1">Urgent Project Listing Fee ($)</label>
+                  <input 
+                    type="number" 
+                    value={urgentProjectFee} 
+                    onChange={(e) => setUrgentProjectFee(parseFloat(e.target.value) || 0)}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-mono font-bold text-slate-800"
+                  />
+                  <span className="text-[10px] text-slate-400 mt-1 block">Fee charged to client for Urgent / Expedited tag.</span>
+                </div>
+              </div>
+
+              {/* Project Moderation Controls */}
+              <div className="pt-3 border-t border-slate-100">
+                <label className="block text-slate-700 font-bold mb-1.5">Project Postings Approval Policy</label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setProjectModerationRequired(false)}
+                    className={`p-3 rounded-xl border text-left cursor-pointer transition ${!projectModerationRequired ? 'bg-indigo-50 border-indigo-300 text-indigo-950 font-bold' : 'bg-slate-50 border-slate-200 text-slate-700'}`}
+                  >
+                    <div className="text-xs font-bold flex items-center gap-1.5">
+                      <Zap className="w-3.5 h-3.5 text-indigo-600" />
+                      <span>Auto-Publish Job Posts</span>
+                    </div>
+                    <div className="text-[10px] opacity-70 font-normal mt-0.5">Projects are posted immediately to job board.</div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setProjectModerationRequired(true)}
+                    className={`p-3 rounded-xl border text-left cursor-pointer transition ${projectModerationRequired ? 'bg-amber-50 border-amber-300 text-amber-950 font-bold' : 'bg-slate-50 border-slate-200 text-slate-700'}`}
+                  >
+                    <div className="text-xs font-bold flex items-center gap-1.5">
+                      <Shield className="w-3.5 h-3.5 text-amber-600" />
+                      <span>Require Admin Pre-Approval</span>
+                    </div>
+                    <div className="text-[10px] opacity-70 font-normal mt-0.5">Admin review required before job post goes live.</div>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* SECTION 3: PLATFORM SHARED COMMISSIONS & FEES */}
           <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs space-y-6">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
                 <Percent className="w-4 h-4 text-emerald-600" />
-                <span>1. Platform Take Rates & Commissions</span>
+                <span>3. Platform Shared Commissions & Order Floor</span>
               </h3>
               <span className="text-[10px] bg-emerald-50 text-emerald-700 font-bold px-2.5 py-1 rounded-full border border-emerald-200">
                 Active Monetization
@@ -290,7 +503,7 @@ export const SiteFeeSettingsModule: React.FC<SiteFeeSettingsModuleProps> = ({
                       type="number"
                       value={smallOrderFeeThreshold}
                       onChange={(e) => setSmallOrderFeeThreshold(parseFloat(e.target.value))}
-                      className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs"
+                      className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs font-mono font-bold"
                     />
                   </div>
                   <div className="space-y-1">
@@ -299,52 +512,33 @@ export const SiteFeeSettingsModule: React.FC<SiteFeeSettingsModuleProps> = ({
                       type="number"
                       value={smallOrderFeeAmount}
                       onChange={(e) => setSmallOrderFeeAmount(parseFloat(e.target.value))}
-                      className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs"
+                      className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs font-mono font-bold"
                     />
                   </div>
                 </div>
-                <p className="text-slate-500 text-[11px]">Applied to all orders under the threshold amount.</p>
+                <p className="text-slate-500 text-[11px]">Applied to all checkout orders under the threshold amount.</p>
               </div>
 
-              {/* Additional Fees Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 border-t border-slate-100">
-                <div>
-                  <label className="block text-slate-700 font-bold mb-1">Min Order Floor ($)</label>
-                  <input 
-                    type="number" 
-                    value={minOrder} 
-                    onChange={(e) => setMinOrder(parseFloat(e.target.value))}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-mono font-bold text-slate-800"
-                  />
-                </div>
-                <div>
-                  <label className="block text-slate-700 font-bold mb-1">Featured Gig Fee ($)</label>
-                  <input 
-                    type="number" 
-                    value={featuredGigFee} 
-                    onChange={(e) => setFeaturedGigFee(parseFloat(e.target.value))}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-mono font-bold text-slate-800"
-                  />
-                </div>
-                <div>
-                  <label className="block text-slate-700 font-bold mb-1">Urgent Project Fee ($)</label>
-                  <input 
-                    type="number" 
-                    value={urgentProjectFee} 
-                    onChange={(e) => setUrgentProjectFee(parseFloat(e.target.value))}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-mono font-bold text-slate-800"
-                  />
-                </div>
+              {/* Min Order Floor */}
+              <div className="pt-4 border-t border-slate-100">
+                <label className="block text-slate-700 font-bold mb-1">Min Order Checkout Floor ($)</label>
+                <input 
+                  type="number" 
+                  value={minOrder} 
+                  onChange={(e) => setMinOrder(parseFloat(e.target.value) || 0)}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-mono font-bold text-slate-800"
+                />
+                <span className="text-[10px] text-slate-400 mt-1 block">Hard floor threshold enforced by ledger engine.</span>
               </div>
             </div>
           </div>
 
-          {/* SECTION 2: Escrow Protection & Vault Rules */}
+          {/* SECTION 4: ESCROW PROTECTION & VAULT RULES */}
           <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs space-y-6">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
                 <ShieldCheck className="w-4 h-4 text-purple-600" />
-                <span>2. Escrow Protection & Vault Rules</span>
+                <span>4. Escrow Protection & Vault Rules</span>
               </h3>
               <span className="text-[10px] bg-purple-50 text-purple-700 font-bold px-2.5 py-1 rounded-full border border-purple-200">
                 Double-Entry Ledger
@@ -399,7 +593,7 @@ export const SiteFeeSettingsModule: React.FC<SiteFeeSettingsModuleProps> = ({
                   <input 
                     type="number" 
                     value={minPayout} 
-                    onChange={(e) => setMinPayout(parseFloat(e.target.value))}
+                    onChange={(e) => setMinPayout(parseFloat(e.target.value) || 0)}
                     className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-mono font-bold text-slate-800"
                   />
                 </div>
@@ -409,7 +603,7 @@ export const SiteFeeSettingsModule: React.FC<SiteFeeSettingsModuleProps> = ({
                     type="number" 
                     step="0.1"
                     value={instantPayoutSurcharge} 
-                    onChange={(e) => setInstantPayoutSurcharge(parseFloat(e.target.value))}
+                    onChange={(e) => setInstantPayoutSurcharge(parseFloat(e.target.value) || 0)}
                     className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-mono font-bold text-slate-800"
                   />
                 </div>
@@ -417,12 +611,12 @@ export const SiteFeeSettingsModule: React.FC<SiteFeeSettingsModuleProps> = ({
             </div>
           </div>
 
-          {/* SECTION 3: Platform Identity & Operations */}
+          {/* SECTION 5: PLATFORM IDENTITY & OPERATIONS */}
           <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs space-y-6">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
                 <Globe className="w-4 h-4 text-indigo-600" />
-                <span>3. Platform Identity & Operations</span>
+                <span>5. Platform Identity & Operations</span>
               </h3>
             </div>
 
@@ -438,7 +632,7 @@ export const SiteFeeSettingsModule: React.FC<SiteFeeSettingsModuleProps> = ({
                   />
                 </div>
                 <div>
-                  <label className="block text-slate-700 font-bold mb-1">Support & Escalations Desk Email</label>
+                  <label className="block text-slate-700 font-bold mb-1">Support Email Desk</label>
                   <input 
                     type="email" 
                     value={supportEmail} 
@@ -449,61 +643,23 @@ export const SiteFeeSettingsModule: React.FC<SiteFeeSettingsModuleProps> = ({
               </div>
 
               <div>
-                <label className="block text-slate-700 font-bold mb-1">Operating Currency</label>
-                <select 
-                  value={currency} 
-                  onChange={(e) => setCurrency(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-900"
-                >
-                  <option value="USD ($) - United States Dollar">USD ($) - United States Dollar</option>
-                  <option value="EUR (€) - Euro">EUR (€) - Euro</option>
-                  <option value="GBP (£) - British Pound">GBP (£) - British Pound</option>
-                  <option value="INR (₹) - Indian Rupee">INR (₹) - Indian Rupee</option>
-                </select>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-3 border-t border-slate-100">
-                <div>
-                  <label className="block text-slate-700 font-bold mb-1">Gig & Catalog Moderation Mode</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setModerationMode('open')}
-                      className={`p-3 rounded-xl border text-left cursor-pointer transition ${moderationMode === 'open' ? 'bg-emerald-50 border-emerald-300 text-emerald-900 font-bold' : 'bg-slate-50 border-slate-200 text-slate-700'}`}
-                    >
-                      <div className="text-xs font-bold">Open Marketplace</div>
-                      <div className="text-[10px] opacity-70 font-normal">Instant gig publishing</div>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setModerationMode('pre')}
-                      className={`p-3 rounded-xl border text-left cursor-pointer transition ${moderationMode === 'pre' ? 'bg-indigo-50 border-indigo-300 text-indigo-900 font-bold' : 'bg-slate-50 border-slate-200 text-slate-700'}`}
-                    >
-                      <div className="text-xs font-bold">Pre-Moderation</div>
-                      <div className="text-[10px] opacity-70 font-normal">Admin approval required</div>
-                    </button>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-slate-700 font-bold mb-1">Maintenance Mode Switch</label>
-                  <div className="flex items-center justify-between p-3 bg-slate-50 border border-slate-200 rounded-xl">
-                    <div>
-                      <div className="text-xs font-bold text-slate-800">
-                        {maintenanceMode ? 'Enabled (Read-Only)' : 'Disabled (Live)'}
-                      </div>
-                      <div className="text-[10px] text-slate-500">Put marketplace in read-only maintenance window</div>
+                <label className="block text-slate-700 font-bold mb-1">Maintenance Mode Switch</label>
+                <div className="flex items-center justify-between p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                  <div>
+                    <div className="text-xs font-bold text-slate-800">
+                      {maintenanceMode ? 'Enabled (Read-Only Maintenance)' : 'Disabled (Live Operational)'}
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => setMaintenanceMode(!maintenanceMode)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
-                        maintenanceMode ? 'bg-red-600 text-white' : 'bg-slate-200 text-slate-700'
-                      }`}
-                    >
-                      {maintenanceMode ? 'Turn Off' : 'Enable'}
-                    </button>
+                    <div className="text-[10px] text-slate-500">Put marketplace in read-only maintenance window</div>
                   </div>
+                  <button
+                    type="button"
+                    onClick={() => setMaintenanceMode(!maintenanceMode)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+                      maintenanceMode ? 'bg-red-600 text-white' : 'bg-slate-200 text-slate-700'
+                    }`}
+                  >
+                    {maintenanceMode ? 'Turn Off' : 'Enable'}
+                  </button>
                 </div>
               </div>
             </div>
@@ -526,7 +682,7 @@ export const SiteFeeSettingsModule: React.FC<SiteFeeSettingsModuleProps> = ({
 
             <div className="space-y-4 text-xs">
               <div>
-                <label className="block text-slate-700 font-bold mb-1.5">Enter Sample Gig / Order Price ($):</label>
+                <label className="block text-slate-700 font-bold mb-1.5">Enter Sample Order / Contract Price ($):</label>
                 <input 
                   type="number"
                   value={simOrderAmount}

@@ -53,6 +53,7 @@ export interface GigsProjectsOrdersSettings {
   minimumGigPrice: number;
   maximumGigPrice: number;
   minimumProjectBudget: number;
+  maximumProjectBudget: number;
   maxActiveOrdersPerFreelancer: number; // 0 for unlimited
   autoCompleteDeliveredDays: number; // default 3 days
   autoCompleteDeliveredEnabled: boolean; // default true (toggle auto-accept on/off with one setting)
@@ -167,6 +168,7 @@ export const DEFAULT_SITE_SETTINGS: SiteSettingsState = {
     minimumGigPrice: 10,
     maximumGigPrice: 10000,
     minimumProjectBudget: 20,
+    maximumProjectBudget: 50000,
     maxActiveOrdersPerFreelancer: 0, // 0 for unlimited (allows high-velocity sellers and buyers without artificial caps)
     autoCompleteDeliveredDays: 3,
     autoCompleteDeliveredEnabled: true,

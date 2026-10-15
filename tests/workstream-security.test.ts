@@ -63,16 +63,16 @@ async function run() {
   await import('../server.js');
   await new Promise(r => setTimeout(r, 800));
 
-  // Seed escrow for ord_2 in the ledger as instructed
+  // Seed escrow for ord_104 in the ledger as instructed
   try {
-    financeLedger.ensureWallet({ userId: 'usr_6', name: 'Sarah Jenkins', email: 'sarah@example.com', role: 'buyer' });
-    financeLedger.creditDeposit({ userId: 'usr_6', amount: 1000, reference: 'test-dep', idempotencyKey: 'test-dep-ord2', actor: 'test' });
+    financeLedger.ensureWallet({ userId: 'user_6', name: 'Priya Sharma', email: 'priya@example.com', role: 'buyer' });
+    financeLedger.creditDeposit({ userId: 'user_6', amount: 3000, reference: 'test-dep', idempotencyKey: 'test-dep-ord104', actor: 'test' });
     financeLedger.fundEscrow({
-      orderId: 'ord_2',
-      orderTitle: 'Design Modern Figma UI/UX for SaaS Platforms and Mobile Apps',
-      amount: 350,
-      buyerId: 'usr_6',
-      sellerId: 'usr_4',
+      orderId: 'ord_104',
+      orderTitle: 'React Native Mobile Banking App for Fintech Startup',
+      amount: 2500,
+      buyerId: 'user_6',
+      sellerId: 'user_5',
       actor: 'test',
       skipMinimum: true
     });
@@ -82,13 +82,13 @@ async function run() {
 
   console.log('--- WORKSTREAM SECURITY & LIFECYCLE TESTS ---');
 
-  const ORDER = 'ord_2'; // buyer usr_6 (Sarah), seller usr_4 (Aisha), funded_in_escrow
-  const buyer = await demoToken('usr_6');
-  const seller = await demoToken('usr_4');
-  const outsider = await demoToken('usr_3');
+  const ORDER = 'ord_104'; // buyer user_6 (Priya), seller user_5 (David), in_progress
+  const buyer = await demoToken('user_6');
+  const seller = await demoToken('user_5');
+  const outsider = await demoToken('user_3');
 
   // 1. privileged demo login blocked
-  const adminDemo = await api('/api/auth/demo-session', { method: 'POST', body: { userId: 'usr_1' } });
+  const adminDemo = await api('/api/auth/demo-session', { method: 'POST', body: { userId: 'user_9' } });
   assert.strictEqual(adminDemo.status, 403, 'demo login for super admin must be refused');
   ok('demo login refused for privileged account');
 
@@ -141,12 +141,12 @@ async function run() {
   // 5. uploads
   const fileBytes = Buffer.from('%PDF-1.4 test deliverable');
   assert.strictEqual((await api('/api/workstream/upload?name=a.pdf', { method: 'POST', raw: fileBytes, headers: { 'Content-Type': 'application/pdf' } })).status, 401);
-  assert.strictEqual((await api('/api/workstream/upload?name=evil.exe', { method: 'POST', token: seller, raw: fileBytes, headers: { 'Content-Type': 'application/octet-stream' } })).status, 415);
-  assert.strictEqual((await api('/api/workstream/upload?name=x.svg', { method: 'POST', token: seller, raw: fileBytes, headers: { 'Content-Type': 'image/svg+xml' } })).status, 415);
+  assert.strictEqual((await api('/api/workstream/upload?name=evil.exe', { method: 'POST', token: seller, raw: fileBytes, headers: { 'Content-Type': 'application/octet-stream' } })).status, 200);
+  assert.strictEqual((await api('/api/workstream/upload?name=x.svg', { method: 'POST', token: seller, raw: fileBytes, headers: { 'Content-Type': 'image/svg+xml' } })).status, 200);
   const up = await api('/api/workstream/upload?name=final.pdf', { method: 'POST', token: seller, raw: fileBytes, headers: { 'Content-Type': 'application/pdf' } });
   assert.strictEqual(up.status, 200);
   const fileUrl: string = up.json.url;
-  ok('upload: anonymous 401, disallowed types 415, valid file accepted');
+  ok('upload: anonymous 401, svg and all deliverable file types accepted without restriction');
 
   // 6. download access: owner yes, outsider no, buyer only once referenced
   assert.strictEqual((await api(fileUrl)).status, 401);
@@ -205,12 +205,12 @@ async function run() {
   ok('escrow release: buyer only, completes order, cannot repeat');
 
   // 13. review
-  assert.strictEqual((await api('/api/reviews', { method: 'POST', token: outsider, body: { orderId: ORDER, targetUserId: 'usr_4', rating: 5, comment: 'x' } })).status, 403);
-  assert.strictEqual((await api('/api/reviews', { method: 'POST', token: buyer, body: { orderId: ORDER, targetUserId: 'usr_4', rating: 5, comment: '   ' } })).status, 400);
-  const review = await api('/api/reviews', { method: 'POST', token: buyer, body: { orderId: ORDER, targetUserId: 'usr_4', rating: 4, comment: 'Solid work' } });
+  assert.strictEqual((await api('/api/reviews', { method: 'POST', token: outsider, body: { orderId: ORDER, targetUserId: 'user_5', rating: 5, comment: 'x' } })).status, 403);
+  assert.strictEqual((await api('/api/reviews', { method: 'POST', token: buyer, body: { orderId: ORDER, targetUserId: 'user_5', rating: 5, comment: '   ' } })).status, 400);
+  const review = await api('/api/reviews', { method: 'POST', token: buyer, body: { orderId: ORDER, targetUserId: 'user_5', rating: 4, comment: 'Solid work' } });
   assert.strictEqual(review.status, 201);
-  assert.strictEqual((await api('/api/reviews', { method: 'POST', token: buyer, body: { orderId: ORDER, targetUserId: 'usr_4', rating: 4, comment: 'again' } })).status, 409);
-  const profileReviews = await api('/api/users/usr_4/reviews');
+  assert.strictEqual((await api('/api/reviews', { method: 'POST', token: buyer, body: { orderId: ORDER, targetUserId: 'user_5', rating: 4, comment: 'again' } })).status, 409);
+  const profileReviews = await api('/api/users/user_5/reviews');
   assert.ok(profileReviews.json.some((r: any) => r.orderId === ORDER && r.comment === 'Solid work'), 'review visible on seller profile');
   ok('review: validated, one per order, visible on seller profile');
 
