@@ -23,10 +23,19 @@ export interface Review {
   review?: string;
   timeAgo?: string;
   createdAt?: string;
+  updatedAt?: string;
+  isCancelledOrder?: boolean;
   gigTitle?: string;
   orderTitle?: string;
   gigId?: string;
   projectId?: string;
+  reply?: {
+    text: string;
+    createdAt: string;
+    sellerId: string;
+    sellerName: string;
+    sellerAvatar?: string;
+  };
 }
 
 export interface Gig {
@@ -116,7 +125,7 @@ export interface Order {
   buyerId: string;
   sellerId: string;
   amount: number;
-  status: 'funded_in_escrow' | 'in_progress' | 'delivered' | 'completed' | 'disputed' | 'revision' | 'cancelled';
+  status: 'funded_in_escrow' | 'in_progress' | 'delivered' | 'completed' | 'disputed' | 'revision' | 'cancelled' | 'draft_review' | 'work_in_progress';
   createdAt: string;
   completedAt?: string;
   dueDate: string;

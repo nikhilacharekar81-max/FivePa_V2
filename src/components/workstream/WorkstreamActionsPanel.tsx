@@ -83,31 +83,44 @@ export const WorkstreamActionsPanel: React.FC<WorkstreamActionsPanelProps> = ({
             <span>Revision requested. Seller is updating deliverables.</span>
           </div>
         )}
-        {isBuyer && isCompleted && !order.review && (
+        {isBuyer && (isCompleted || order.status === 'cancelled') && !order.review && (
           <button
             onClick={onOpenReviewModal}
             className="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl text-xs font-bold text-left flex items-center justify-between transition shadow-xs cursor-pointer"
           >
             <div className="flex items-center gap-2.5">
               <Star className="w-4 h-4 fill-white" />
-              <span>Write a Review</span>
+              <span>{order.status === 'cancelled' ? 'Rate Cancelled Order' : 'Write a Review'}</span>
             </div>
             <ArrowRight className="w-3.5 h-3.5" />
           </button>
         )}
 
-        {isCompleted && order.review && (
-          <div className="p-3.5 bg-amber-50/80 border border-amber-200 rounded-2xl text-xs space-y-1.5 animate-in fade-in">
+        {order.review && (
+          <div className="p-3.5 bg-amber-50/80 border border-amber-200 rounded-2xl text-xs space-y-2 animate-in fade-in">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1 font-bold text-amber-900">
                 <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
-                <span>Review Submitted</span>
+                <span>{order.review.isCancelledOrder ? 'Post-Cancellation Review' : 'Review Submitted'}</span>
               </div>
-              <span className="font-mono font-bold text-amber-800 text-[11px] bg-amber-100/70 px-2 py-0.5 rounded-full">
-                {order.review.rating}.0 / 5.0
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="font-mono font-bold text-amber-800 text-[11px] bg-amber-100/70 px-2 py-0.5 rounded-full">
+                  {order.review.rating}.0 / 5.0
+                </span>
+                {isBuyer && (
+                  <button onClick={onOpenReviewModal} className="text-[10px] text-amber-800 underline font-semibold hover:text-amber-950">
+                    Edit
+                  </button>
+                )}
+              </div>
             </div>
             <p className="text-[11px] text-amber-800 italic line-clamp-3">"{order.review.comment}"</p>
+            {order.review.reply && (
+              <div className="mt-2 pt-2 border-t border-amber-200 text-[11px] text-amber-900">
+                <span className="font-bold">Seller Public Response: </span>
+                <span className="italic">"{order.review.reply.text}"</span>
+              </div>
+            )}
           </div>
         )}
 

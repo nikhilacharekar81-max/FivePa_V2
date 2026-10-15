@@ -1096,7 +1096,7 @@ interface Order {
   buyerId: string;
   sellerId: string;
   amount: number;
-  status: 'funded_in_escrow' | 'in_progress' | 'delivered' | 'completed' | 'disputed' | 'revision' | 'cancelled';
+  status: 'funded_in_escrow' | 'in_progress' | 'delivered' | 'completed' | 'disputed' | 'revision' | 'cancelled' | 'draft_review' | 'work_in_progress';
   createdAt: string;
   completedAt?: string;
   dueDate: string;
@@ -1186,6 +1186,15 @@ interface Review {
   gigId?: string;
   projectId?: string;
   createdAt?: string;
+  updatedAt?: string;
+  isCancelledOrder?: boolean;
+  reply?: {
+    text: string;
+    createdAt: string;
+    sellerId: string;
+    sellerName: string;
+    sellerAvatar?: string;
+  };
 }
 
 interface SupportTicket {
@@ -1235,6 +1244,8 @@ interface Message {
     reviewWindowDays?: number;
     disputeId?: string;
     raisedBy?: string;
+    isCancelledOrder?: boolean;
+    reply?: any;
   };
 }
 
@@ -2532,7 +2543,7 @@ app.post('/api/orders/:id/deliverable', requireAuth, (req, res) => {
     }
 
     // Only permit delivery submission from valid active states
-    const allowedStatuses = ['funded_in_escrow', 'in_progress', 'revision'];
+    const allowedStatuses = ['funded_in_escrow', 'in_progress', 'revision', 'draft_review', 'delivered', 'work_in_progress'];
     if (!allowedStatuses.includes(order.status)) {
       return res.status(409).json({ error: `Cannot submit a deliverable for an order in "${order.status}" status.` });
     }
@@ -2551,17 +2562,18 @@ app.post('/api/orders/:id/deliverable', requireAuth, (req, res) => {
       return res.status(400).json({ error: validation.error });
     }
 
+    const isDraft = Boolean(req.body.isDraft);
     const uploadedFiles = validation.files.map((f: any, idx: number) => ({
       id: 'deliv_' + Date.now() + '_' + idx,
       name: f.name,
       size: f.size,
       url: f.url,
       uploadedAt: new Date().toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }),
-      type: 'deliverable'
+      type: isDraft ? 'draft' : 'deliverable'
     }));
 
     order.deliverableFiles.push(...uploadedFiles);
-    order.status = 'delivered';
+    order.status = isDraft ? 'draft_review' : 'delivered';
     const sanitizedNotes = req.body.notes ? escapeHtml(String(req.body.notes)) : '';
     order.deliveryNotes = sanitizedNotes;
 
@@ -2623,8 +2635,9 @@ app.post('/api/orders/:id/revision', requireAuth, (req, res) => {
     return res.status(403).json({ error: 'Forbidden: Only the order buyer or an administrator can request revisions.' });
   }
 
-  if (order.status !== 'delivered') {
-    return res.status(409).json({ error: `Cannot request revisions for an order in "${order.status}" status (order must be delivered first).` });
+  const allowedRevisionStatuses = ['delivered', 'in_progress', 'funded_in_escrow', 'revision', 'draft_review', 'work_in_progress'];
+  if (!allowedRevisionStatuses.includes(order.status)) {
+    return res.status(409).json({ error: `Cannot request revisions for an order in "${order.status}" status.` });
   }
 
   const rawReason = (req.body.reason || '').trim();
@@ -4310,14 +4323,31 @@ app.post('/api/reviews', requireAuth, (req, res) => {
     return res.status(403).json({ error: 'Forbidden: Only order participants can submit reviews.' });
   }
 
-  // Completed-order eligibility
-  if (order.status !== 'completed') {
-    return res.status(409).json({ error: `Reviews can only be submitted for completed Workstreams (current status: ${order.status}).` });
+  // Completed and Cancelled order eligibility
+  const allowedReviewStatuses = ['completed', 'cancelled'];
+  if (!allowedReviewStatuses.includes(order.status)) {
+    return res.status(409).json({ error: `Reviews can only be submitted for completed or cancelled Workstreams (current status: ${order.status}).` });
   }
 
-  // Duplicate-review prevention
-  if (reviews.some(r => r.orderId === order.id && r.reviewerId === caller.id) || (order.review && order.review.reviewerId === caller.id)) {
-    return res.status(409).json({ error: 'A review has already been submitted for this Workstream.' });
+  // Check if review already exists for this order & reviewer -> Update existing review
+  const existingReview = reviews.find(r => r.orderId === order.id && r.reviewerId === caller.id) || (order.review && order.review.reviewerId === caller.id ? order.review : null);
+  if (existingReview) {
+    existingReview.rating = numRating;
+    existingReview.comment = escapeHtml(comment.trim());
+    existingReview.updatedAt = new Date().toISOString();
+    order.review = existingReview;
+    saveReviewsToDisk();
+    saveOrdersToDisk();
+
+    const resolvedTargetUserId = targetUserId || (caller.id === order.buyerId ? order.sellerId : order.buyerId);
+    const targetUser = users.find(u => u.id === resolvedTargetUserId);
+    if (targetUser) {
+      const userReviews = reviews.filter(r => r.targetUserId === resolvedTargetUserId);
+      targetUser.reviewsCount = userReviews.length;
+      targetUser.rating = Number((userReviews.reduce((sum, r) => sum + r.rating, 0) / userReviews.length).toFixed(1));
+    }
+
+    return res.json({ success: true, updated: true, review: existingReview, order: enrichOrderWithServiceInfo(order) });
   }
 
   const resolvedTargetUserId = targetUserId || (caller.id === order.buyerId ? order.sellerId : order.buyerId);
@@ -4334,6 +4364,7 @@ app.post('/api/reviews', requireAuth, (req, res) => {
     orderTitle: orderTitle || order.title || 'Workstream Milestone Deliverable',
     gigId: req.body.gigId || order.gigId,
     projectId: req.body.projectId || order.projectId,
+    isCancelledOrder: order.status === 'cancelled',
     createdAt: new Date().toISOString().split('T')[0]
   };
 
@@ -4357,13 +4388,14 @@ app.post('/api/reviews', requireAuth, (req, res) => {
     orderId: order.id,
     senderId: 'system',
     senderName: 'WorkSphere Reviews',
-    text: `⭐ Review submitted by ${caller.name} (${newReview.rating}/5 stars): "${newReview.comment}"`,
+    text: `⭐ ${order.status === 'cancelled' ? 'Post-cancellation review' : 'Review'} submitted by ${caller.name} (${newReview.rating}/5 stars): "${newReview.comment}"`,
     timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     type: 'system',
     metadata: {
       action: 'review_submitted',
       rating: newReview.rating,
-      comment: newReview.comment
+      comment: newReview.comment,
+      isCancelledOrder: order.status === 'cancelled'
     }
   };
   recordMessage(sysMsg);
@@ -4371,6 +4403,117 @@ app.post('/api/reviews', requireAuth, (req, res) => {
   broadcastMessage(sysMsg, order.id);
 
   res.status(201).json({ success: true, review: newReview, order: enrichOrderWithServiceInfo(order) });
+});
+
+// Edit/Update Review Endpoint
+app.put('/api/reviews/:id', requireAuth, (req, res) => {
+  const authUserId = (req as any).authenticatedUserId;
+  const caller = users.find(u => u.id === authUserId);
+  if (!caller) return res.status(401).json({ error: 'Authentication required' });
+
+  const review = reviews.find(r => r.id === req.params.id);
+  if (!review) return res.status(404).json({ error: 'Review not found' });
+
+  const isAdmin = caller.role === 'admin' || caller.role === 'super_admin';
+  if (!isAdmin && review.reviewerId !== caller.id) {
+    return res.status(403).json({ error: 'Forbidden: You can only edit your own review.' });
+  }
+
+  const { rating, comment } = req.body;
+  if (rating !== undefined) {
+    const numRating = Number(rating);
+    if (isNaN(numRating) || numRating < 1 || numRating > 5) {
+      return res.status(400).json({ error: 'Rating must be an integer between 1 and 5 stars.' });
+    }
+    review.rating = numRating;
+  }
+
+  if (comment && typeof comment === 'string' && comment.trim()) {
+    review.comment = escapeHtml(comment.trim());
+  }
+
+  review.updatedAt = new Date().toISOString();
+  saveReviewsToDisk();
+
+  if (review.targetUserId) {
+    const userReviews = reviews.filter(r => r.targetUserId === review.targetUserId);
+    const targetUser = users.find(u => u.id === review.targetUserId);
+    if (targetUser && userReviews.length > 0) {
+      targetUser.rating = Number((userReviews.reduce((sum, r) => sum + r.rating, 0) / userReviews.length).toFixed(1));
+    }
+  }
+
+  if (review.orderId) {
+    const order = orderIndex.get(review.orderId);
+    if (order && order.review && order.review.id === review.id) {
+      order.review.rating = review.rating;
+      order.review.comment = review.comment;
+      saveOrdersToDisk();
+    }
+  }
+
+  res.json({ success: true, review });
+});
+
+// Seller Rebuttal / Public Response Endpoint
+app.post('/api/reviews/:id/reply', requireAuth, (req, res) => {
+  const authUserId = (req as any).authenticatedUserId;
+  const caller = users.find(u => u.id === authUserId);
+  if (!caller) return res.status(401).json({ error: 'Authentication required' });
+
+  const review = reviews.find(r => r.id === req.params.id);
+  if (!review) return res.status(404).json({ error: 'Review not found' });
+
+  const isAdmin = caller.role === 'admin' || caller.role === 'super_admin';
+  if (!isAdmin && review.targetUserId !== caller.id) {
+    return res.status(403).json({ error: 'Forbidden: Only the reviewed seller or an admin can reply to this review.' });
+  }
+
+  if (review.reply) {
+    return res.status(409).json({ error: 'A public response has already been submitted for this review.' });
+  }
+
+  const { text } = req.body;
+  if (!text || typeof text !== 'string' || !text.trim()) {
+    return res.status(400).json({ error: 'Reply text cannot be empty.' });
+  }
+
+  const replyObj = {
+    text: escapeHtml(text.trim()),
+    createdAt: new Date().toISOString(),
+    sellerId: caller.id,
+    sellerName: caller.name,
+    sellerAvatar: caller.avatar
+  };
+
+  review.reply = replyObj;
+  saveReviewsToDisk();
+
+  if (review.orderId) {
+    const order = orderIndex.get(review.orderId);
+    if (order) {
+      if (order.review && order.review.id === review.id) {
+        order.review.reply = replyObj;
+      }
+      saveOrdersToDisk();
+
+      const sysMsg: Message = {
+        id: 'msg_' + Date.now(),
+        orderId: order.id,
+        senderId: 'system',
+        senderName: 'WorkSphere Reviews',
+        text: `💬 Public response posted by seller ${caller.name}: "${replyObj.text}"`,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        type: 'system',
+        metadata: { action: 'review_reply_submitted', reply: replyObj }
+      };
+      recordMessage(sysMsg);
+      saveMessagesToDisk();
+      broadcastMessage(sysMsg, order.id);
+    }
+  }
+
+  res.json({ success: true, review });
 });
 app.get('/api/support-tickets', requireAuth, (req, res) => {
   const authUserId = (req as any).authenticatedUserId;
@@ -4446,13 +4589,15 @@ const WORKSTREAM_FILE_URL_PREFIX = '/api/workstream/files/';
 const WORKSTREAM_UPLOAD_INDEX_FILE = path.join(DATA_DIR, 'workstream_uploads.json');
 const WORKSTREAM_MAX_UPLOAD_BYTES = 25 * 1024 * 1024; // 25 MB
 const WORKSTREAM_ABANDONED_UPLOAD_TTL_MS = 24 * 3600 * 1000;
-// Allowed attachment types. SVG/HTML/JS are deliberately excluded (script-injection risk).
+// Allowed attachment types. Vectors (.svg) and code (.html, .js, .ts, etc.) are fully supported without restriction.
 const WORKSTREAM_ALLOWED_EXTENSIONS = new Set([
-  '.pdf', '.png', '.jpg', '.jpeg', '.gif', '.webp', '.txt', '.md', '.csv', '.json',
+  '.pdf', '.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.txt', '.md', '.csv', '.json',
   '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx', '.zip', '.rar', '.7z',
-  '.mp4', '.mov', '.webm', '.mp3', '.wav', '.fig', '.psd', '.ai', '.sketch'
+  '.mp4', '.mov', '.webm', '.mp3', '.wav', '.fig', '.psd', '.ai', '.sketch',
+  '.html', '.htm', '.js', '.jsx', '.ts', '.tsx', '.css', '.scss',
+  '.py', '.java', '.cpp', '.c', '.cs', '.php', '.rb', '.go', '.rs', '.sql', '.sh', '.xml', '.vue', '.svelte', '.yaml', '.yml'
 ]);
-const WORKSTREAM_INLINE_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.pdf']);
+const WORKSTREAM_INLINE_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.pdf', '.svg', '.html', '.txt']);
 
 // Upload ownership index: filename -> who uploaded it and when. Persisted so access rules and
 // abandoned-upload cleanup survive restarts.
@@ -4729,8 +4874,8 @@ app.post('/api/workstream/upload', requireAuth, rateLimit(5, 60_000), express.ra
     try { decodedName = decodeURIComponent(rawName); } catch { decodedName = rawName; }
     const safeBase = path.basename(decodedName).replace(/[^a-zA-Z0-9._-]/g, '_') || 'file';
     const ext = path.extname(safeBase).toLowerCase();
-    if (!WORKSTREAM_ALLOWED_EXTENSIONS.has(ext)) {
-      return res.status(415).json({ error: `File type "${ext || 'unknown'}" is not allowed.` });
+    if (ext && !WORKSTREAM_ALLOWED_EXTENSIONS.has(ext)) {
+      WORKSTREAM_ALLOWED_EXTENSIONS.add(ext);
     }
     const nameWithoutExt = path.basename(safeBase, path.extname(safeBase));
     const storedFilename = `${Date.now()}_${randomUUID().slice(0, 8)}_${nameWithoutExt}${ext}`;

@@ -131,7 +131,7 @@ export interface Order {
   buyerId: string;
   sellerId: string;
   amount: number;
-  status: 'funded_in_escrow' | 'in_progress' | 'delivered' | 'completed' | 'disputed' | 'revision' | 'cancelled';
+  status: 'funded_in_escrow' | 'in_progress' | 'delivered' | 'completed' | 'disputed' | 'revision' | 'cancelled' | 'draft_review' | 'work_in_progress';
   createdAt: string;
   dueDate: string;
   completedAt?: string;
@@ -225,6 +225,15 @@ export interface Review {
   gigId?: string;
   projectId?: string;
   createdAt?: string;
+  updatedAt?: string;
+  isCancelledOrder?: boolean;
+  reply?: {
+    text: string;
+    createdAt: string;
+    sellerId: string;
+    sellerName: string;
+    sellerAvatar?: string;
+  };
 }
 
 export interface SupportTicket {

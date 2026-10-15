@@ -51,15 +51,9 @@ export function useWorkstreamReview({
       return false;
     }
 
-    // Verify completed-order eligibility
-    if (selectedOrder.status !== 'completed') {
-      setReviewError(`Reviews can only be submitted for completed Workstreams (current status: ${selectedOrder.status}).`);
-      return false;
-    }
-
-    // Verify duplicate-review prevention on client
-    if (selectedOrder.review) {
-      setReviewError('A review has already been submitted for this Workstream.');
+    // Verify order eligibility (completed or cancelled)
+    if (selectedOrder.status !== 'completed' && selectedOrder.status !== 'cancelled') {
+      setReviewError(`Reviews can only be submitted for completed or cancelled Workstreams (current status: ${selectedOrder.status}).`);
       return false;
     }
 

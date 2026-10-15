@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Star, Sparkles, Clock, RefreshCw, ShieldCheck, Lock, MessageSquare } from 'lucide-react';
-import { Gig, Review } from '../../types';
+import { Gig, Review, UserAccount } from '../../types';
 import { RelatedGigsSection } from './RelatedGigsSection';
 import { Reviews } from '../gig_reviews';
 import { PPH_CATEGORIES } from '../HeaderCategoriesNav';
@@ -24,6 +24,7 @@ interface GigDetailViewProps {
   currentGig: Gig;
   gigs: Gig[];
   reviews: Review[];
+  currentUser?: UserAccount | null;
   navigate: (path: string, e?: React.MouseEvent) => void;
   handleContactSeller: (freelancerId: string, freelancerName: string, gigTitle: string, gigId?: string, projectId?: string) => void;
   handleCreateOrder: (orderTitle: string, priceUSD: number, sellerId: string, gigId?: string, extraIds?: string[]) => void;
@@ -34,6 +35,7 @@ export const GigDetailView: React.FC<GigDetailViewProps> = ({
   currentGig,
   gigs,
   reviews,
+  currentUser,
   navigate,
   handleContactSeller,
   handleCreateOrder,
@@ -248,7 +250,7 @@ export const GigDetailView: React.FC<GigDetailViewProps> = ({
 
           {/* GIG REVIEWS SECTION */}
           <div className="bg-white rounded-3xl border border-slate-200 p-8 shadow-xs">
-            <Reviews currentGig={currentGig} allReviews={reviews} />
+            <Reviews currentGig={currentGig} allReviews={reviews} currentUser={currentUser} />
           </div>
 
         </div>

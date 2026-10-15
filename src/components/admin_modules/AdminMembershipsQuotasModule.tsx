@@ -22,7 +22,7 @@ export const AdminMembershipsQuotasModule: React.FC = () => {
   const [minGigPrice, setMinGigPrice] = useState(10);
   const [maxGigPrice, setMaxGigPrice] = useState(10000);
   const [minProjectBudget, setMinProjectBudget] = useState(20);
-  const [maxActiveOrders, setMaxActiveOrders] = useState(15);
+  const [maxActiveOrders, setMaxActiveOrders] = useState(0);
   const [gigModeration, setGigModeration] = useState(false);
 
   useEffect(() => {
@@ -63,7 +63,7 @@ export const AdminMembershipsQuotasModule: React.FC = () => {
           setMinGigPrice(data.marketplace.minimumGigPrice ?? 10);
           setMaxGigPrice(data.marketplace.maximumGigPrice ?? 10000);
           setMinProjectBudget(data.marketplace.minimumProjectBudget ?? 20);
-          setMaxActiveOrders(data.marketplace.maxActiveOrdersPerFreelancer ?? 15);
+          setMaxActiveOrders(data.marketplace.maxActiveOrdersPerFreelancer ?? 0);
           setGigModeration(data.marketplace.gigModerationRequired ?? false);
         }
       }
@@ -325,10 +325,10 @@ export const AdminMembershipsQuotasModule: React.FC = () => {
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Max Active Orders per Freelancer</label>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Max Active Orders per Freelancer (0 = Unlimited)</label>
               <input 
                 type="number" 
-                min="1" 
+                min="0" 
                 value={maxActiveOrders} 
                 onChange={(e) => setMaxActiveOrders(Number(e.target.value))}
                 className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-emerald-500"

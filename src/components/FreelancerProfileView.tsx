@@ -457,7 +457,7 @@ export const FreelancerProfileView: React.FC<FreelancerProfileViewProps> = ({
                   {/* Reviews List Section (Visible if feedback not hidden) */}
                   {!hideFeedback && subTab === 'reviews' && (
                     <div className="pt-6 border-t border-slate-200 space-y-4">
-                      <Reviews allReviews={mappedReviews} targetUser={profileUser} />
+                      <Reviews allReviews={mappedReviews} targetUser={profileUser} currentUser={currentUser} />
                     </div>
                   )}
 

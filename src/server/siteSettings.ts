@@ -167,7 +167,7 @@ export const DEFAULT_SITE_SETTINGS: SiteSettingsState = {
     minimumGigPrice: 10,
     maximumGigPrice: 10000,
     minimumProjectBudget: 20,
-    maxActiveOrdersPerFreelancer: 15,
+    maxActiveOrdersPerFreelancer: 0, // 0 for unlimited (allows high-velocity sellers and buyers without artificial caps)
     autoCompleteDeliveredDays: 3,
     autoCompleteDeliveredEnabled: true,
     allowBuyerCancellationRequests: true
