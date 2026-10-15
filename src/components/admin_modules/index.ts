@@ -15,3 +15,5 @@ export { AdminReportsModule } from './AdminReportsModule';
 export { AdminSupportModule } from './AdminSupportModule';
 export { AdminCmsModule } from './AdminCmsModule';
 export { AdminActivityModule } from './AdminActivityModule';
+export { AdminMembershipsQuotasModule } from './AdminMembershipsQuotasModule';
+

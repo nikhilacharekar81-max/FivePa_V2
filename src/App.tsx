@@ -65,7 +65,7 @@ import {
   UserEmail 
 } from './types';
 import { useEscrowReviews } from './useEscrowReviews';
-import { getAuthToken, setAuthToken, clearAuthToken } from './utils/authToken';
+import { getAuthToken, setAuthToken, clearAuthToken, requestDemoSession } from './utils/authToken';
 
 const CATEGORY_SLUGS: Record<string, string> = {
   'All': 'all',
@@ -634,6 +634,10 @@ export default function App() {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (!res.ok) {
+        if (res.status === 401) {
+          clearAuthToken();
+          updateCurrentUser(null);
+        }
         return false;
       }
       const data = await res.json();
@@ -1401,11 +1405,11 @@ export default function App() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          email: signupEmail,
+          email: signupEmail.trim(),
           password: signupPassword,
           confirmPassword: signupConfirmPassword,
-          mobile: signupMobile,
-          name: signupName
+          mobile: signupMobile.trim(),
+          name: signupName.trim()
         })
       });
       const data = await res.json();
@@ -1418,8 +1422,10 @@ export default function App() {
         updateCurrentUser(data.user);
         setImpersonatedUser(null);
       }
-      setVerifyEmail(signupEmail);
-      setVerifyMobile(signupMobile);
+      setVerifyEmail(signupEmail.trim());
+      setVerifyMobile(signupMobile.trim());
+      setSignupPassword('');
+      setSignupConfirmPassword('');
       const emailCode = data.mockEmailCode || '';
       const smsCode = data.mockSmsCode || '';
       setMockEmailCodeDisplay(emailCode);
@@ -3254,17 +3260,22 @@ export default function App() {
                   </form>
                 )}
 
-                {usersList.length > 0 && !loginRequiresCode && (
+                {(import.meta as any).env?.DEV && usersList.length > 0 && !loginRequiresCode && (
                   <div className="pt-4 border-t border-slate-100">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-2 text-center">Instant Demo Account Login</span>
                     <div className="grid grid-cols-2 gap-2 text-xs">
-                      {usersList.slice(0, 4).map(u => (
+                      {usersList.filter(u => !['admin', 'super_admin', 'support'].includes(u.role)).slice(0, 4).map(u => (
                         <button
                           key={u.id}
                           type="button"
-                          onClick={() => {
-                            updateCurrentUser(u);
-                            setAuthToken('mock_token_' + u.id);
+                          onClick={async () => {
+                            const session = await requestDemoSession(u.id);
+                            if (!session) {
+                              setLoginError('Demo login is not available on this server.');
+                              return;
+                            }
+                            setAuthToken(session.token);
+                            updateCurrentUser(session.user);
                             setImpersonatedUser(null);
                             fetchAllAdminData();
                             navigate('/');

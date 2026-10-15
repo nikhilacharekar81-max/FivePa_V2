@@ -1,7 +1,7 @@
 import React from 'react';
 import { ShieldCheck, AlertCircle, RefreshCw, Sparkles, CheckCircle2 } from 'lucide-react';
 import { UserAccount } from '../../types';
-import { setAuthToken } from '../../utils/authToken';
+import { setAuthToken, requestDemoSession } from '../../utils/authToken';
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -216,19 +216,24 @@ export const LoginModal: React.FC<LoginModalProps> = ({
           </form>
         )}
 
-        {usersList.length > 0 && !loginRequiresCode && (
+        {(import.meta as any).env?.DEV && usersList.length > 0 && !loginRequiresCode && (
           <div className="mt-5 pt-4 border-t border-slate-100">
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-2 text-center">
               1-Click Demo Account Login
             </span>
             <div className="grid grid-cols-2 gap-2 text-xs">
-              {usersList.slice(0, 4).map(u => (
+              {usersList.filter(u => !['admin', 'super_admin', 'support'].includes(u.role)).slice(0, 4).map(u => (
                 <button
                   key={u.id}
                   type="button"
-                  onClick={() => {
-                    updateCurrentUser(u);
-                    setAuthToken('mock_token_' + u.id);
+                  onClick={async () => {
+                    const session = await requestDemoSession(u.id);
+                    if (!session) {
+                      alert('Demo login is not available on this server.');
+                      return;
+                    }
+                    setAuthToken(session.token);
+                    updateCurrentUser(session.user);
                     setImpersonatedUser(null);
                     onClose();
                     fetchAllAdminData();

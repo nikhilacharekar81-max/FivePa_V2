@@ -6,7 +6,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import { createServer as createViteServer } from 'vite';
-import { randomUUID, randomBytes, timingSafeEqual, createHmac } from 'crypto';
+import { randomUUID, randomBytes, randomInt, timingSafeEqual, createHmac } from 'crypto';
 import bcrypt from 'bcryptjs';
 import type { Request, Response, NextFunction } from 'express';
 import { financeLedger, FinanceLedgerEngine } from './src/server/financeLedger.js';
@@ -193,14 +193,42 @@ const forgotPasswordCodes = new Map<string, VerificationRecord>();
 const withdrawalVerificationCodes = new Map<string, VerificationRecord>();
 
 function generate6DigitCode(): string {
-  return Math.floor(100000 + Math.random() * 900000).toString();
+  return randomInt(100000, 1000000).toString();
+}
+
+// Verification codes are echoed back in API responses ONLY outside production (dev/test convenience).
+// In production a code must never leave the server in a response; otherwise device verification,
+// admin 2FA and password reset can all be bypassed by anyone.
+const EXPOSE_MOCK_CODES = !IS_PRODUCTION;
+function mockCode(key: string, code: string): Record<string, string> {
+  return EXPOSE_MOCK_CODES ? { [key]: code } : {};
+}
+
+// New-device verification for regular users. Admin accounts ALWAYS require it.
+// Defaults to on outside production. In production it defaults to off until a real email provider is wired in
+// (set USER_DEVICE_VERIFICATION=true to enable it).
+const USER_DEVICE_VERIFICATION = process.env.USER_DEVICE_VERIFICATION
+  ? process.env.USER_DEVICE_VERIFICATION === 'true'
+  : !IS_PRODUCTION;
+
+// No email provider is integrated yet. In production, admin verification codes are written to the server log
+// so the owner can still sign in; replace this with a real mail/SMS sender.
+function deliverAdminCode(email: string, code: string) {
+  console.warn(`[AUTH ADMIN 2FA] Verification code for ${email}: ${code}`);
+}
+
+function isValidEmail(v: string): boolean {
+  return v.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+}
+function isValidMobile(v: string): boolean {
+  return /^\+?[0-9][0-9\s\-()]{6,18}$/.test(v);
 }
 
 // 1. Signup Endpoint
 app.post('/api/auth/signup', async (req, res) => {
   try {
     const { email, password, confirmPassword, mobile, name } = req.body || {};
-    if (!email || !password || !mobile) {
+    if (typeof email !== 'string' || typeof password !== 'string' || typeof mobile !== 'string' || !email.trim() || !password || !mobile.trim()) {
       return res.status(400).json({ error: 'Email, password, and mobile number are required.' });
     }
     if (password !== confirmPassword) {
@@ -209,19 +237,31 @@ app.post('/api/auth/signup', async (req, res) => {
     if (password.length < 6) {
       return res.status(400).json({ error: 'Password must be at least 6 characters long.' });
     }
+    if (password.length > 72) {
+      return res.status(400).json({ error: 'Password must be at most 72 characters long.' });
+    }
 
     const normalizedEmail = email.trim().toLowerCase();
+    if (!isValidEmail(normalizedEmail)) {
+      return res.status(400).json({ error: 'Please enter a valid email address.' });
+    }
+    if (!isValidMobile(mobile.trim())) {
+      return res.status(400).json({ error: 'Please enter a valid mobile number.' });
+    }
     const existing = users.find(u => u.email && u.email.toLowerCase() === normalizedEmail);
     if (existing) {
       return res.status(409).json({ error: 'An account with this email already exists.' });
     }
+    if (users.some(u => u.mobile && u.mobile === mobile.trim())) {
+      return res.status(409).json({ error: 'An account with this mobile number already exists.' });
+    }
 
     const hashedPassword = bcrypt.hashSync(password, 10);
-    const newUserId = 'user_' + Date.now();
+    const newUserId = 'user_' + Date.now() + '_' + randomBytes(3).toString('hex');
     const isFirstUser = users.length === 0;
     const newUser: User = {
       id: newUserId,
-      name: name || email.split('@')[0],
+      name: (typeof name === 'string' && name.trim() ? name.trim().slice(0, 80) : normalizedEmail.split('@')[0]),
       email: normalizedEmail,
       mobile: mobile.trim(),
       role: isFirstUser ? 'super_admin' : 'user',
@@ -264,8 +304,10 @@ app.post('/api/auth/signup', async (req, res) => {
       attempts: 0
     });
 
-    console.log(`[AUTH SIGNUP] Email verification code for ${normalizedEmail}: ${emailCode}`);
-    console.log(`[AUTH SIGNUP] SMS verification code for ${mobile.trim()}: ${smsCode}`);
+    if (!IS_PRODUCTION) {
+      console.log(`[AUTH SIGNUP] Email verification code for ${normalizedEmail}: ${emailCode}`);
+      console.log(`[AUTH SIGNUP] SMS verification code for ${mobile.trim()}: ${smsCode}`);
+    }
 
     userEmails.unshift({
       id: 'email_' + Date.now(),
@@ -284,8 +326,8 @@ app.post('/api/auth/signup', async (req, res) => {
       success: true,
       token,
       user: safeUser(newUser),
-      mockEmailCode: emailCode,
-      mockSmsCode: smsCode
+      ...mockCode('mockEmailCode', emailCode),
+      ...mockCode('mockSmsCode', smsCode)
     });
   } catch (err: any) {
     res.status(500).json({ error: err.message || 'Signup failed' });
@@ -294,8 +336,9 @@ app.post('/api/auth/signup', async (req, res) => {
 
 // 2. Email Verification & Resend
 app.post('/api/auth/verify-email', (req, res) => {
-  const { email, code } = req.body || {};
-  if (!email || !code) return res.status(400).json({ error: 'Email and code are required.' });
+  const { email, code: rawCode } = req.body || {};
+  if (typeof email !== 'string' || !email.trim() || rawCode === undefined || rawCode === null || String(rawCode).trim() === '') return res.status(400).json({ error: 'Email and code are required.' });
+  const code = String(rawCode);
   const normalizedEmail = email.trim().toLowerCase();
   const record = emailVerificationCodes.get(normalizedEmail);
   if (!record) return res.status(400).json({ error: 'No verification code found or code expired.' });
@@ -323,7 +366,7 @@ app.post('/api/auth/verify-email', (req, res) => {
 
 app.post('/api/auth/resend-email-code', (req, res) => {
   const { email } = req.body || {};
-  if (!email) return res.status(400).json({ error: 'Email is required.' });
+  if (typeof email !== 'string' || !email.trim()) return res.status(400).json({ error: 'Email is required.' });
   const normalizedEmail = email.trim().toLowerCase();
   const existing = emailVerificationCodes.get(normalizedEmail);
   const now = Date.now();
@@ -351,14 +394,19 @@ app.post('/api/auth/resend-email-code', (req, res) => {
     read: false
   });
 
-  console.log(`[AUTH RESEND] Email verification code for ${normalizedEmail}: ${newCode}`);
-  res.json({ success: true, message: 'New verification code generated and sent.', mockEmailCode: newCode });
+  if (!IS_PRODUCTION) {
+    console.log(`[AUTH RESEND] Email verification code for ${normalizedEmail}: ${newCode}`);
+  } else if (user && (user.role === 'admin' || user.role === 'super_admin')) {
+    deliverAdminCode(normalizedEmail, newCode);
+  }
+  res.json({ success: true, message: 'New verification code generated and sent.', ...mockCode('mockEmailCode', newCode) });
 });
 
 // 3. Mobile / SMS Verification & Resend
 app.post('/api/auth/verify-sms', (req, res) => {
-  const { mobile, code } = req.body || {};
-  if (!mobile || !code) return res.status(400).json({ error: 'Mobile number and code are required.' });
+  const { mobile, code: rawCode } = req.body || {};
+  if (typeof mobile !== 'string' || !mobile.trim() || rawCode === undefined || rawCode === null || String(rawCode).trim() === '') return res.status(400).json({ error: 'Mobile number and code are required.' });
+  const code = String(rawCode);
   const cleanMobile = mobile.trim();
   const record = smsVerificationCodes.get(cleanMobile);
   if (!record) return res.status(400).json({ error: 'No SMS verification code found or expired.' });
@@ -386,7 +434,7 @@ app.post('/api/auth/verify-sms', (req, res) => {
 
 app.post('/api/auth/resend-sms-code', (req, res) => {
   const { mobile } = req.body || {};
-  if (!mobile) return res.status(400).json({ error: 'Mobile number is required.' });
+  if (typeof mobile !== 'string' || !mobile.trim()) return res.status(400).json({ error: 'Mobile number is required.' });
   const cleanMobile = mobile.trim();
   const existing = smsVerificationCodes.get(cleanMobile);
   const now = Date.now();
@@ -402,8 +450,8 @@ app.post('/api/auth/resend-sms-code', (req, res) => {
     attempts: 0
   });
 
-  console.log(`[AUTH RESEND] SMS verification code for ${cleanMobile}: ${newCode}`);
-  res.json({ success: true, message: 'New SMS OTP dispatched.', mockSmsCode: newCode });
+  if (!IS_PRODUCTION) console.log(`[AUTH RESEND] SMS verification code for ${cleanMobile}: ${newCode}`);
+  res.json({ success: true, message: 'New SMS OTP dispatched.', ...mockCode('mockSmsCode', newCode) });
 });
 
 function sanitizeAndCreateMessage(
@@ -458,27 +506,32 @@ const loginAttempts = new Map<string, { count: number; resetAt: number }>();
 
 async function handleLogin(req: Request, res: Response) {
   const clientIp = (req.ip || req.socket.remoteAddress || 'unknown-client').toString();
+  const { email, password, userId, code, verificationCode, emailCode } = req.body || {};
+  const lookupEmail = typeof email === 'string' && email.trim() ? email.trim().toLowerCase() : null;
+  const lookupId = typeof userId === 'string' && userId.trim() ? userId.trim() : null;
+
+  // Lock out by client IP AND by targeted account, so a single account cannot be brute-forced from many IPs.
   const now = Date.now();
-  const attemptRecord = loginAttempts.get(clientIp);
   const cooldownMs = process.env.NODE_ENV === 'test' ? 2000 : 60000;
-  if (attemptRecord) {
+  const attemptKeys = [clientIp, ...(lookupEmail || lookupId ? ['acct:' + (lookupEmail || lookupId)] : [])];
+  for (const key of attemptKeys) {
+    const attemptRecord = loginAttempts.get(key);
+    if (!attemptRecord) continue;
     if (now < attemptRecord.resetAt && attemptRecord.count >= 5) {
       return res.status(429).json({ error: 'Too many failed login attempts. Please try again later.' });
     }
     if (now >= attemptRecord.resetAt) {
-      loginAttempts.delete(clientIp);
+      loginAttempts.delete(key);
     }
   }
 
   function recordFailedLogin() {
-    const record = loginAttempts.get(clientIp) || { count: 0, resetAt: Date.now() + cooldownMs };
-    record.count++;
-    loginAttempts.set(clientIp, record);
+    for (const key of attemptKeys) {
+      const record = loginAttempts.get(key) || { count: 0, resetAt: Date.now() + cooldownMs };
+      record.count++;
+      loginAttempts.set(key, record);
+    }
   }
-
-  const { email, password, userId, code, verificationCode, emailCode } = req.body || {};
-  const lookupEmail = typeof email === 'string' && email.trim() ? email.trim().toLowerCase() : null;
-  const lookupId = typeof userId === 'string' && userId.trim() ? userId.trim() : null;
 
   if (!lookupEmail && !lookupId) {
     return res.status(401).json({ error: 'Email is required for login.' });
@@ -498,14 +551,11 @@ async function handleLogin(req: Request, res: Response) {
     return res.status(401).json({ error: 'Invalid email or password.' });
   }
 
-  if (user.password) {
-    const passwordMatch = bcrypt.compareSync(password, user.password) ||
-      (user.role === 'super_admin' && (password === 'adminpassword123' || password === 'password123')) ||
-      (password === 'password123');
-    if (!passwordMatch) {
-      recordFailedLogin();
-      return res.status(401).json({ error: 'Invalid email or password.' });
-    }
+  // A password is ALWAYS required: no hardcoded passwords and no passwordless accounts.
+  const passwordMatch = typeof user.password === 'string' && user.password.length > 0 && bcrypt.compareSync(password, user.password);
+  if (!passwordMatch) {
+    recordFailedLogin();
+    return res.status(401).json({ error: 'Invalid email or password.' });
   }
 
   if (user.status !== 'active') {
@@ -522,8 +572,14 @@ async function handleLogin(req: Request, res: Response) {
 
   const isAdminRole = user.role === 'admin' || user.role === 'super_admin';
   const providedCode = (code || verificationCode || emailCode)?.toString().trim();
-  const isKnownDevice = user.knownDevices.includes(deviceId) || deviceId === 'dev_default_session' || deviceId === 'unknown' || Boolean(req.body?.skipDeviceVerification);
-  const requiresVerification = !isKnownDevice && !providedCode;
+  // Placeholder device ids and the client-supplied skip flag are a dev/test convenience only. They never
+  // bypass verification in production and never bypass it for administrator accounts.
+  const isPlaceholderDevice = deviceId === 'dev_default_session' || deviceId === 'unknown';
+  const trustedDevice = user.knownDevices.includes(deviceId) && !(isAdminRole && isPlaceholderDevice);
+  const devBypass = !IS_PRODUCTION && !isAdminRole && (isPlaceholderDevice || Boolean(req.body?.skipDeviceVerification));
+  const requiresVerification = isAdminRole
+    ? !trustedDevice
+    : (USER_DEVICE_VERIFICATION && !trustedDevice && !devBypass);
 
   if (requiresVerification) {
     const userEmailKey = (user.email || lookupEmail || user.id).toLowerCase();
@@ -536,6 +592,8 @@ async function handleLogin(req: Request, res: Response) {
         lastResendAt: Date.now(),
         attempts: 0
       });
+
+      if (IS_PRODUCTION && isAdminRole) deliverAdminCode(user.email, newCode);
 
       userEmails.unshift({
         id: 'email_' + Date.now(),
@@ -556,28 +614,38 @@ async function handleLogin(req: Request, res: Response) {
         message: isAdminRole
           ? 'Admin login requires an email verification code. Code sent to your registered admin email.'
           : 'New device detected. Please provide the email verification code sent to your email.',
-        mockEmailCode: newCode,
+        ...mockCode('mockEmailCode', newCode),
         deviceId
       });
     }
 
-    // Verify provided code
+    // Verify provided code (previously unreachable: any code was accepted on an unknown device)
     const record = emailVerificationCodes.get(userEmailKey);
-    if (!record || Date.now() > record.expiresAt || record.code !== providedCode) {
-      if (record) record.attempts++;
+    if (!record || Date.now() > record.expiresAt) {
+      recordFailedLogin();
+      return res.status(400).json({ error: 'Invalid or expired email verification code.' });
+    }
+    if (record.attempts >= 5) {
+      emailVerificationCodes.delete(userEmailKey);
+      return res.status(429).json({ error: 'Too many failed attempts. Please log in again to receive a new code.' });
+    }
+    if (record.code !== providedCode) {
+      record.attempts++;
+      recordFailedLogin();
       return res.status(400).json({ error: 'Invalid or expired email verification code.' });
     }
 
     emailVerificationCodes.delete(userEmailKey);
     if (!user.knownDevices.includes(deviceId)) {
       user.knownDevices.push(deviceId);
+      if (user.knownDevices.length > 10) user.knownDevices.shift();
     }
   }
 
   // Invalidate any previous active session: Every successful login increments sessionVersion
   user.sessionVersion = (user.sessionVersion || 0) + 1;
 
-  loginAttempts.delete(clientIp);
+  for (const key of attemptKeys) loginAttempts.delete(key);
 
   const token = signToken({ id: user.id, role: user.role, email: user.email, sessionVersion: user.sessionVersion });
   return res.json({
@@ -617,13 +685,36 @@ app.post('/api/auth/demo-session', (req, res) => {
 });
 
 // 5. Forgot Password Flow
+// Validates a recovery code with a hard attempt limit (6-digit codes are otherwise brute-forceable).
+function checkRecoveryCode(query: string, code: unknown): 'ok' | 'invalid' | 'locked' {
+  const record = forgotPasswordCodes.get(query);
+  if (!record || Date.now() > record.expiresAt) return 'invalid';
+  if (record.attempts >= 5) {
+    forgotPasswordCodes.delete(query);
+    return 'locked';
+  }
+  if (typeof code !== 'string' && typeof code !== 'number') return 'invalid';
+  if (record.code !== String(code).trim()) {
+    record.attempts++;
+    return 'invalid';
+  }
+  return 'ok';
+}
+
 app.post('/api/auth/forgot-password/request', (req, res) => {
   const { emailOrMobile } = req.body || {};
-  if (!emailOrMobile) return res.status(400).json({ error: 'Email or mobile is required.' });
+  if (typeof emailOrMobile !== 'string' || !emailOrMobile.trim()) return res.status(400).json({ error: 'Email or mobile is required.' });
   const query = emailOrMobile.trim().toLowerCase();
+  // Identical response whether or not the account exists (no account enumeration).
+  const genericResponse = { success: true, message: 'If an account exists, a recovery code has been sent.' };
   const user = users.find(u => (u.email && u.email.toLowerCase() === query) || u.mobile === query);
   if (!user) {
-    return res.json({ success: true, message: 'If account exists, recovery code sent.' });
+    return res.json(genericResponse);
+  }
+
+  const existing = forgotPasswordCodes.get(query);
+  if (existing && Date.now() - existing.lastResendAt < 30_000) {
+    return res.json(genericResponse);
   }
 
   const code = generate6DigitCode();
@@ -634,15 +725,22 @@ app.post('/api/auth/forgot-password/request', (req, res) => {
     attempts: 0
   });
 
-  res.json({ success: true, message: 'Password recovery code dispatched.', mockRecoveryCode: code });
+  if (!IS_PRODUCTION) {
+    console.log(`[AUTH FORGOT] Recovery code for ${query}: ${code}`);
+  } else if (user.role === 'admin' || user.role === 'super_admin') {
+    deliverAdminCode(user.email, code);
+  }
+
+  res.json({ ...genericResponse, ...mockCode('mockRecoveryCode', code) });
 });
 
 app.post('/api/auth/forgot-password/verify', (req, res) => {
   const { emailOrMobile, code } = req.body || {};
-  if (!emailOrMobile || !code) return res.status(400).json({ error: 'Identifier and code are required.' });
+  if (typeof emailOrMobile !== 'string' || !emailOrMobile.trim() || !code) return res.status(400).json({ error: 'Identifier and code are required.' });
   const query = emailOrMobile.trim().toLowerCase();
-  const record = forgotPasswordCodes.get(query);
-  if (!record || Date.now() > record.expiresAt || record.code !== code.trim()) {
+  const check = checkRecoveryCode(query, code);
+  if (check === 'locked') return res.status(429).json({ error: 'Too many failed attempts. Please request a new recovery code.' });
+  if (check !== 'ok') {
     return res.status(400).json({ error: 'Invalid or expired recovery code.' });
   }
   res.json({ success: true, message: 'Code verified successfully.' });
@@ -650,7 +748,7 @@ app.post('/api/auth/forgot-password/verify', (req, res) => {
 
 app.post('/api/auth/forgot-password/reset', (req, res) => {
   const { emailOrMobile, code, newPassword, confirmPassword, confirmNewPassword } = req.body || {};
-  if (!emailOrMobile || !code || !newPassword) {
+  if (typeof emailOrMobile !== 'string' || !emailOrMobile.trim() || !code || typeof newPassword !== 'string' || !newPassword) {
     return res.status(400).json({ error: 'All fields are required.' });
   }
   const confirmToUse = confirmPassword || confirmNewPassword;
@@ -660,9 +758,13 @@ app.post('/api/auth/forgot-password/reset', (req, res) => {
   if (newPassword.length < 6) {
     return res.status(400).json({ error: 'New password must be at least 6 characters long.' });
   }
+  if (newPassword.length > 72) {
+    return res.status(400).json({ error: 'New password must be at most 72 characters long.' });
+  }
   const query = emailOrMobile.trim().toLowerCase();
-  const record = forgotPasswordCodes.get(query);
-  if (!record || Date.now() > record.expiresAt || record.code !== code.trim()) {
+  const check = checkRecoveryCode(query, code);
+  if (check === 'locked') return res.status(429).json({ error: 'Too many failed attempts. Please request a new recovery code.' });
+  if (check !== 'ok') {
     return res.status(400).json({ error: 'Invalid or expired recovery code.' });
   }
 
@@ -700,7 +802,7 @@ app.post('/api/auth/withdrawal/request-code', requireAuth, (req, res) => {
     read: false
   });
 
-  res.json({ success: true, message: 'Withdrawal verification code sent to your registered email.', mockWithdrawalCode: code });
+  res.json({ success: true, message: 'Withdrawal verification code sent to your registered email.', ...mockCode('mockWithdrawalCode', code) });
 });
 
 app.post('/api/auth/withdrawal/verify-and-execute', requireAuth, (req, res) => {
@@ -1234,6 +1336,9 @@ function notifyUser(message: Message, targetUserId: string) {
 // password printed to the server log on first boot).
 const randomPasswordHash = () => bcrypt.hashSync(randomBytes(24).toString('hex'), 10);
 let bootstrapAdminPasswordNotice: string | null = null;
+if (IS_PRODUCTION && process.env.ADMIN_INITIAL_PASSWORD && process.env.ADMIN_INITIAL_PASSWORD.length < 12) {
+  console.warn('[SECURITY] ADMIN_INITIAL_PASSWORD is shorter than 12 characters and was ignored. A random one-time password will be generated instead.');
+}
 function seedPasswordHashFor(role: string): string {
   if (!IS_PRODUCTION) {
     return bcrypt.hashSync(role === 'super_admin' ? 'adminpassword123' : 'password123', 10);
@@ -1241,7 +1346,9 @@ function seedPasswordHashFor(role: string): string {
   if (role === 'super_admin') {
     const configured = process.env.ADMIN_INITIAL_PASSWORD;
     if (configured && configured.length >= 12) return bcrypt.hashSync(configured, 10);
-    const generated = randomBytes(18).toString('base64url');
+    // One generated password shared by every seeded super admin (previously each admin got a different one
+    // and only the last was printed, locking out the others).
+    const generated = bootstrapAdminPasswordNotice ?? randomBytes(18).toString('base64url');
     bootstrapAdminPasswordNotice = generated;
     return bcrypt.hashSync(generated, 10);
   }
@@ -1803,8 +1910,8 @@ const handlePostSiteSettings = (req: Request, res: Response) => {
     }
     if (body.minOrderAmount !== undefined) {
       const num = Number(body.minOrderAmount);
-      if (isNaN(num) || num < 1) {
-        return res.status(400).json({ error: 'Minimum order amount must be at least $1' });
+      if (isNaN(num) || num < 0) {
+        return res.status(400).json({ error: 'Minimum order amount must be zero or more' });
       }
       body.minOrderAmount = num;
     }
@@ -1817,8 +1924,8 @@ const handlePostSiteSettings = (req: Request, res: Response) => {
     }
     if (body.minPayoutThreshold !== undefined) {
       const num = Number(body.minPayoutThreshold);
-      if (isNaN(num) || num < 1) {
-        return res.status(400).json({ error: 'Minimum payout threshold must be at least $1' });
+      if (isNaN(num) || num < 0) {
+        return res.status(400).json({ error: 'Minimum payout threshold must be zero or more' });
       }
       body.minPayoutThreshold = num;
     }
@@ -1856,9 +1963,9 @@ const handlePostSiteSettings = (req: Request, res: Response) => {
     // Keep global business configurations and finance ledger in sync
     if (typeof siteFeeSettings.freelancerCommissionRate === 'number') {
       DEFAULT_SITE_SETTINGS.commission.commissionPercent = siteFeeSettings.freelancerCommissionRate;
-      DEFAULT_SITE_SETTINGS.commission.escrowProtectionDays = siteFeeSettings.escrowHoldDays || DEFAULT_SITE_SETTINGS.commission.escrowProtectionDays;
-      DEFAULT_SITE_SETTINGS.commission.minimumOrderAmount = siteFeeSettings.minOrderAmount || DEFAULT_SITE_SETTINGS.commission.minimumOrderAmount;
-      DEFAULT_SITE_SETTINGS.wallets.minimumWithdrawalAmount = siteFeeSettings.minPayoutThreshold || DEFAULT_SITE_SETTINGS.wallets.minimumWithdrawalAmount;
+      DEFAULT_SITE_SETTINGS.commission.escrowProtectionDays = siteFeeSettings.escrowHoldDays !== undefined ? siteFeeSettings.escrowHoldDays : DEFAULT_SITE_SETTINGS.commission.escrowProtectionDays;
+      DEFAULT_SITE_SETTINGS.commission.minimumOrderAmount = siteFeeSettings.minOrderAmount !== undefined ? siteFeeSettings.minOrderAmount : DEFAULT_SITE_SETTINGS.commission.minimumOrderAmount;
+      DEFAULT_SITE_SETTINGS.wallets.minimumWithdrawalAmount = siteFeeSettings.minPayoutThreshold !== undefined ? siteFeeSettings.minPayoutThreshold : DEFAULT_SITE_SETTINGS.wallets.minimumWithdrawalAmount;
 
       DEFAULT_SITE_SETTINGS.commission.buyerProcessingFeePercent = siteFeeSettings.buyerProcessingFeeRate;
       DEFAULT_SITE_SETTINGS.commission.smallOrderFeeAmount = siteFeeSettings.smallOrderFee;
@@ -1868,8 +1975,8 @@ const handlePostSiteSettings = (req: Request, res: Response) => {
         buyerFeePercent: siteFeeSettings.buyerProcessingFeeRate,
         smallOrderFee: siteFeeSettings.smallOrderFee,
         smallOrderThreshold: siteFeeSettings.smallOrderFeeThreshold,
-        minimumOrderAmount: siteFeeSettings.minOrderAmount || 5,
-        minimumWithdrawalAmount: siteFeeSettings.minPayoutThreshold || 5
+        minimumOrderAmount: siteFeeSettings.minOrderAmount !== undefined ? siteFeeSettings.minOrderAmount : 5,
+        minimumWithdrawalAmount: siteFeeSettings.minPayoutThreshold !== undefined ? siteFeeSettings.minPayoutThreshold : 0
       });
     }
 
@@ -1896,6 +2003,64 @@ app.post('/api/admin/settings', requireAdmin, handlePostSiteSettings);
 app.patch('/api/admin/settings', requireAdmin, handlePostSiteSettings);
 app.post('/api/admin/site-settings', requireAdmin, handlePostSiteSettings);
 app.patch('/api/admin/site-settings', requireAdmin, handlePostSiteSettings);
+
+// Memberships & Quotas Admin Endpoints
+app.get('/api/admin/memberships', requireAdmin, (req, res) => {
+  try {
+    res.json({
+      success: true,
+      memberships: DEFAULT_SITE_SETTINGS.memberships,
+      marketplace: DEFAULT_SITE_SETTINGS.marketplace
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/admin/memberships', requireAdmin, (req, res) => {
+  try {
+    const { memberships, marketplace } = req.body || {};
+    const actor = (req as any).authenticatedUser?.name || 'Super Admin';
+    if (memberships) {
+      if (typeof memberships.membershipsEnabled === 'boolean') {
+        DEFAULT_SITE_SETTINGS.memberships.membershipsEnabled = memberships.membershipsEnabled;
+      }
+      if (Array.isArray(memberships.freelancerPlans)) {
+        DEFAULT_SITE_SETTINGS.memberships.freelancerPlans = memberships.freelancerPlans;
+      }
+      if (Array.isArray(memberships.buyerPlans)) {
+        DEFAULT_SITE_SETTINGS.memberships.buyerPlans = memberships.buyerPlans;
+      }
+      siteSettings.updateSection('memberships', DEFAULT_SITE_SETTINGS.memberships, actor);
+    }
+    if (marketplace) {
+      if (marketplace.minimumGigPrice !== undefined) DEFAULT_SITE_SETTINGS.marketplace.minimumGigPrice = Number(marketplace.minimumGigPrice);
+      if (marketplace.maximumGigPrice !== undefined) DEFAULT_SITE_SETTINGS.marketplace.maximumGigPrice = Number(marketplace.maximumGigPrice);
+      if (marketplace.minimumProjectBudget !== undefined) DEFAULT_SITE_SETTINGS.marketplace.minimumProjectBudget = Number(marketplace.minimumProjectBudget);
+      if (marketplace.maxActiveOrdersPerFreelancer !== undefined) DEFAULT_SITE_SETTINGS.marketplace.maxActiveOrdersPerFreelancer = Number(marketplace.maxActiveOrdersPerFreelancer);
+      if (marketplace.gigModerationRequired !== undefined) DEFAULT_SITE_SETTINGS.marketplace.gigModerationRequired = Boolean(marketplace.gigModerationRequired);
+      siteSettings.updateSection('marketplace', DEFAULT_SITE_SETTINGS.marketplace, actor);
+    }
+
+    registerAuditLog({
+      id: 'log_' + Date.now(),
+      actor,
+      role: 'super_admin',
+      action: 'MEMBERSHIPS_QUOTAS_UPDATED',
+      target: 'Platform Membership & Gig Quotas',
+      details: 'Updated membership plan limits and marketplace gig/project constraints',
+      timestamp: new Date().toLocaleString()
+    });
+
+    res.json({
+      success: true,
+      memberships: DEFAULT_SITE_SETTINGS.memberships,
+      marketplace: DEFAULT_SITE_SETTINGS.marketplace
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 // ==========================================
 // ORDER PRICING & FEE QUOTES (server is the only authority on what a client is charged)
