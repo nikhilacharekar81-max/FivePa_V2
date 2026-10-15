@@ -3093,11 +3093,16 @@ app.post('/api/payments/escrow/refund', requireAuth, (req, res) => {
     const isSeller = userId === order.sellerId;
     const isBuyer = userId === order.buyerId;
 
+    const isOverdueBy76Hours = order.dueDate ? (Date.now() > new Date(order.dueDate).getTime() + 76 * 60 * 60 * 1000) : false;
+
     if (!isAdmin && !isSeller) {
-      if (isBuyer) {
-        return res.status(403).json({ error: 'Forbidden: Buyer cannot unilaterally refund/cancel this order.' });
+      if (isBuyer && isOverdueBy76Hours) {
+        // Buyer permitted to cancel & refund because seller is 76h+ past due date (ghosted / missed deadline)
+      } else if (isBuyer) {
+        return res.status(403).json({ error: 'Forbidden: Buyer cannot cancel this order until 76 hours have passed past the agreed due date.' });
+      } else {
+        return res.status(403).json({ error: 'Forbidden: Not authorized to refund this escrow.' });
       }
-      return res.status(403).json({ error: 'Forbidden: Not authorized to refund this escrow.' });
     }
 
     // Beneficiary is ALWAYS the order's buyer from server order record (never client-supplied)
