@@ -328,6 +328,8 @@ export interface Message {
     clientMessageId?: string;
     acceptedVersion?: number;
     reviewWindowDays?: number;
+    offerId?: string;
+    offerKind?: string;
   };
   status?: 'sending' | 'sent' | 'failed';
 }

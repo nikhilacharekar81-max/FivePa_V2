@@ -4,7 +4,7 @@ import {
   RotateCcw, Activity, FolderOpen, Send, Sparkles, MessageSquare, Video, Star 
 } from 'lucide-react';
 import { WorkstreamItem, WorkstreamMessage, SharedFileItem, WorkstreamSubTab } from './types';
-import { UserAccount } from '../../types';
+import { UserAccount, Order } from '../../types';
 import { WorkstreamActivityStream } from './WorkstreamActivityStream';
 import { WorkstreamMessageInput } from './WorkstreamMessageInput';
 import { WorkstreamFilesTab } from './WorkstreamFilesTab';
@@ -16,6 +16,7 @@ import { WorkstreamRevisionModal } from './WorkstreamRevisionModal';
 import { WorkstreamReviewModal } from './WorkstreamReviewModal';
 import { WorkstreamVideoCallModal } from './WorkstreamVideoCallModal';
 import { getAuthToken } from '../../utils/authToken';
+import { useWorkstreamOffers } from '../../hooks/workstream/useWorkstreamOffers';
 
 interface WorkstreamWorkspaceProps {
   order: WorkstreamItem;
@@ -27,6 +28,8 @@ interface WorkstreamWorkspaceProps {
   onBack: () => void;
   onSendMessage: (text: string) => void;
   onAttachFile: (file: { name: string; size: string; url: string }) => void;
+  /** Called after a buyer accepts / pays an offer so the parent can refresh its order list. */
+  onOrderChanged?: (order: any, newOrder?: any) => void;
   onReleaseEscrow: () => void | Promise<boolean>;
   onDeliverWork: (delivery: { notes: string; files: Array<{ name: string; size: string; url: string }> }) => void;
   onRequestRevision: (reason: string) => void;
@@ -51,6 +54,7 @@ export const WorkstreamWorkspace: React.FC<WorkstreamWorkspaceProps> = ({
   onBack,
   onSendMessage,
   onAttachFile,
+  onOrderChanged,
   onReleaseEscrow,
   onDeliverWork,
   onRequestRevision,
@@ -69,6 +73,21 @@ export const WorkstreamWorkspace: React.FC<WorkstreamWorkspaceProps> = ({
   const [isDeliverModalOpen, setIsDeliverModalOpen] = useState(false);
   const [isRevisionModalOpen, setIsRevisionModalOpen] = useState(false);
   const [isVideoCallModalOpen, setIsVideoCallModalOpen] = useState(false);
+
+  // Real proposals / invoices / deposit requests for this workstream (server is the source of truth)
+  const lastMessageId = messages.length ? messages[messages.length - 1].id : '';
+  const { offers, currencySymbol, escrowFunded, createOffer, respond } = useWorkstreamOffers(order.id, lastMessageId);
+  const isSeller = !!currentUser && currentUser.id === order.sellerId;
+  const canSendProposal = isSeller && !escrowFunded && order.status === 'in_progress';
+  const canRaiseInvoice = isSeller && escrowFunded && order.status !== 'cancelled';
+  const proposalHint = !isSeller ? 'Only the seller can send this' : 'Escrow is already funded. Use Raise Invoice for extra work.';
+  const invoiceHint = !isSeller ? 'Only the seller can send this' : 'Invoices are for follow-on work once escrow is funded.';
+
+  const handleOfferAction = async (offerId: string, action: 'accept' | 'decline' | 'cancel') => {
+    const result = await respond(offerId, action);
+    if (result.ok && (result.order || result.newOrder)) onOrderChanged?.(result.order, result.newOrder);
+    return result;
+  };
 
   const [errorInfo, setErrorInfo] = useState<{msg: string, retryAction: () => void} | null>(null);
 
@@ -124,7 +143,7 @@ export const WorkstreamWorkspace: React.FC<WorkstreamWorkspaceProps> = ({
     const text = `📋 Project Requirement Logged: "${reqText}"`;
     const metadata = { action: 'requirement_logged', requirementText: reqText };
     
-    // @ts-ignore (sendEvent was just added to the hook, TS might not see it yet)
+    // @ts-ignore
     sendEvent(order.id, text, 'system', metadata, (msg: string) => {
       setErrorInfo({ msg, retryAction: () => handleLogRequirement(reqText) });
     });
@@ -140,7 +159,6 @@ export const WorkstreamWorkspace: React.FC<WorkstreamWorkspaceProps> = ({
       setErrorInfo({ msg, retryAction: handleMissedCall });
     });
   };
-
 
   const handleDownloadFile = async (f: { name: string; url: string }) => {
     if (!f.url || f.url === '#') {
@@ -279,54 +297,6 @@ export const WorkstreamWorkspace: React.FC<WorkstreamWorkspaceProps> = ({
             )}
           </div>
         </div>
-
-        {/* BUYER REVIEW WINDOW BANNER */}
-        {order.status === 'delivered' && expiresAtMs && (
-          <div className="pt-3 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-amber-50/70 border border-amber-200/80 rounded-2xl px-4 py-3">
-            <div className="flex items-center gap-2.5">
-              <span className="p-1.5 bg-amber-100 rounded-lg text-amber-700">
-                <Clock className="w-4 h-4 animate-pulse" />
-              </span>
-              <div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-xs font-bold text-amber-900">
-                    {currentUser?.id === order.buyerId ? 'Buyer Review Window' : 'Review Window'}
-                  </span>
-                  <span className="text-xs font-black text-amber-800 bg-white border border-amber-300 px-2 py-0.5 rounded-md font-mono shadow-2xs">
-                    ⏱ {remainingTimeStr || 'Calculating...'}
-                  </span>
-                </div>
-                <p className="text-[11px] text-amber-800/90 mt-0.5">
-                  {currentUser?.id === order.buyerId
-                    ? `You have ${reviewDays} days from delivery to review the work. If no revisions or disputes are requested, escrow funds automatically release to the seller.`
-                    : `The buyer has ${reviewDays} days to review delivery v${latestDelivery?.version || 1}. Escrow automatically releases upon window expiry.`}
-                </p>
-                {((order as any).deliveryReference || latestDelivery?.reference) && (
-                  <div className="mt-1.5 p-2 bg-amber-100/60 rounded-lg text-[11px] font-mono text-amber-950 border border-amber-300/60 break-all select-all">
-                    <span className="font-bold font-sans text-amber-900 block text-[10px] uppercase tracking-wider">Submitted Reference URL / Text:</span>
-                    {(order as any).deliveryReference || latestDelivery?.reference}
-                  </div>
-                )}
-              </div>
-            </div>
-            {currentUser?.id === order.buyerId && (
-              <div className="flex items-center gap-2 shrink-0">
-                <button
-                  onClick={() => setIsRevisionModalOpen(true)}
-                  className="px-3 py-1.5 bg-white hover:bg-amber-100 text-amber-900 border border-amber-300 text-xs font-bold rounded-xl transition cursor-pointer"
-                >
-                  Request Revision
-                </button>
-                <button
-                  onClick={() => setIsReleaseModalOpen(true)}
-                  className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl transition cursor-pointer shadow-xs"
-                >
-                  Accept & Release
-                </button>
-              </div>
-            )}
-          </div>
-        )}
       </div>
 
       {/* 2-COLUMN LAYOUT: MAIN WORKSTREAM + SUMMARY SIDEBAR */}
@@ -365,10 +335,6 @@ export const WorkstreamWorkspace: React.FC<WorkstreamWorkspaceProps> = ({
                   </div>
                 </button>
               </div>
-
-              <div className="text-[11px] text-slate-400 font-mono hidden sm:block">
-                Protected by 14-Day Escrow
-              </div>
             </div>
 
             {/* TAB CONTENT */}
@@ -381,11 +347,22 @@ export const WorkstreamWorkspace: React.FC<WorkstreamWorkspaceProps> = ({
                     usersList={usersList}
                     partnerUser={partner}
                     onDownloadFile={handleDownloadFile}
+                    offers={offers}
+                    buyerId={order.buyerId}
+                    sellerId={order.sellerId}
+                    onOfferAction={handleOfferAction}
                   />
                   <WorkstreamMessageInput
                     key={order.id}
                     onSendMessage={onSendMessage}
                     onAttachFile={onAttachFile}
+                    onStartVideoCall={() => setIsVideoCallModalOpen(true)}
+                    onCreateOffer={createOffer}
+                    canSendProposal={canSendProposal}
+                    canRaiseInvoice={canRaiseInvoice}
+                    proposalHint={proposalHint}
+                    invoiceHint={invoiceHint}
+                    currencySymbol={currencySymbol}
                   />
                 </>
               ) : (

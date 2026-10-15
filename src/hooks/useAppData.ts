@@ -4,7 +4,7 @@ import * as DatabaseService from '../services/DatabaseService';
 import { initialUsers, initialGigs, initialProjects, initialOrders } from '../data/mockData';
 import { getAuthToken } from '../utils/authToken';
 import { getDeviceId } from '../utils/deviceId';
-import { DEFAULT_FEE_CONFIG } from '../shared/fees';
+
 
 export const useAppData = () => {
   const [users, setUsers] = useState<UserAccount[]>(initialUsers);
@@ -22,11 +22,11 @@ export const useAppData = () => {
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [userEmails, setUserEmails] = useState<string[]>([]);
   
-  const [platformFee, setPlatformFee] = useState<number>(DEFAULT_FEE_CONFIG.commissionPercent);
-  const [clientServiceFee, setClientServiceFee] = useState<number>(DEFAULT_FEE_CONFIG.buyerFeePercent);
-  const [smallOrderFeeThreshold, setSmallOrderFeeThreshold] = useState<number>(DEFAULT_FEE_CONFIG.smallOrderThreshold);
-  const [smallOrderFeeAmount, setSmallOrderFeeAmount] = useState<number>(DEFAULT_FEE_CONFIG.smallOrderFee);
-  const [escrowProtectionDays, setEscrowProtectionDays] = useState<number>(14);
+  const [platformFee, setPlatformFee] = useState<number>(0);
+  const [clientServiceFee, setClientServiceFee] = useState<number>(0);
+  const [smallOrderFeeThreshold, setSmallOrderFeeThreshold] = useState<number>(0);
+  const [smallOrderFeeAmount, setSmallOrderFeeAmount] = useState<number>(0);
+  const [escrowProtectionDays, setEscrowProtectionDays] = useState<number>(0);
   
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

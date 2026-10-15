@@ -32,7 +32,33 @@ export interface WorkstreamMessage {
     amount?: number;
     milestoneTitle?: string;
     action?: string;
+    offerId?: string;
+    offerKind?: string;
   };
+}
+
+export type WorkstreamOfferKind = 'proposal' | 'invoice' | 'deposit';
+export type WorkstreamOfferStatus = 'pending' | 'accepted' | 'paid' | 'declined' | 'cancelled';
+
+/** A real proposal / invoice / deposit request stored on the server. */
+export interface WorkstreamOffer {
+  id: string;
+  number: string;
+  orderId: string;
+  kind: WorkstreamOfferKind;
+  title: string;
+  amount: number;
+  deliveryDays?: number;
+  note?: string;
+  status: WorkstreamOfferStatus;
+  createdBy: string;
+  createdAt: string;
+  resolvedAt?: string;
+  resolvedBy?: string;
+  fundedOrderId?: string;
+  /** What the buyer is charged in total (amount + client fees), from the server's fee quote. */
+  clientTotal?: number;
+  currencySymbol?: string;
 }
 
 export interface WorkstreamItem extends Order {

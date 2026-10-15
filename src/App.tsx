@@ -4025,6 +4025,7 @@ export default function App() {
                     isSubmittingReview={isSubmittingReview}
                     onViewPartnerProfile={(user) => navigate('/' + (user.username || slugify(user.name)))}
                     onDisputeAssistance={() => navigate('/admin')}
+                    onOrderChanged={() => refresh()}
                   />
                 );
               })()

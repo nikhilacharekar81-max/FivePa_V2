@@ -481,6 +481,12 @@ function sanitizeAndCreateMessage(
   if (body.metadata && typeof body.metadata === 'object') {
     Object.assign(metadata, body.metadata);
   }
+  // Offer cards (proposal / invoice / deposit) are created only by the server from real offer records.
+  // A browser must never be able to forge one through a plain message.
+  delete metadata.offerId;
+  delete metadata.offerKind;
+  if (typeof metadata.action === 'string' && /^offer_/i.test(metadata.action)) delete metadata.action;
+
   if (body.clientMessageId) {
     metadata.clientMessageId = String(body.clientMessageId);
   }
@@ -5293,7 +5299,237 @@ app.post('/api/orders', requireAuth, rateLimit(30, 60_000), (req, res) => {
   }
 });
 
+// ==========================================
+// WORKSTREAM OFFERS (proposal / invoice / deposit request)
+// Real records with a status. Money only moves through financeLedger.fundEscrow when the BUYER accepts.
+// ==========================================
+type WorkstreamOfferKind = 'proposal' | 'invoice' | 'deposit';
+type WorkstreamOfferStatus = 'pending' | 'accepted' | 'paid' | 'declined' | 'cancelled';
+interface WorkstreamOffer {
+  id: string;
+  number: string;
+  orderId: string;
+  kind: WorkstreamOfferKind;
+  title: string;
+  amount: number;
+  deliveryDays?: number;
+  note?: string;
+  status: WorkstreamOfferStatus;
+  createdBy: string;
+  createdAt: string;
+  resolvedAt?: string;
+  resolvedBy?: string;
+  /** Invoice payments create a new funded order; this is its id. */
+  fundedOrderId?: string;
+}
+
+const OFFERS_FILE = path.join(DATA_DIR, 'workstream_offers.json');
+let workstreamOffers: WorkstreamOffer[] = [];
+try {
+  if (fs.existsSync(OFFERS_FILE)) {
+    const parsed = JSON.parse(fs.readFileSync(OFFERS_FILE, 'utf-8'));
+    if (Array.isArray(parsed)) workstreamOffers = parsed;
+  }
+} catch (e) {
+  console.error('Failed to load workstream offers:', e);
+}
+function saveOffersToDisk() { writeJsonAtomic(OFFERS_FILE, workstreamOffers); }
+
+const OFFER_LABEL: Record<WorkstreamOfferKind, string> = { proposal: 'proposal', invoice: 'invoice', deposit: 'deposit request' };
+const OFFER_PREFIX: Record<WorkstreamOfferKind, string> = { proposal: 'PRP', invoice: 'INV', deposit: 'DEP' };
+const FUNDED_STATUSES = ['funded_in_escrow', 'delivered', 'revision', 'completed', 'disputed'];
+
+function orderHasEscrow(orderId: string): boolean {
+  return !!financeLedger.getEscrow(orderId);
+}
+
+function viewOffer(o: WorkstreamOffer) {
+  let clientTotal: number | undefined;
+  try { clientTotal = financeLedger.quoteOrder(o.amount)?.clientTotal; } catch { /* quote is informational only */ }
+  return { ...o, clientTotal, currencySymbol: siteSettings.getFlattenedSettings().currencySymbol || '$' };
+}
+
+function postOfferMessage(order: Order, offer: WorkstreamOffer, sender: { id: string; name: string } | null, text: string, action: string) {
+  const msg: Message = {
+    id: 'msg_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+    orderId: order.id,
+    senderId: sender?.id || 'system',
+    senderName: sender?.name || 'Workstream',
+    text,
+    timestamp: new Date().toISOString(),
+    type: sender ? 'message' : 'system',
+    metadata: { action, offerId: offer.id, offerKind: offer.kind }
+  };
+  messages.push(msg);
+  saveMessagesToDisk();
+  broadcastMessage(msg, order.id);
+}
+
+function offerCaller(req: Request) {
+  const authUserId = (req as any).authenticatedUserId;
+  return (req as any).authenticatedUser || users.find(u => u.id === authUserId);
+}
+
 // Admin Proposals Management Endpoints
+
+app.get('/api/orders/:id/offers', requireAuth, (req, res) => {
+  const caller = offerCaller(req);
+  const order = orders.find(o => o.id === req.params.id);
+  if (!order) return res.status(404).json({ error: 'Order not found' });
+  if (!canAccessOrderWorkstream(caller, order)) return res.status(403).json({ error: 'Forbidden' });
+  const offers = workstreamOffers
+    .filter(o => o.orderId === order.id)
+    .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+    .map(viewOffer);
+  res.json({
+    offers,
+    currencySymbol: siteSettings.getFlattenedSettings().currencySymbol || '$',
+    escrowFunded: orderHasEscrow(order.id)
+  });
+});
+
+app.post('/api/orders/:id/offers', requireAuth, rateLimit(20, 60_000), (req, res) => {
+  try {
+    const caller = offerCaller(req);
+    if (!caller || caller.status !== 'active') return res.status(403).json({ error: 'Account is not active' });
+    const order = orders.find(o => o.id === req.params.id);
+    if (!order) return res.status(404).json({ error: 'Order not found' });
+    // Only the order's seller may raise proposals, invoices or deposit requests. Staff cannot raise them on a seller's behalf.
+    if (caller.id !== order.sellerId) return res.status(403).json({ error: 'Only the seller of this workstream can send this.' });
+    if (order.status === 'cancelled') return res.status(400).json({ error: 'This workstream is cancelled.' });
+
+    const kind = req.body?.kind as WorkstreamOfferKind;
+    if (!['proposal', 'invoice', 'deposit'].includes(kind)) return res.status(400).json({ error: 'Invalid type.' });
+
+    const amount = Math.round(Number(req.body?.amount) * 100) / 100;
+    const minAmount = Number(siteSettings.getFlattenedSettings().minOrderAmount) || 0;
+    if (!Number.isFinite(amount) || amount <= 0) return res.status(400).json({ error: 'Enter a valid amount.' });
+    if (amount > 100000) return res.status(400).json({ error: 'Amount is too large.' });
+    if (amount < minAmount) return res.status(400).json({ error: `Minimum amount is ${siteSettings.getFlattenedSettings().currencySymbol || '$'}${minAmount}.` });
+
+    const rawTitle = typeof req.body?.title === 'string' ? req.body.title.trim() : '';
+    const title = kind === 'deposit' ? (rawTitle || 'Escrow deposit') : rawTitle;
+    if (title.length < 3 || title.length > 120) return res.status(400).json({ error: 'Title must be 3-120 characters.' });
+    const note = typeof req.body?.note === 'string' ? req.body.note.trim().slice(0, 1000) : '';
+    let deliveryDays: number | undefined;
+    if (kind === 'proposal') {
+      deliveryDays = Math.round(Number(req.body?.deliveryDays));
+      if (!Number.isFinite(deliveryDays) || deliveryDays < 1 || deliveryDays > 365) return res.status(400).json({ error: 'Delivery time must be 1-365 days.' });
+    }
+
+    const funded = orderHasEscrow(order.id);
+    if (kind === 'invoice') {
+      if (!funded) return res.status(400).json({ error: 'Invoices are for follow-on work on a funded workstream. Send a proposal or deposit request first.' });
+      if (workstreamOffers.filter(o => o.orderId === order.id && o.kind === 'invoice' && o.status === 'pending').length >= 5) {
+        return res.status(409).json({ error: 'Too many unpaid invoices on this workstream.' });
+      }
+    } else {
+      if (funded || order.status !== 'in_progress') return res.status(400).json({ error: 'Escrow is already funded for this workstream. Use Raise Invoice for additional work.' });
+      if (workstreamOffers.some(o => o.orderId === order.id && o.kind !== 'invoice' && o.status === 'pending')) {
+        return res.status(409).json({ error: 'There is already a pending proposal or deposit request. Cancel it first.' });
+      }
+    }
+
+    const offer: WorkstreamOffer = {
+      id: 'off_' + randomUUID().slice(0, 12),
+      number: `${OFFER_PREFIX[kind]}-${String(workstreamOffers.filter(o => o.kind === kind).length + 1001)}`,
+      orderId: order.id, kind, title, amount, deliveryDays, note: note || undefined,
+      status: 'pending', createdBy: caller.id, createdAt: new Date().toISOString()
+    };
+    workstreamOffers.push(offer);
+    saveOffersToDisk();
+    postOfferMessage(order, offer, { id: caller.id, name: caller.name }, `New ${OFFER_LABEL[kind]} ${offer.number}: ${title}`, 'offer_created');
+    res.status(201).json({ offer: viewOffer(offer) });
+  } catch (err: any) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.post('/api/offers/:id/:action(accept|decline|cancel)', requireAuth, rateLimit(20, 60_000), (req, res) => {
+  try {
+    const caller = offerCaller(req);
+    if (!caller || caller.status !== 'active') return res.status(403).json({ error: 'Account is not active' });
+    const offer = workstreamOffers.find(o => o.id === req.params.id);
+    const order = offer ? orders.find(o => o.id === offer.orderId) : undefined;
+    if (!offer || !order) return res.status(404).json({ error: 'Not found' });
+    if (!canAccessOrderWorkstream(caller, order)) return res.status(403).json({ error: 'Forbidden' });
+    if (offer.status !== 'pending') return res.status(409).json({ error: `This ${OFFER_LABEL[offer.kind]} is already ${offer.status}.` });
+
+    const action = req.params.action;
+    const now = new Date().toISOString();
+
+    if (action === 'cancel') {
+      if (caller.id !== order.sellerId) return res.status(403).json({ error: 'Only the seller can cancel this.' });
+      offer.status = 'cancelled'; offer.resolvedAt = now; offer.resolvedBy = caller.id;
+      saveOffersToDisk();
+      postOfferMessage(order, offer, null, `${offer.number} was cancelled by the seller.`, 'offer_cancelled');
+      return res.json({ offer: viewOffer(offer) });
+    }
+
+    // Accepting / declining belongs to the buyer only (not staff, not the seller).
+    if (caller.id !== order.buyerId) return res.status(403).json({ error: 'Only the buyer can respond to this.' });
+
+    if (action === 'decline') {
+      offer.status = 'declined'; offer.resolvedAt = now; offer.resolvedBy = caller.id;
+      saveOffersToDisk();
+      postOfferMessage(order, offer, null, `${offer.number} was declined by the buyer.`, 'offer_declined');
+      return res.json({ offer: viewOffer(offer) });
+    }
+
+    // ----- accept: real money movement through the ledger -----
+    ensureWallet(order.buyerId); ensureWallet(order.sellerId);
+    const today = now.split('T')[0];
+    const protectionEnd = new Date(Date.now() + siteSettings.getSettings().commission.escrowProtectionDays * 86400000).toISOString().split('T')[0];
+    let newOrder: any;
+
+    if (offer.kind === 'invoice') {
+      const childId = 'ord_' + randomUUID().slice(0, 12);
+      const childTitle = `${offer.title} (${offer.number})`;
+      financeLedger.fundEscrow({ orderId: childId, orderTitle: childTitle, amount: offer.amount, buyerId: order.buyerId, sellerId: order.sellerId, actor: `user:${order.buyerId}` });
+      const child: Order = {
+        id: childId, title: childTitle, buyerId: order.buyerId, sellerId: order.sellerId, amount: offer.amount,
+        status: 'funded_in_escrow', createdAt: today,
+        dueDate: new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0],
+        escrowProtectionStartDate: today, escrowProtectionEndDate: protectionEnd,
+        gigId: order.gigId, projectId: order.projectId,
+        feeBreakdown: financeLedger.quoteOrder(offer.amount)
+      };
+      newOrder = enrichOrderWithServiceInfo(child);
+      orders.unshift(newOrder);
+      offer.status = 'paid';
+      offer.fundedOrderId = childId;
+    } else {
+      if (orderHasEscrow(order.id) || order.status !== 'in_progress') {
+        return res.status(409).json({ error: 'Escrow is already funded for this workstream.' });
+      }
+      const newTitle = offer.kind === 'proposal' && /^inquiry:/i.test(order.title) ? offer.title : order.title;
+      financeLedger.fundEscrow({ orderId: order.id, orderTitle: newTitle, amount: offer.amount, buyerId: order.buyerId, sellerId: order.sellerId, actor: `user:${order.buyerId}` });
+      order.title = newTitle;
+      order.amount = offer.amount;
+      order.status = 'funded_in_escrow';
+      order.escrowProtectionStartDate = today;
+      order.escrowProtectionEndDate = protectionEnd;
+      order.feeBreakdown = financeLedger.quoteOrder(offer.amount);
+      if (offer.kind === 'proposal' && offer.deliveryDays) {
+        order.dueDate = new Date(Date.now() + offer.deliveryDays * 86400000).toISOString().split('T')[0];
+      }
+      offer.status = 'accepted';
+    }
+
+    offer.resolvedAt = now; offer.resolvedBy = caller.id;
+    syncUserBalances();
+    saveOrdersToDisk();
+    saveOffersToDisk();
+    postOfferMessage(order, offer, null,
+      offer.kind === 'invoice' ? `${offer.number} was paid. A new funded workstream was created for it.` : `${offer.number} was accepted and escrow was funded.`,
+      'offer_accepted');
+    res.json({ offer: viewOffer(offer), order: enrichOrderWithServiceInfo(order), newOrder });
+  } catch (err: any) {
+    // fundEscrow throws on insufficient balance, frozen wallets, below-minimum amounts, etc. Nothing was changed.
+    res.status(400).json({ error: err.message });
+  }
+});
+
 app.patch('/api/admin/proposals/:id', (req, res) => {
   const p = proposals.find(prop => prop.id === req.params.id);
   if (!p) return res.status(404).json({ error: 'Proposal not found' });
