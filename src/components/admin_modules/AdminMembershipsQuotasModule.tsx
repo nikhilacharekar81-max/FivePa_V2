@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Award, Users, Briefcase, CheckCircle2, AlertCircle, RefreshCw, Sliders } from 'lucide-react';
+import { Award, Users, Briefcase, CheckCircle2, AlertCircle, RefreshCw, Sliders, ShieldCheck } from 'lucide-react';
 import { getAuthToken } from '../../utils/authToken';
 
 export const AdminMembershipsQuotasModule: React.FC = () => {
@@ -137,6 +137,10 @@ export const AdminMembershipsQuotasModule: React.FC = () => {
         <div>
           <h2 className="text-xl font-bold text-slate-900">Memberships, Proposal Quotas & Gigs</h2>
           <p className="text-sm text-slate-500">Configure freelancer bid limits, client job post quotas, and marketplace gig rules.</p>
+        </div>
+        <div className="px-3 py-1.5 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs rounded-xl font-semibold flex items-center gap-1.5 shadow-2xs">
+          <ShieldCheck className="w-4 h-4 text-emerald-600" />
+          <span>Server Enforcement Active</span>
         </div>
       </div>
 

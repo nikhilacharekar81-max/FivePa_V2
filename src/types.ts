@@ -181,6 +181,8 @@ export interface UserAccount {
   certifications?: string[];
   knownDevices?: string[];
   password?: string;
+  membershipTier?: string;
+  buyerMembershipTier?: string;
 }
 
 export type User = UserAccount;

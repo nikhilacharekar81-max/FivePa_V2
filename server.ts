@@ -2062,6 +2062,70 @@ app.post('/api/admin/memberships', requireAdmin, (req, res) => {
   }
 });
 
+// User Quota Status & Membership Upgrade Endpoints
+app.get('/api/user/quota-status', requireAuth, (req, res) => {
+  try {
+    const authUserId = (req as any).authenticatedUserId;
+    const user = users.find(u => u.id === authUserId);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    const bidsUsed = proposals.filter(p => p.freelancerId === user.id && p.createdAt >= thirtyDaysAgo).length;
+    const jobPostsUsed = projects.filter(p => p.buyerId === user.id && p.createdAt >= thirtyDaysAgo).length;
+
+    const freelancerPlanId = (user as any).membershipTier || 'plan_free';
+    const freelancerPlan = DEFAULT_SITE_SETTINGS.memberships.freelancerPlans.find(p => p.id === freelancerPlanId) || DEFAULT_SITE_SETTINGS.memberships.freelancerPlans[0];
+
+    const buyerPlanId = (user as any).buyerMembershipTier || 'buyer_free';
+    const buyerPlan = DEFAULT_SITE_SETTINGS.memberships.buyerPlans.find(p => p.id === buyerPlanId) || DEFAULT_SITE_SETTINGS.memberships.buyerPlans[0];
+
+    res.json({
+      success: true,
+      membershipsEnabled: DEFAULT_SITE_SETTINGS.memberships.membershipsEnabled,
+      freelancer: {
+        planId: freelancerPlanId,
+        planName: freelancerPlan?.name || 'Standard Freelancer',
+        bidsUsed,
+        bidsLimit: freelancerPlan?.bidsPerMonth ?? 15,
+        bidsRemaining: Math.max(0, (freelancerPlan?.bidsPerMonth ?? 15) - bidsUsed)
+      },
+      buyer: {
+        planId: buyerPlanId,
+        planName: buyerPlan?.name || 'Standard Client',
+        jobPostsUsed,
+        jobPostsLimit: buyerPlan?.jobPostsPerMonth ?? 10,
+        jobPostsRemaining: Math.max(0, (buyerPlan?.jobPostsPerMonth ?? 10) - jobPostsUsed)
+      }
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/user/membership', requireAuth, (req, res) => {
+  try {
+    const authUserId = (req as any).authenticatedUserId;
+    const user = users.find(u => u.id === authUserId);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    const { freelancerPlanId, buyerPlanId } = req.body || {};
+    if (freelancerPlanId) {
+      (user as any).membershipTier = freelancerPlanId;
+    }
+    if (buyerPlanId) {
+      (user as any).buyerMembershipTier = buyerPlanId;
+    }
+
+    res.json({
+      success: true,
+      message: 'Membership updated successfully',
+      user
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ==========================================
 // ORDER PRICING & FEE QUOTES (server is the only authority on what a client is charged)
 // ==========================================
@@ -4768,6 +4832,21 @@ app.post('/api/gigs', requireAuth, (req, res) => {
   const authUserId = (req as any).authenticatedUserId;
   const caller = (req as any).authenticatedUser || users.find(u => u.id === authUserId);
   if (!caller || caller.status !== 'active') return res.status(403).json({ error: 'Account is not active' });
+
+  // Enforce Gig Pricing Limits from Site Settings
+  const gigPrice = Number(req.body.price);
+  const minGigPrice = DEFAULT_SITE_SETTINGS.marketplace.minimumGigPrice ?? 10;
+  const maxGigPrice = DEFAULT_SITE_SETTINGS.marketplace.maximumGigPrice ?? 10000;
+  if (gigPrice < minGigPrice) {
+    return res.status(400).json({ error: `Gig price ($${gigPrice}) cannot be lower than the platform minimum of $${minGigPrice}.` });
+  }
+  if (gigPrice > maxGigPrice) {
+    return res.status(400).json({ error: `Gig price ($${gigPrice}) cannot exceed the platform maximum of $${maxGigPrice}.` });
+  }
+
+  // Determine publication status based on Admin Gig Moderation setting
+  const initialStatus = DEFAULT_SITE_SETTINGS.marketplace.gigModerationRequired ? 'pending' : 'published';
+
   const newGig: Gig = {
     id: 'gig_' + Date.now(),
     freelancerId: caller.id,
@@ -4780,12 +4859,12 @@ app.post('/api/gigs', requireAuth, (req, res) => {
     category: req.body.category || 'Development & IT',
     subcategory: req.body.subcategory || 'General',
     description: escapeHtml(req.body.description || ''),
-    price: Number(req.body.price),
+    price: gigPrice,
     deliveryDays: Number(req.body.deliveryDays),
     rating: 5.0,
     reviewsCount: 1,
     image: req.body.image || 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=800&h=500&fit=crop',
-    status: 'published',
+    status: initialStatus,
     featured: false,
     extras: req.body.extras || []
   };
@@ -4797,6 +4876,33 @@ app.post('/api/projects', requireAuth, (req, res) => {
   const authUserId = (req as any).authenticatedUserId;
   const caller = (req as any).authenticatedUser || users.find(u => u.id === authUserId);
   if (!caller || caller.status !== 'active') return res.status(403).json({ error: 'Account is not active' });
+
+  // Enforce Client Job Post Quota
+  if (DEFAULT_SITE_SETTINGS.memberships.membershipsEnabled) {
+    const planId = (caller as any).buyerMembershipTier || 'buyer_free';
+    const plan = DEFAULT_SITE_SETTINGS.memberships.buyerPlans.find(p => p.id === planId) || DEFAULT_SITE_SETTINGS.memberships.buyerPlans[0];
+    const quotaLimit = plan?.jobPostsPerMonth ?? 10;
+
+    // Count projects posted by caller in current 30-day window
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    const recentProjects = projects.filter(p => p.buyerId === caller.id && p.createdAt >= thirtyDaysAgo);
+
+    if (recentProjects.length >= quotaLimit) {
+      return res.status(403).json({
+        error: `Monthly job post quota reached (${recentProjects.length}/${quotaLimit} posts used). Upgrade your plan to Enterprise Client to post more jobs.`
+      });
+    }
+  }
+
+  // Enforce Minimum Project Budget
+  const minBudget = DEFAULT_SITE_SETTINGS.marketplace.minimumProjectBudget ?? 20;
+  const budgetMin = Number(req.body.budgetMin);
+  if (minBudget > 0 && budgetMin < minBudget) {
+    return res.status(400).json({
+      error: `Project budget ($${budgetMin}) is below the platform minimum requirement of $${minBudget}.`
+    });
+  }
+
   const newProj: Project = {
     id: 'proj_' + Date.now(),
     buyerId: caller.id,
@@ -5074,6 +5180,24 @@ app.post('/api/proposals', requireAuth, (req, res) => {
   const authUserId = (req as any).authenticatedUserId;
   const caller = (req as any).authenticatedUser || users.find(u => u.id === authUserId);
   if (!caller || caller.status !== 'active') return res.status(403).json({ error: 'Account is not active' });
+
+  // Enforce Freelancer Proposal Quota
+  if (DEFAULT_SITE_SETTINGS.memberships.membershipsEnabled) {
+    const planId = (caller as any).membershipTier || 'plan_free';
+    const plan = DEFAULT_SITE_SETTINGS.memberships.freelancerPlans.find(p => p.id === planId) || DEFAULT_SITE_SETTINGS.memberships.freelancerPlans[0];
+    const quotaLimit = plan?.bidsPerMonth ?? 15;
+
+    // Count proposals submitted by caller in current 30-day window
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    const recentBids = proposals.filter(p => p.freelancerId === caller.id && p.createdAt >= thirtyDaysAgo);
+
+    if (recentBids.length >= quotaLimit) {
+      return res.status(403).json({
+        error: `Monthly proposal quota reached (${recentBids.length}/${quotaLimit} bids used). Upgrade your membership to WorkPerHour Pro Talent to send more bids.`
+      });
+    }
+  }
+
   const newProp: Proposal = {
     id: 'prop_' + Date.now(),
     projectId: req.body.projectId,
@@ -5109,6 +5233,17 @@ app.post('/api/orders', requireAuth, rateLimit(30, 60_000), (req, res) => {
     if (buyerId === sellerId) return res.status(400).json({ error: 'You cannot order from yourself.' });
     ensureWallet(buyerId); ensureWallet(sellerId);
     if (buyer.status !== 'active' || seller.status !== 'active') return res.status(403).json({ error: 'Both accounts must be active to place an order.' });
+
+    // Enforce Max Active Orders per Freelancer limit
+    const maxActiveOrders = DEFAULT_SITE_SETTINGS.marketplace.maxActiveOrdersPerFreelancer;
+    if (maxActiveOrders > 0) {
+      const activeSellerOrders = orders.filter(o => o.sellerId === sellerId && ['funded_in_escrow', 'in_progress', 'delivered', 'revision'].includes(o.status));
+      if (activeSellerOrders.length >= maxActiveOrders) {
+        return res.status(400).json({
+          error: `This seller has reached the maximum allowed active orders (${activeSellerOrders.length}/${maxActiveOrders}). Please try again later.`
+        });
+      }
+    }
 
     const id = 'ord_' + randomUUID().slice(0, 12);
     const today = new Date().toISOString().split('T')[0];
