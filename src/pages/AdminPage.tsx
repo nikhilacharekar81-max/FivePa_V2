@@ -6,6 +6,7 @@ import {
   FileCode, Settings, Activity, ShieldAlert, LogOut, Award
 } from 'lucide-react';
 import { UserAccount, Gig, Project, Proposal, Order } from '../types';
+import { getDeviceId as defaultGetDeviceId } from '../utils/deviceId';
 import { AdminOrdersManager } from '../components/AdminOrdersManager';
 import { PaymentsModule } from '../components/PaymentsModule';
 import { SiteFeeSettingsModule } from '../components/SiteFeeSettingsModule';
@@ -71,14 +72,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
   escrowProtectionDays = 14,
   navigate,
   fetchAllAdminData,
-  getDeviceId = () => {
-    let devId = localStorage.getItem('workperhour_device_id');
-    if (!devId) {
-      devId = 'dev_' + Math.random().toString(36).substring(2, 12);
-      localStorage.setItem('workperhour_device_id', devId);
-    }
-    return devId;
-  }
+  getDeviceId = defaultGetDeviceId
 }) => {
   // Navigation: 21 Admin Modules
   const [adminTab, setAdminTab] = useState<

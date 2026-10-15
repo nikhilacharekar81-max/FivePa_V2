@@ -18,6 +18,7 @@ import { Reviews } from './components/gig_reviews';
 import { useAppData } from './hooks/useAppData';
 import { Header, Footer, ImpersonationBanner } from './layout';
 import { slugify } from './utils/slugify';
+import { getDeviceId } from './utils/deviceId';
 
 import * as DatabaseService from './services/DatabaseService';
 import { initialUsers, initialGigs, initialProjects, initialOrders } from './data/mockData';
@@ -267,14 +268,7 @@ export default function App() {
   const [loginVerificationMessage, setLoginVerificationMessage] = useState('');
 
 
-  const getDeviceId = (): string => {
-    let devId = localStorage.getItem('workperhour_device_id');
-    if (!devId) {
-      devId = 'dev_' + Math.random().toString(36).substring(2, 12);
-      localStorage.setItem('workperhour_device_id', devId);
-    }
-    return devId;
-  };
+
 
   const [supportSubject, setSupportSubject] = useState('');
   const [supportMessage, setSupportMessage] = useState('');
@@ -671,82 +665,13 @@ export default function App() {
 
   const fetchAllAdminData = async () => {
     try {
+      await refresh();
       const activeUserId = impersonatedUser ? impersonatedUser.id : (currentUser ? currentUser.id : null);
       if (activeUserId) {
         fetchUserEmails(activeUserId);
       }
-      const token = getAuthToken();
-      const authHeaders: Record<string, string> = {
-        'x-device-id': getDeviceId(),
-        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-      };
-      const reqOpt = { headers: authHeaders };
-
-      const responses = await Promise.all([
-        fetch('/api/users', reqOpt),
-        fetch('/api/gigs', reqOpt),
-        fetch('/api/projects', reqOpt),
-        fetch('/api/proposals', reqOpt),
-        fetch('/api/orders', reqOpt),
-        fetch('/api/disputes', reqOpt),
-        fetch('/api/refunds', reqOpt),
-        fetch('/api/payouts', reqOpt),
-        fetch('/api/categories', reqOpt),
-        fetch('/api/reviews', reqOpt),
-        fetch('/api/support-tickets', reqOpt),
-        fetch('/api/audit-logs', reqOpt),
-        fetch('/api/admin/settings', reqOpt)
-      ]);
-
-      const [uRes, gRes, pRes, prRes, oRes, dRes, rRes, payRes, cRes, revRes, sRes, aRes, setRes] = responses;
-
-      const usersData = uRes.ok ? await safeJson(uRes, []) : [];
-      const gigsData = gRes.ok ? await safeJson(gRes, []) : [];
-      const projectsData = pRes.ok ? await safeJson(pRes, []) : [];
-      const proposalsData = prRes.ok ? await safeJson(prRes, []) : [];
-      const ords = oRes.ok ? await safeJson(oRes, []) : [];
-      const disputesData = dRes.ok ? await safeJson(dRes, []) : [];
-      const refundsData = rRes.ok ? await safeJson(rRes, []) : [];
-      const payoutsData = payRes.ok ? await safeJson(payRes, []) : [];
-      const categoriesData = cRes.ok ? await safeJson(cRes, []) : [];
-      const reviewsData = revRes.ok ? await safeJson(revRes, []) : [];
-      const supportTicketsData = sRes.ok ? await safeJson(sRes, []) : [];
-      const auditLogsData = aRes.ok ? await safeJson(aRes, []) : [];
-      const settingsData = setRes.ok ? await safeJson(setRes, null) : null;
-
-
-      if (usersData.length > 0) {
-        setUsersList(usersData);
-      } else {
-        setUsersList(DatabaseService.Users);
-      }
-      if (gigsData.length > 0) {
-        setGigs(gigsData);
-      } else {
-        setGigs(DatabaseService.Gigs);
-      }
-      if (projectsData.length > 0) setProjects(projectsData);
-      if (proposalsData.length > 0) setProposals(proposalsData);
-      if (ords.length > 0) {
-        setOrders(ords);
-        if (!selectedOrder) {
-          setSelectedOrder(ords[0]);
-          fetchMessages(ords[0].id);
-        }
-      }
-      if (disputesData.length > 0) setDisputes(disputesData);
-      if (refundsData.length > 0) setRefunds(refundsData);
-      if (payoutsData.length > 0) setPayouts(payoutsData);
-      if (categoriesData.length > 0) setCategories(categoriesData);
-      if (reviewsData.length > 0) setAppReviews(reviewsData);
-      if (supportTicketsData.length > 0) setSupportTickets(supportTicketsData);
-      if (auditLogsData.length > 0) setAuditLogs(auditLogsData);
-      if (settingsData && settingsData.freelancerCommissionRate !== undefined) {
-        setPlatformFee(settingsData.freelancerCommissionRate);
-        if (settingsData.escrowHoldDays) setEscrowProtectionDays(settingsData.escrowHoldDays);
-      }
     } catch (e) {
-      console.error('Error loading admin data:', e);
+      console.error('Error refreshing app data:', e);
     }
   };
 

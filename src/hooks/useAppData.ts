@@ -3,6 +3,7 @@ import { UserAccount, Gig, Project, Proposal, Order, Dispute, Refund, Payout, Ca
 import * as DatabaseService from '../services/DatabaseService';
 import { initialUsers, initialGigs, initialProjects, initialOrders } from '../data/mockData';
 import { getAuthToken } from '../utils/authToken';
+import { getDeviceId } from '../utils/deviceId';
 
 export const useAppData = () => {
   const [users, setUsers] = useState<UserAccount[]>(initialUsers);
@@ -35,14 +36,7 @@ export const useAppData = () => {
     if (DatabaseService.Orders) setOrders(DatabaseService.Orders);
   }, []);
 
-  const getDeviceId = (): string => {
-    let devId = localStorage.getItem('workperhour_device_id');
-    if (!devId) {
-      devId = 'dev_' + Math.random().toString(36).substring(2, 12);
-      localStorage.setItem('workperhour_device_id', devId);
-    }
-    return devId;
-  };
+
 
   const safeJson = async (res: Response, fallback: any = []) => {
     if (!res.ok) return fallback;
