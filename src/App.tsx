@@ -572,6 +572,7 @@ export default function App() {
     handleStartWorkstreamModalSubmit,
     wsRef,
     sendMessage,
+    sendEvent,
     isReviewModalOpen,
     setIsReviewModalOpen,
     handleSubmitReview,
@@ -3982,39 +3983,8 @@ export default function App() {
                       setSelectedOrder(null);
                       navigate('/messages');
                     }}
-                    onSendMessage={async (text) => {
-                      setNewMessageText(text);
-                      try {
-                        const token = getAuthToken();
-                        await fetch(`/api/orders/${activeWsOrder.id}/message`, {
-                          method: 'POST',
-                          headers: { 
-                            'Content-Type': 'application/json',
-                            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-                          },
-                          body: JSON.stringify({ orderId: activeWsOrder.id, text, type: 'message' })
-                        });
-                        fetchMessages(activeWsOrder.id);
-                      } catch (err) {
-                        console.error('Error sending message:', err);
-                      }
-                    }}
-                    onAttachFile={async (file) => {
-                      try {
-                        const token = getAuthToken();
-                        await fetch(`/api/orders/${activeWsOrder.id}/message`, {
-                          method: 'POST',
-                          headers: { 
-                            'Content-Type': 'application/json',
-                            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-                          },
-                          body: JSON.stringify({ orderId: activeWsOrder.id, text: `Attached file: ${file.name}`, type: 'file', fileInfo: file })
-                        });
-                        fetchMessages(activeWsOrder.id);
-                      } catch (err) {
-                        console.error('Error attaching file:', err);
-                      }
-                    }}
+                    onSendMessage={(text) => sendMessage(text, 'message')}
+                    onAttachFile={(file) => sendMessage(`Attached file: ${file.name}`, 'file', file)}
                     onReleaseEscrow={handleReleaseEscrow}
                     onDeliverWork={handleDeliverWork}
                     onRequestRevision={handleRequestRevision}
@@ -4026,6 +3996,9 @@ export default function App() {
                     onViewPartnerProfile={(user) => navigate('/' + (user.username || slugify(user.name)))}
                     onDisputeAssistance={() => navigate('/admin')}
                     onOrderChanged={() => refresh()}
+                    sendEvent={sendEvent}
+                    onLogRequirement={(text) => console.log('Requirement logged:', text)}
+                    onMissedCall={() => console.log('Missed call event')}
                   />
                 );
               })()

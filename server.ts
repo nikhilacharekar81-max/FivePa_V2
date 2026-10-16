@@ -1255,6 +1255,8 @@ interface Message {
     raisedBy?: string;
     isCancelledOrder?: boolean;
     reply?: any;
+    offerId?: string;
+    offerKind?: string;
   };
 }
 

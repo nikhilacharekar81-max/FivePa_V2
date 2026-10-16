@@ -28,6 +28,8 @@ interface WorkstreamWorkspaceProps {
   onBack: () => void;
   onSendMessage: (text: string) => void;
   onAttachFile: (file: { name: string; size: string; url: string }) => void;
+  /** Creates a system event record. */
+  sendEvent: (orderId: string, text: string, type: 'system', metadata: Record<string, any>, onError: (msg: string) => void) => void;
   /** Called after a buyer accepts / pays an offer so the parent can refresh its order list. */
   onOrderChanged?: (order: any, newOrder?: any) => void;
   onReleaseEscrow: () => void | Promise<boolean>;
@@ -54,6 +56,7 @@ export const WorkstreamWorkspace: React.FC<WorkstreamWorkspaceProps> = ({
   onBack,
   onSendMessage,
   onAttachFile,
+  sendEvent,
   onOrderChanged,
   onReleaseEscrow,
   onDeliverWork,
@@ -143,7 +146,6 @@ export const WorkstreamWorkspace: React.FC<WorkstreamWorkspaceProps> = ({
     const text = `📋 Project Requirement Logged: "${reqText}"`;
     const metadata = { action: 'requirement_logged', requirementText: reqText };
     
-    // @ts-ignore
     sendEvent(order.id, text, 'system', metadata, (msg: string) => {
       setErrorInfo({ msg, retryAction: () => handleLogRequirement(reqText) });
     });
@@ -154,7 +156,6 @@ export const WorkstreamWorkspace: React.FC<WorkstreamWorkspaceProps> = ({
     const text = `📞 Missed Video Meeting with ${partner?.name || 'collaborator'}`;
     const metadata = { action: 'missed_call' };
     
-    // @ts-ignore
     sendEvent(order.id, text, 'system', metadata, (msg: string) => {
       setErrorInfo({ msg, retryAction: handleMissedCall });
     });
